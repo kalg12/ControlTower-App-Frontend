@@ -45,10 +45,20 @@ function confirmDeleteClient(client: Client) {
 const page = ref(0)
 const pageSize = 20
 const globalFilter = ref('')
+const appliedFilter = ref('')
 
-const { data: result, isLoading, refetch } = useQuery({
-  queryKey: computed(() => ['clients', page.value]),
-  queryFn: () => clientsService.list({ page: page.value, size: pageSize }),
+let searchTimeout: ReturnType<typeof setTimeout>
+function onSearch() {
+  clearTimeout(searchTimeout)
+  searchTimeout = setTimeout(() => {
+    appliedFilter.value = globalFilter.value
+    page.value = 0
+  }, 400)
+}
+
+const { data: result, isLoading, isError, refetch } = useQuery({
+  queryKey: computed(() => ['clients', page.value, appliedFilter.value]),
+  queryFn: () => clientsService.list({ page: page.value, size: pageSize, search: appliedFilter.value || undefined }),
   staleTime: 15000
 })
 
@@ -67,14 +77,8 @@ function formatDate(dateStr: string) {
   return dayjs(dateStr).format('DD MMM YYYY')
 }
 
-function onPage(event: { page: number }) {
+function onPage(event: { page: number; first: number }) {
   page.value = event.page
-}
-
-let searchTimeout: ReturnType<typeof setTimeout>
-function onSearch() {
-  clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => { page.value = 0; refetch() }, 400)
 }
 
 // --- Create Client Modal ---
@@ -193,11 +197,18 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       />
     </div>
 
+    <!-- Error state -->
+    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+      <span>Failed to load clients. Check your connection or permissions.</span>
+      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
+    </div>
+
     <!-- DataTable -->
     <DataTable
       :value="clients"
       :loading="isLoading"
       :rows="pageSize"
+      :first="page * pageSize"
       :total-records="totalRecords"
       paginator
       lazy
