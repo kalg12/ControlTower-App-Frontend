@@ -14,9 +14,9 @@ api.interceptors.request.use(config => {
 
 api.interceptors.response.use(
   res => {
-    // Unwrap the ApiResponse envelope automatically
+    // Unwrap the ApiResponse envelope { success, message, data, timestamp } automatically
     if (res.data && typeof res.data === 'object' && 'success' in res.data) {
-      return { ...res, data: res.data.data ?? res.data }
+      return { ...res, data: res.data.data }   // .data may be null for void endpoints — that's correct
     }
     return res
   },

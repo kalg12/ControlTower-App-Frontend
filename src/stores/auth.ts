@@ -22,7 +22,6 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.login(req)
 
-      // Build CurrentUser from flat login response
       const currentUser: CurrentUser = {
         id: response.userId,
         email: response.email,
@@ -35,6 +34,13 @@ export const useAuthStore = defineStore('auth', () => {
       localStorage.setItem('accessToken', response.accessToken)
       localStorage.setItem('refreshToken', response.refreshToken)
       localStorage.setItem('user', JSON.stringify(currentUser))
+
+      // Warm up the notifications store after a successful login.
+      // Import lazily to avoid a circular dependency with the store barrel.
+      import('@/stores/notifications').then(({ useNotificationsStore }) => {
+        useNotificationsStore().fetch()
+      })
+
       return response
     } finally {
       loading.value = false

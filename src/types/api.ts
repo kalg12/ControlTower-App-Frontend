@@ -8,8 +8,11 @@ export interface PaginatedResponse<T> {
   content: T[]
   totalElements: number
   totalPages: number
-  number: number
+  page: number      // backend field name
+  number?: number   // some Spring versions use 'number' for current page
   size: number
+  first?: boolean
+  last?: boolean
 }
 
 export interface ApiError {

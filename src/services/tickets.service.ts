@@ -36,7 +36,7 @@ export const ticketsService = {
   },
 
   async assign(id: string, assigneeId: string): Promise<Ticket> {
-    const res = await api.patch<Ticket>(`/tickets/${id}/assign`, { assigneeId })
+    const res = await api.post<Ticket>(`/tickets/${id}/assign`, { assigneeId })
     return res.data
   },
 

@@ -38,9 +38,10 @@ async function handleSaveProfile() {
   if (!profileForm.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email)) {
     profileErrors.email = 'Valid email required'; return
   }
+  if (!authStore.user?.id) return
   savingProfile.value = true
   try {
-    await usersService.updateMe({ fullName: profileForm.fullName, email: profileForm.email })
+    await usersService.update(authStore.user.id, { fullName: profileForm.fullName })
     if (authStore.user) {
       authStore.user.fullName = profileForm.fullName
       authStore.user.email = profileForm.email
