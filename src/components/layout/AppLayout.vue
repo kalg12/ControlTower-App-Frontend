@@ -1,9 +1,14 @@
 <script setup lang="ts">
-import { ref } from 'vue'
+import { ref, onMounted, onUnmounted } from 'vue'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
+import { useWebSocket } from '@/composables/useWebSocket'
 
 const sidebarOpen = ref(false)
+
+const { connect, disconnect } = useWebSocket()
+onMounted(connect)
+onUnmounted(disconnect)
 
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value

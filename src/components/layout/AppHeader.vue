@@ -108,6 +108,13 @@ function goToNotif(n: Notification) {
         <Sun v-else class="w-4 h-4" />
       </button>
 
+      <!-- Live connection indicator -->
+      <span
+        class="w-2 h-2 rounded-full bg-green-400 animate-pulse"
+        title="Real-time connected"
+        aria-label="Connected"
+      />
+
       <!-- Notifications dropdown -->
       <div class="relative">
         <button
