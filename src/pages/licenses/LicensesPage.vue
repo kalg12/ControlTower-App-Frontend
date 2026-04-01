@@ -1,77 +1,65 @@
 <script setup lang="ts">
-import { ref, onMounted } from 'vue'
-import { licensesService } from '@/services/licenses.service'
+import { ref, computed } from 'vue'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
+import Button from 'primevue/button'
 import { useToast } from '@/composables/useToast'
-import Badge from '@/components/ui/Badge.vue'
-import DataTable from '@/components/ui/DataTable.vue'
-import Button from '@/components/ui/Button.vue'
-import Spinner from '@/components/ui/Spinner.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
-import { CreditCard, RefreshCw, PauseCircle } from 'lucide-vue-next'
+import { licensesService } from '@/services/licenses.service'
+import dayjs from 'dayjs'
 import type { License, LicenseStatus } from '@/types/license'
 
 const toast = useToast()
-const loading = ref(true)
-const licenses = ref<License[]>([])
+const queryClient = useQueryClient()
+const page = ref(0)
+const pageSize = 20
 
-const mockLicenses: License[] = [
-  { id: '1', tenantId: 't1', clientId: 'c1', clientName: 'Restaurante El Torito', plan: { id: 'p1', name: 'Professional', maxBranches: 10, features: ['Multi-branch', 'Analytics', 'API Access'] }, status: 'ACTIVE', currentPeriodEnd: new Date(Date.now() + 86400000 * 45).toISOString(), cancelAtPeriodEnd: false },
-  { id: '2', tenantId: 't1', clientId: 'c2', clientName: 'Farmacia San Pablo', plan: { id: 'p2', name: 'Enterprise', maxBranches: 50, features: ['Unlimited branches', 'Priority support', 'Custom integrations'] }, status: 'ACTIVE', currentPeriodEnd: new Date(Date.now() + 86400000 * 12).toISOString(), cancelAtPeriodEnd: false },
-  { id: '3', tenantId: 't1', clientId: 'c3', clientName: 'Oxxo Sucursal Norte', plan: { id: 'p1', name: 'Starter', maxBranches: 3, features: ['Basic POS', 'Reports'] }, status: 'TRIAL', currentPeriodEnd: new Date(Date.now() + 86400000 * 7).toISOString(), cancelAtPeriodEnd: false },
-  { id: '4', tenantId: 't1', clientId: 'c4', clientName: 'Auto Servicio Garza', plan: { id: 'p1', name: 'Professional', maxBranches: 10, features: ['Multi-branch', 'Analytics'] }, status: 'EXPIRED', currentPeriodEnd: new Date(Date.now() - 86400000 * 5).toISOString(), cancelAtPeriodEnd: true },
-  { id: '5', tenantId: 't1', clientId: 'c5', clientName: 'Boutique La Moda', plan: { id: 'p1', name: 'Starter', maxBranches: 3, features: ['Basic POS'] }, status: 'SUSPENDED', currentPeriodEnd: new Date(Date.now() + 86400000 * 20).toISOString(), cancelAtPeriodEnd: false }
-]
+const { data: result, isLoading, refetch } = useQuery({
+  queryKey: computed(() => ['licenses', page.value]),
+  queryFn: () => licensesService.list({ page: page.value, size: pageSize }),
+  staleTime: 15000
+})
 
-const columns = [
-  { key: 'clientName', label: 'Client', sortable: true },
-  { key: 'plan', label: 'Plan' },
-  { key: 'status', label: 'Status', width: '120px' },
-  { key: 'currentPeriodEnd', label: 'Expires', width: '130px', align: 'right' as const },
-  { key: 'actions', label: '', width: '100px', align: 'right' as const }
-]
+const licenses = computed(() => result.value?.content ?? [])
+const totalRecords = computed(() => result.value?.totalElements ?? 0)
 
-async function fetchLicenses() {
-  loading.value = true
-  try {
-    const res = await licensesService.list({ size: 50 })
-    licenses.value = res.content
-  } catch {
-    licenses.value = mockLicenses
-  } finally {
-    loading.value = false
+function statusSeverity(status: LicenseStatus): 'success' | 'warn' | 'danger' | 'secondary' | 'info' {
+  const map: Record<LicenseStatus, 'success' | 'warn' | 'danger' | 'secondary' | 'info'> = {
+    ACTIVE: 'success',
+    TRIAL: 'info',
+    EXPIRED: 'danger',
+    SUSPENDED: 'warn',
+    CANCELLED: 'secondary'
   }
+  return map[status] ?? 'secondary'
 }
 
-onMounted(fetchLicenses)
-
-function statusVariant(status: LicenseStatus): string {
-  const map: Record<LicenseStatus, string> = {
-    ACTIVE: 'success', TRIAL: 'info', EXPIRED: 'danger', SUSPENDED: 'warning', CANCELLED: 'default'
-  }
-  return map[status] ?? 'default'
+function formatDate(dateStr?: string) {
+  if (!dateStr) return '—'
+  const d = dayjs(dateStr)
+  const diff = d.diff(dayjs(), 'day')
+  if (diff < 0) return `Expired ${Math.abs(diff)}d ago`
+  if (diff === 0) return 'Expires today'
+  if (diff <= 7) return `${diff}d left`
+  return d.format('DD MMM YYYY')
 }
 
-function formatDate(dateStr: string): string {
-  const date = new Date(dateStr)
-  const diff = date.getTime() - Date.now()
-  const days = Math.floor(diff / 86400000)
-  if (days < 0) return `Expired ${Math.abs(days)}d ago`
-  if (days === 0) return 'Expires today'
-  if (days <= 7) return `${days}d left`
-  return date.toLocaleDateString('es-MX', { month: 'short', day: 'numeric', year: 'numeric' })
+function isExpiringSoon(dateStr?: string): boolean {
+  if (!dateStr) return false
+  const diff = dayjs(dateStr).diff(dayjs(), 'day')
+  return diff >= 0 && diff <= 14
 }
 
-function isExpiringSoon(dateStr: string): boolean {
-  const diff = new Date(dateStr).getTime() - Date.now()
-  return diff > 0 && diff < 86400000 * 14
+function onPage(event: { page: number }) {
+  page.value = event.page
 }
 
 async function handleSuspend(license: License) {
-  if (!confirm(`Suspend license for ${license.clientName}?`)) return
+  if (!confirm(`Suspend license ${license.id}?`)) return
   try {
     await licensesService.suspend(license.id)
-    const idx = licenses.value.findIndex(l => l.id === license.id)
-    if (idx >= 0) licenses.value[idx].status = 'SUSPENDED'
+    queryClient.invalidateQueries({ queryKey: ['licenses'] })
     toast.success('License suspended')
   } catch {
     toast.error('Failed to suspend license')
@@ -81,8 +69,7 @@ async function handleSuspend(license: License) {
 async function handleReactivate(license: License) {
   try {
     await licensesService.reactivate(license.id)
-    const idx = licenses.value.findIndex(l => l.id === license.id)
-    if (idx >= 0) licenses.value[idx].status = 'ACTIVE'
+    queryClient.invalidateQueries({ queryKey: ['licenses'] })
     toast.success('License reactivated')
   } catch {
     toast.error('Failed to reactivate license')
@@ -95,71 +82,82 @@ async function handleReactivate(license: License) {
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-lg font-semibold text-[var(--text)]">Licenses</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ licenses.length }} total licenses</p>
+        <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} total licenses</p>
       </div>
-      <Button variant="outline" size="sm" @click="fetchLicenses">
-        <RefreshCw class="w-4 h-4" />
-        Refresh
-      </Button>
+      <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-16">
-      <Spinner class="w-7 h-7 text-[var(--primary)]" />
-    </div>
+    <DataTable
+      :value="licenses"
+      :loading="isLoading"
+      :rows="pageSize"
+      :total-records="totalRecords"
+      paginator
+      lazy
+      removable-sort
+      striped-rows
+      class="rounded-xl overflow-hidden"
+      @page="onPage"
+    >
+      <Column field="clientId" header="Client" sortable style="min-width: 150px">
+        <template #body="{ data: row }: { data: License }">
+          <span class="font-medium text-[var(--text)] text-sm">{{ row.clientName ?? row.clientId ?? '—' }}</span>
+        </template>
+      </Column>
 
-    <template v-else>
-      <DataTable :columns="columns" :rows="licenses as any[]" :loading="false">
-        <template #cell-clientName="{ row }">
-          <span class="font-medium text-[var(--text)]">{{ row.clientName as string }}</span>
+      <Column field="planName" header="Plan" style="min-width: 120px">
+        <template #body="{ data: row }: { data: License }">
+          <span class="text-[var(--text)] text-sm">{{ row.planName ?? row.plan?.name ?? '—' }}</span>
         </template>
-        <template #cell-plan="{ row }">
-          <div>
-            <p class="text-sm font-medium text-[var(--text)]">{{ (row.plan as License['plan']).name }}</p>
-            <p class="text-xs text-[var(--text-muted)]">Up to {{ (row.plan as License['plan']).maxBranches }} branches</p>
-          </div>
+      </Column>
+
+      <Column field="status" header="Status" style="width: 120px">
+        <template #body="{ data: row }: { data: License }">
+          <Tag :severity="statusSeverity(row.status)" :value="row.status" />
         </template>
-        <template #cell-status="{ row }">
-          <Badge :variant="(statusVariant(row.status as LicenseStatus) as any)" dot>{{ row.status as string }}</Badge>
-        </template>
-        <template #cell-currentPeriodEnd="{ row }">
-          <span :class="[
-            'text-sm',
-            isExpiringSoon(row.currentPeriodEnd as string) ? 'text-[var(--warning)] font-medium' :
-            (row.status as string) === 'EXPIRED' ? 'text-[var(--danger)]' :
-            'text-[var(--text-muted)]'
-          ]">
-            {{ formatDate(row.currentPeriodEnd as string) }}
+      </Column>
+
+      <Column field="currentPeriodEnd" header="Period End" sortable style="width: 150px">
+        <template #body="{ data: row }: { data: License }">
+          <span
+            class="text-sm"
+            :class="isExpiringSoon(row.currentPeriodEnd)
+              ? 'text-amber-500 font-medium'
+              : row.status === 'EXPIRED' ? 'text-red-500' : 'text-[var(--text-muted)]'"
+          >
+            {{ formatDate(row.currentPeriodEnd) }}
           </span>
         </template>
-        <template #cell-actions="{ row }">
-          <div class="flex items-center justify-end gap-1">
-            <button
-              v-if="(row.status as string) === 'ACTIVE' || (row.status as string) === 'TRIAL'"
-              class="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--warning)] hover:bg-amber-50 dark:hover:bg-amber-950 transition-colors"
+      </Column>
+
+      <Column header="Actions" style="width: 110px">
+        <template #body="{ data: row }: { data: License }">
+          <div class="flex items-center gap-1">
+            <Button
+              v-if="row.status === 'ACTIVE' || row.status === 'TRIAL'"
+              icon="pi pi-pause"
+              severity="warn"
+              text
+              size="small"
               title="Suspend"
-              @click="handleSuspend(row as unknown as License)"
-            >
-              <PauseCircle class="w-4 h-4" />
-            </button>
-            <button
-              v-if="(row.status as string) === 'SUSPENDED' || (row.status as string) === 'EXPIRED'"
-              class="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--success)] hover:bg-green-50 dark:hover:bg-green-950 transition-colors"
+              @click="handleSuspend(row)"
+            />
+            <Button
+              v-if="row.status === 'SUSPENDED' || row.status === 'EXPIRED'"
+              icon="pi pi-play"
+              severity="success"
+              text
+              size="small"
               title="Reactivate"
-              @click="handleReactivate(row as unknown as License)"
-            >
-              <RefreshCw class="w-4 h-4" />
-            </button>
+              @click="handleReactivate(row)"
+            />
           </div>
         </template>
-      </DataTable>
+      </Column>
 
-      <EmptyState
-        v-if="licenses.length === 0"
-        title="No licenses found"
-        description="License data will appear here once clients are registered."
-      >
-        <template #icon><CreditCard class="w-6 h-6" /></template>
-      </EmptyState>
-    </template>
+      <template #empty>
+        <div class="text-center py-8 text-[var(--text-muted)]">No licenses found</div>
+      </template>
+    </DataTable>
   </div>
 </template>

@@ -4,18 +4,23 @@ export interface License {
   id: string
   tenantId: string
   clientId?: string
+  planId?: string
+  planName?: string
+  status: LicenseStatus
+  currentPeriodStart?: string
+  currentPeriodEnd?: string
+  gracePeriodEnd?: string
+  stripeSubscriptionId?: string
+  createdAt?: string
+  // Legacy fields for backward compat
   clientName?: string
-  plan: {
+  plan?: {
     id: string
     name: string
     maxBranches: number
     features: string[]
   }
-  status: LicenseStatus
-  currentPeriodEnd: string
-  cancelAtPeriodEnd: boolean
-  stripeSubscriptionId?: string
-  createdAt?: string
+  cancelAtPeriodEnd?: boolean
 }
 
 export interface LicenseFilters {

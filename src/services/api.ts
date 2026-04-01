@@ -13,11 +13,18 @@ api.interceptors.request.use(config => {
 })
 
 api.interceptors.response.use(
-  res => res,
+  res => {
+    // Unwrap the ApiResponse envelope automatically
+    if (res.data && typeof res.data === 'object' && 'success' in res.data) {
+      return { ...res, data: res.data.data ?? res.data }
+    }
+    return res
+  },
   async (error: AxiosError) => {
     if (error.response?.status === 401) {
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
+      localStorage.removeItem('user')
       window.location.href = '/login'
     }
     return Promise.reject(error)

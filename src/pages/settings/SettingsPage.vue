@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Card from '@/components/ui/Card.vue'
 import Avatar from '@/components/ui/Avatar.vue'
-import { User, Lock, Bell, Sun, Moon, Shield, ShieldOff } from 'lucide-vue-next'
+import { User, Lock, Bell, Sun, Moon, ShieldOff } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
@@ -123,11 +123,9 @@ const notifPrefs = reactive({
             <p class="text-sm text-[var(--text-muted)]">{{ authStore.user?.email }}</p>
             <div class="flex flex-wrap gap-1 mt-1.5">
               <span
-                v-for="role in authStore.user?.roles"
-                :key="role"
                 class="text-[10px] font-medium px-1.5 py-0.5 bg-[var(--primary)]/10 text-[var(--primary)] rounded-full uppercase tracking-wide"
               >
-                {{ role }}
+                User
               </span>
             </div>
           </div>
@@ -198,27 +196,15 @@ const notifPrefs = reactive({
         </template>
         <div class="flex items-start justify-between gap-4">
           <div class="flex items-start gap-3">
-            <div :class="['w-9 h-9 rounded-lg flex items-center justify-center', authStore.user?.twoFactorEnabled ? 'bg-green-50 dark:bg-green-950' : 'bg-[var(--surface-raised)]']">
-              <Shield v-if="authStore.user?.twoFactorEnabled" class="w-5 h-5 text-green-600 dark:text-green-400" />
-              <ShieldOff v-else class="w-5 h-5 text-[var(--text-muted)]" />
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--surface-raised)]">
+              <ShieldOff class="w-5 h-5 text-[var(--text-muted)]" />
             </div>
             <div>
-              <p class="text-sm font-medium text-[var(--text)]">
-                {{ authStore.user?.twoFactorEnabled ? '2FA is enabled' : '2FA is disabled' }}
-              </p>
-              <p class="text-xs text-[var(--text-muted)] mt-0.5">
-                {{ authStore.user?.twoFactorEnabled
-                  ? 'Your account is protected with two-factor authentication.'
-                  : 'Add extra security with an authenticator app.' }}
-              </p>
+              <p class="text-sm font-medium text-[var(--text)]">2FA is disabled</p>
+              <p class="text-xs text-[var(--text-muted)] mt-0.5">Add extra security with an authenticator app.</p>
             </div>
           </div>
-          <Button
-            :variant="authStore.user?.twoFactorEnabled ? 'danger' : 'primary'"
-            size="sm"
-          >
-            {{ authStore.user?.twoFactorEnabled ? 'Disable 2FA' : 'Enable 2FA' }}
-          </Button>
+          <Button variant="primary" size="sm">Enable 2FA</Button>
         </div>
       </Card>
     </div>

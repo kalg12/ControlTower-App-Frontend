@@ -1,11 +1,17 @@
 export interface Client {
   id: string
+  tenantId: string
   name: string
-  slug: string
+  legalName?: string
+  taxId?: string
+  country?: string
+  status?: string
+  notes?: string
+  createdAt: string
+  // Legacy fields kept for backward compat
+  slug?: string
   contactEmail?: string
   contactPhone?: string
-  tenantId: string
-  createdAt: string
   branches?: ClientBranch[]
   branchCount?: number
 }

@@ -23,16 +23,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     }
   }
 
-  async function fetchUnreadCount() {
-    try {
-      const res = await notificationsService.getUnreadCount()
-      // Sync unread count by updating local items if needed
-      return res.count
-    } catch {
-      return 0
-    }
-  }
-
   async function markRead(id: string) {
     await notificationsService.markRead(id)
     const item = items.value.find(n => n.id === id)
@@ -45,8 +35,13 @@ export const useNotificationsStore = defineStore('notifications', () => {
   }
 
   async function remove(id: string) {
-    await notificationsService.delete(id)
+    await notificationsService.remove(id)
     items.value = items.value.filter(n => n.id !== id)
+  }
+
+  // Auto-fetch on store creation if token exists
+  if (localStorage.getItem('accessToken')) {
+    fetch()
   }
 
   return {
@@ -55,7 +50,6 @@ export const useNotificationsStore = defineStore('notifications', () => {
     totalElements,
     unreadCount,
     fetch,
-    fetchUnreadCount,
     markRead,
     markAllRead,
     remove

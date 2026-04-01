@@ -8,11 +8,6 @@ export const notificationsService = {
     return res.data
   },
 
-  async getUnreadCount(): Promise<{ count: number }> {
-    const res = await api.get<{ count: number }>('/notifications/unread-count')
-    return res.data
-  },
-
   async markRead(id: string): Promise<void> {
     await api.patch(`/notifications/${id}/read`)
   },
@@ -21,7 +16,7 @@ export const notificationsService = {
     await api.patch('/notifications/read-all')
   },
 
-  async delete(id: string): Promise<void> {
+  async remove(id: string): Promise<void> {
     await api.delete(`/notifications/${id}`)
   }
 }

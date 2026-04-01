@@ -25,27 +25,28 @@ const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'Co
 
 const recentNotifs = computed(() => notifStore.items.slice(0, 5))
 
-type NotifType = Notification['type']
-
-const iconMap: Record<NotifType, typeof Info> = {
-  INFO: Info,
-  WARNING: AlertTriangle,
-  ERROR: XCircle,
-  SUCCESS: CheckCircle
+function getNotifIcon(n: Notification): typeof Info {
+  const s = (n.severity || n.type || '').toUpperCase()
+  if (s === 'ERROR' || s === 'CRITICAL') return XCircle
+  if (s === 'WARNING' || s === 'WARN') return AlertTriangle
+  if (s === 'SUCCESS') return CheckCircle
+  return Info
 }
 
-const dotColor: Record<NotifType, string> = {
-  INFO: 'bg-blue-500',
-  WARNING: 'bg-amber-500',
-  ERROR: 'bg-red-500',
-  SUCCESS: 'bg-green-500'
+function getNotifDotColor(n: Notification): string {
+  const s = (n.severity || n.type || '').toUpperCase()
+  if (s === 'ERROR' || s === 'CRITICAL') return 'bg-red-500'
+  if (s === 'WARNING' || s === 'WARN') return 'bg-amber-500'
+  if (s === 'SUCCESS') return 'bg-green-500'
+  return 'bg-blue-500'
 }
 
-const iconColor: Record<NotifType, string> = {
-  INFO: 'text-blue-500',
-  WARNING: 'text-amber-500',
-  ERROR: 'text-red-500',
-  SUCCESS: 'text-green-500'
+function getNotifIconColor(n: Notification): string {
+  const s = (n.severity || n.type || '').toUpperCase()
+  if (s === 'ERROR' || s === 'CRITICAL') return 'text-red-500'
+  if (s === 'WARNING' || s === 'WARN') return 'text-amber-500'
+  if (s === 'SUCCESS') return 'text-green-500'
+  return 'text-blue-500'
 }
 
 function formatTime(dateStr: string): string {
@@ -76,8 +77,7 @@ async function handleLogout() {
 function goToNotif(n: Notification) {
   notifOpen.value = false
   if (!n.read) notifStore.markRead(n.id).catch(() => { n.read = true })
-  if (n.link) router.push(n.link)
-  else router.push('/notifications')
+  router.push('/notifications')
 }
 </script>
 
@@ -167,7 +167,7 @@ function goToNotif(n: Notification) {
               >
                 <!-- Icon -->
                 <div class="flex-shrink-0 mt-0.5">
-                  <component :is="iconMap[n.type]" class="w-4 h-4" :class="iconColor[n.type]" />
+                  <component :is="getNotifIcon(n)" class="w-4 h-4" :class="getNotifIconColor(n)" />
                 </div>
 
                 <!-- Content -->
@@ -177,11 +177,11 @@ function goToNotif(n: Notification) {
                       {{ n.title }}
                     </p>
                     <div class="flex items-center gap-1.5 flex-shrink-0">
-                      <span v-if="!n.read" class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="dotColor[n.type]" />
+                      <span v-if="!n.read" class="w-1.5 h-1.5 rounded-full flex-shrink-0" :class="getNotifDotColor(n)" />
                       <span class="text-[10px] text-[var(--text-placeholder)]">{{ formatTime(n.createdAt) }}</span>
                     </div>
                   </div>
-                  <p class="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2 leading-relaxed">{{ n.message }}</p>
+                  <p class="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2 leading-relaxed">{{ n.body }}</p>
                 </div>
               </div>
 

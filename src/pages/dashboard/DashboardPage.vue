@@ -1,111 +1,84 @@
 <script setup lang="ts">
-import { ref, onMounted, computed } from 'vue'
-import { dashboardService, type DashboardData } from '@/services/dashboard.service'
+import { computed } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import { dashboardService } from '@/services/dashboard.service'
+import { Doughnut } from 'vue-chartjs'
+import {
+  Chart as ChartJS,
+  ArcElement,
+  Tooltip,
+  Legend
+} from 'chart.js'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import Badge from '@/components/ui/Badge.vue'
 import Card from '@/components/ui/Card.vue'
 import Spinner from '@/components/ui/Spinner.vue'
 import { Building2, MessageSquare, Activity, CreditCard, AlertTriangle } from 'lucide-vue-next'
-import type { TicketStatus, TicketPriority } from '@/types/ticket'
-import type { HealthStatus } from '@/types/health'
 
-const loading = ref(true)
-const data = ref<DashboardData | null>(null)
+dayjs.extend(relativeTime)
 
-const mockData: DashboardData = {
-  stats: {
-    totalClients: 48,
-    openTickets: 17,
-    healthyBranches: 142,
-    totalBranches: 156,
-    activeLicenses: 48,
-    criticalAlerts: 3
-  },
-  recentTickets: [
-    { id: '1', title: 'POS system not printing receipts', status: 'OPEN', priority: 'HIGH', tenantId: 't1', clientName: 'Restaurante El Torito', createdAt: new Date(Date.now() - 3600000).toISOString(), updatedAt: new Date().toISOString(), description: '' },
-    { id: '2', title: 'Inventory sync failing', status: 'IN_PROGRESS', priority: 'CRITICAL', tenantId: 't1', clientName: 'Farmacia San Pablo', createdAt: new Date(Date.now() - 7200000).toISOString(), updatedAt: new Date().toISOString(), description: '' },
-    { id: '3', title: 'Card reader not connecting', status: 'PENDING_CUSTOMER', priority: 'MEDIUM', tenantId: 't1', clientName: 'Oxxo Sucursal Norte', createdAt: new Date(Date.now() - 86400000).toISOString(), updatedAt: new Date().toISOString(), description: '' },
-    { id: '4', title: 'Wrong tax calculation on invoices', status: 'OPEN', priority: 'HIGH', tenantId: 't1', clientName: 'Auto Servicio Garza', createdAt: new Date(Date.now() - 172800000).toISOString(), updatedAt: new Date().toISOString(), description: '' },
-    { id: '5', title: 'Login issues after update', status: 'RESOLVED', priority: 'LOW', tenantId: 't1', clientName: 'Boutique La Moda', createdAt: new Date(Date.now() - 259200000).toISOString(), updatedAt: new Date().toISOString(), description: '' }
-  ],
-  healthOverview: [
-    { id: '1', branchId: 'b1', branchName: 'Sucursal Centro', clientName: 'Restaurante El Torito', clientId: 'c1', status: 'HEALTHY', latencyMs: 45, checkedAt: new Date().toISOString() },
-    { id: '2', branchId: 'b2', branchName: 'Sucursal Norte', clientName: 'Farmacia San Pablo', clientId: 'c2', status: 'DOWN', latencyMs: undefined, checkedAt: new Date().toISOString(), message: 'Connection timeout' },
-    { id: '3', branchId: 'b3', branchName: 'Localidad Polanco', clientName: 'Oxxo Sucursal Norte', clientId: 'c3', status: 'DEGRADED', latencyMs: 820, checkedAt: new Date().toISOString(), message: 'High latency' },
-    { id: '4', branchId: 'b4', branchName: 'Sucursal Sur', clientName: 'Auto Servicio Garza', clientId: 'c4', status: 'HEALTHY', latencyMs: 38, checkedAt: new Date().toISOString() },
-    { id: '5', branchId: 'b5', branchName: 'Plaza Satélite', clientName: 'Boutique La Moda', clientId: 'c5', status: 'HEALTHY', latencyMs: 62, checkedAt: new Date().toISOString() }
+ChartJS.register(ArcElement, Tooltip, Legend)
+
+const { data, isLoading, isError } = useQuery({
+  queryKey: ['dashboard'],
+  queryFn: () => dashboardService.getDashboard(),
+  staleTime: 30000
+})
+
+const healthChartData = computed(() => ({
+  labels: ['Up', 'Degraded', 'Down'],
+  datasets: [
+    {
+      data: [
+        data.value?.branchesUp ?? 0,
+        data.value?.branchesDegraded ?? 0,
+        data.value?.branchesDown ?? 0
+      ],
+      backgroundColor: ['#22c55e', '#f59e0b', '#ef4444'],
+      borderWidth: 0,
+      hoverOffset: 4
+    }
   ]
-}
+}))
 
-async function fetchData() {
-  loading.value = true
-  try {
-    data.value = await dashboardService.getDashboard()
-  } catch {
-    // Use mock data when API is not available
-    data.value = mockData
-  } finally {
-    loading.value = false
+const healthChartOptions = {
+  responsive: true,
+  maintainAspectRatio: false,
+  plugins: {
+    legend: {
+      position: 'bottom' as const,
+      labels: { font: { size: 11 }, padding: 12, boxWidth: 10 }
+    }
   }
-}
-
-onMounted(fetchData)
-
-function ticketStatusVariant(status: TicketStatus): string {
-  const map: Record<TicketStatus, string> = {
-    OPEN: 'info',
-    IN_PROGRESS: 'purple',
-    PENDING_CUSTOMER: 'warning',
-    RESOLVED: 'success',
-    CLOSED: 'default'
-  }
-  return map[status] ?? 'default'
-}
-
-function ticketPriorityVariant(priority: TicketPriority): string {
-  const map: Record<TicketPriority, string> = {
-    LOW: 'default',
-    MEDIUM: 'warning',
-    HIGH: 'danger',
-    CRITICAL: 'danger'
-  }
-  return map[priority] ?? 'default'
-}
-
-function healthVariant(status: HealthStatus): string {
-  const map: Record<HealthStatus, string> = {
-    HEALTHY: 'success',
-    DEGRADED: 'warning',
-    DOWN: 'danger',
-    UNKNOWN: 'default'
-  }
-  return map[status] ?? 'default'
-}
-
-function formatRelativeTime(dateStr: string): string {
-  const date = new Date(dateStr)
-  const diff = Date.now() - date.getTime()
-  const mins = Math.floor(diff / 60000)
-  if (mins < 60) return `${mins}m ago`
-  const hours = Math.floor(mins / 60)
-  if (hours < 24) return `${hours}h ago`
-  const days = Math.floor(hours / 24)
-  return `${days}d ago`
 }
 
 const healthPercentage = computed(() => {
-  if (!data.value?.stats.totalBranches) return 0
-  return Math.round((data.value.stats.healthyBranches / data.value.stats.totalBranches) * 100)
+  if (!data.value?.activeBranches) return 0
+  return Math.round(((data.value.branchesUp ?? 0) / data.value.activeBranches) * 100)
 })
+
+function formatNow() {
+  return dayjs().format('DD MMM YYYY, HH:mm')
+}
 </script>
 
 <template>
   <div class="space-y-6">
     <!-- Loading skeleton -->
-    <div v-if="loading" class="flex items-center justify-center py-20">
+    <div v-if="isLoading" class="flex items-center justify-center py-20">
       <Spinner class="w-8 h-8 text-[var(--primary)]" />
     </div>
 
+    <!-- Error state -->
+    <div v-else-if="isError" class="flex items-center justify-center py-20">
+      <p class="text-sm text-[var(--text-muted)]">Failed to load dashboard data. Please try again.</p>
+    </div>
+
     <template v-else-if="data">
+      <!-- Last updated -->
+      <p class="text-xs text-[var(--text-placeholder)] text-right">Updated {{ formatNow() }}</p>
+
       <!-- Stats cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
         <!-- Total Clients -->
@@ -113,7 +86,7 @@ const healthPercentage = computed(() => {
           <div class="flex items-start justify-between">
             <div>
               <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Total Clients</p>
-              <p class="text-2xl font-bold text-[var(--text)]">{{ data.stats.totalClients }}</p>
+              <p class="text-2xl font-bold text-[var(--text)]">{{ data.totalClients }}</p>
             </div>
             <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
               <Building2 class="w-4.5 h-4.5 text-blue-600 dark:text-blue-400" />
@@ -126,15 +99,18 @@ const healthPercentage = computed(() => {
           <div class="flex items-start justify-between">
             <div>
               <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Open Tickets</p>
-              <p class="text-2xl font-bold text-[var(--text)]">{{ data.stats.openTickets }}</p>
+              <p class="text-2xl font-bold text-[var(--text)]">{{ data.openTickets }}</p>
             </div>
             <div class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
               <MessageSquare class="w-4.5 h-4.5 text-amber-600 dark:text-amber-400" />
             </div>
           </div>
-          <div v-if="data.stats.criticalAlerts > 0" class="mt-3 flex items-center gap-1.5 text-xs text-[var(--danger)]">
+          <div v-if="data.slaBreachedTickets > 0" class="mt-3 flex items-center gap-1.5 text-xs text-[var(--danger)]">
             <AlertTriangle class="w-3 h-3" />
-            {{ data.stats.criticalAlerts }} critical
+            {{ data.slaBreachedTickets }} SLA breached
+          </div>
+          <div v-if="data.ticketsInProgress > 0" class="mt-1 text-xs text-[var(--text-muted)]">
+            {{ data.ticketsInProgress }} in progress
           </div>
         </Card>
 
@@ -142,10 +118,10 @@ const healthPercentage = computed(() => {
         <Card>
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Healthy Branches</p>
+              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Branch Health</p>
               <p class="text-2xl font-bold text-[var(--text)]">
-                {{ data.stats.healthyBranches }}
-                <span class="text-sm font-normal text-[var(--text-muted)]">/ {{ data.stats.totalBranches }}</span>
+                {{ data.branchesUp }}
+                <span class="text-sm font-normal text-[var(--text-muted)]">/ {{ data.activeBranches }}</span>
               </p>
             </div>
             <div class="w-9 h-9 rounded-lg bg-green-50 dark:bg-green-950 flex items-center justify-center">
@@ -163,6 +139,10 @@ const healthPercentage = computed(() => {
                 :style="{ width: healthPercentage + '%' }"
               />
             </div>
+            <div v-if="data.branchesDown > 0 || data.branchesDegraded > 0" class="mt-1.5 flex items-center gap-2 text-xs">
+              <span v-if="data.branchesDown > 0" class="text-red-500">{{ data.branchesDown }} down</span>
+              <span v-if="data.branchesDegraded > 0" class="text-amber-500">{{ data.branchesDegraded }} degraded</span>
+            </div>
           </div>
         </Card>
 
@@ -171,85 +151,83 @@ const healthPercentage = computed(() => {
           <div class="flex items-start justify-between">
             <div>
               <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Active Licenses</p>
-              <p class="text-2xl font-bold text-[var(--text)]">{{ data.stats.activeLicenses }}</p>
+              <p class="text-2xl font-bold text-[var(--text)]">{{ data.activeLicenses }}</p>
             </div>
             <div class="w-9 h-9 rounded-lg bg-violet-50 dark:bg-violet-950 flex items-center justify-center">
               <CreditCard class="w-4.5 h-4.5 text-violet-600 dark:text-violet-400" />
             </div>
+          </div>
+          <div class="mt-2 flex items-center gap-3 text-xs">
+            <span v-if="data.trialLicenses > 0" class="text-blue-500">{{ data.trialLicenses }} trial</span>
+            <span v-if="data.expiredLicenses > 0" class="text-red-500">{{ data.expiredLicenses }} expired</span>
           </div>
         </Card>
       </div>
 
       <!-- Main content grid -->
       <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <!-- Recent Tickets -->
-        <Card :padding="false">
+        <!-- Health Status Breakdown (doughnut chart) -->
+        <Card>
           <template #header>
             <div class="flex items-center justify-between w-full">
-              <h2 class="text-sm font-semibold text-[var(--text)]">Recent Tickets</h2>
-              <RouterLink to="/tickets" class="text-xs text-[var(--primary)] hover:text-[var(--primary-hover)] font-medium transition-colors">
-                View all
-              </RouterLink>
-            </div>
-          </template>
-
-          <div class="divide-y divide-[var(--border-subtle)]">
-            <div
-              v-for="ticket in data.recentTickets"
-              :key="ticket.id"
-              class="px-4 py-3 hover:bg-[var(--bg-subtle)] transition-colors"
-            >
-              <div class="flex items-start justify-between gap-3 mb-1.5">
-                <p class="text-sm font-medium text-[var(--text)] line-clamp-1 flex-1">{{ ticket.title }}</p>
-                <div class="flex items-center gap-1.5 flex-shrink-0">
-                  <Badge :variant="(ticketPriorityVariant(ticket.priority) as any)" dot>{{ ticket.priority }}</Badge>
-                  <Badge :variant="(ticketStatusVariant(ticket.status) as any)">{{ ticket.status.replace('_', ' ') }}</Badge>
-                </div>
-              </div>
-              <div class="flex items-center justify-between">
-                <span class="text-xs text-[var(--text-muted)]">{{ ticket.clientName }}</span>
-                <span class="text-xs text-[var(--text-placeholder)]">{{ formatRelativeTime(ticket.createdAt) }}</span>
-              </div>
-            </div>
-
-            <div v-if="data.recentTickets.length === 0" class="px-4 py-8 text-center text-sm text-[var(--text-muted)]">
-              No recent tickets
-            </div>
-          </div>
-        </Card>
-
-        <!-- Health Overview -->
-        <Card :padding="false">
-          <template #header>
-            <div class="flex items-center justify-between w-full">
-              <h2 class="text-sm font-semibold text-[var(--text)]">Health Overview</h2>
+              <h2 class="text-sm font-semibold text-[var(--text)]">Health Status Breakdown</h2>
               <RouterLink to="/health" class="text-xs text-[var(--primary)] hover:text-[var(--primary-hover)] font-medium transition-colors">
                 View all
               </RouterLink>
             </div>
           </template>
-
-          <div class="divide-y divide-[var(--border-subtle)]">
-            <div
-              v-for="check in data.healthOverview"
-              :key="check.id"
-              class="px-4 py-3 hover:bg-[var(--bg-subtle)] transition-colors"
-            >
-              <div class="flex items-center justify-between gap-3">
-                <div class="flex-1 min-w-0">
-                  <p class="text-sm font-medium text-[var(--text)] truncate">{{ check.branchName }}</p>
-                  <p class="text-xs text-[var(--text-muted)] truncate">{{ check.clientName }}</p>
-                </div>
-                <div class="flex items-center gap-3 flex-shrink-0">
-                  <span v-if="check.latencyMs" class="text-xs text-[var(--text-muted)]">{{ check.latencyMs }}ms</span>
-                  <Badge :variant="(healthVariant(check.status) as any)" dot>{{ check.status }}</Badge>
-                </div>
-              </div>
-              <p v-if="check.message" class="text-xs text-[var(--text-muted)] mt-1">{{ check.message }}</p>
+          <div class="flex flex-col items-center gap-4">
+            <div class="h-48 w-48">
+              <Doughnut :data="healthChartData" :options="healthChartOptions" />
             </div>
+            <div class="flex items-center gap-4 text-xs">
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-green-500 inline-block" />
+                <span class="text-[var(--text-muted)]">Up ({{ data.branchesUp }})</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-amber-500 inline-block" />
+                <span class="text-[var(--text-muted)]">Degraded ({{ data.branchesDegraded }})</span>
+              </div>
+              <div class="flex items-center gap-1.5">
+                <span class="w-2.5 h-2.5 rounded-full bg-red-500 inline-block" />
+                <span class="text-[var(--text-muted)]">Down ({{ data.branchesDown }})</span>
+              </div>
+            </div>
+          </div>
+        </Card>
 
-            <div v-if="data.healthOverview.length === 0" class="px-4 py-8 text-center text-sm text-[var(--text-muted)]">
-              No health data available
+        <!-- Incidents & Notifications Summary -->
+        <Card>
+          <template #header>
+            <h2 class="text-sm font-semibold text-[var(--text)]">Summary</h2>
+          </template>
+          <div class="space-y-3">
+            <div class="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+              <span class="text-sm text-[var(--text-muted)]">Open Incidents</span>
+              <Badge :variant="data.openIncidents > 0 ? 'danger' : 'success'">
+                {{ data.openIncidents }}
+              </Badge>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+              <span class="text-sm text-[var(--text-muted)]">Tickets In Progress</span>
+              <Badge variant="purple">{{ data.ticketsInProgress }}</Badge>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+              <span class="text-sm text-[var(--text-muted)]">SLA Breached</span>
+              <Badge :variant="data.slaBreachedTickets > 0 ? 'danger' : 'success'">
+                {{ data.slaBreachedTickets }}
+              </Badge>
+            </div>
+            <div class="flex items-center justify-between py-2 border-b border-[var(--border-subtle)]">
+              <span class="text-sm text-[var(--text-muted)]">Trial Licenses</span>
+              <Badge variant="info">{{ data.trialLicenses }}</Badge>
+            </div>
+            <div class="flex items-center justify-between py-2">
+              <span class="text-sm text-[var(--text-muted)]">Unread Notifications</span>
+              <Badge :variant="data.unreadNotifications > 0 ? 'warning' : 'default'">
+                {{ data.unreadNotifications }}
+              </Badge>
             </div>
           </div>
         </Card>

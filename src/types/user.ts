@@ -1,12 +1,15 @@
 export interface User {
   id: string
+  tenantId: string
   email: string
   fullName: string
   status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
-  twoFactorEnabled: boolean
-  tenantId: string
-  roles: Role[]
+  superAdmin?: boolean
+  roles: string[]
+  permissions: string[]
   createdAt: string
+  // Legacy fields
+  twoFactorEnabled?: boolean
 }
 
 export interface Role {

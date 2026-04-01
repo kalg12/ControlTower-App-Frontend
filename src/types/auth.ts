@@ -4,30 +4,26 @@ export interface LoginRequest {
   totpCode?: string
 }
 
+// Matches exactly what the backend returns from /auth/login (after unwrap)
 export interface LoginResponse {
   accessToken: string
   refreshToken: string
   tokenType: string
-  expiresIn: number
-  user: CurrentUser
+  userId: string
+  tenantId: string
+  email: string
+  fullName: string
+  requiresMfa: boolean
+  mfaToken?: string
 }
 
+// What we store in the Pinia store
 export interface CurrentUser {
   id: string
   email: string
   fullName: string
-  roles: string[]
-  permissions: string[]
   tenantId: string
-  tenantSlug: string
-  twoFactorEnabled?: boolean
 }
 
-export interface ForgotPasswordRequest {
-  email: string
-}
-
-export interface ResetPasswordRequest {
-  token: string
-  newPassword: string
-}
+export interface ForgotPasswordRequest { email: string }
+export interface ResetPasswordRequest { token: string; newPassword: string }

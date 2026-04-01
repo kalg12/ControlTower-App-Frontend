@@ -1,122 +1,50 @@
 <script setup lang="ts">
-import { ref, reactive, onMounted, watch } from 'vue'
+import { ref, computed } from 'vue'
+import { useQuery } from '@tanstack/vue-query'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
+import Tag from 'primevue/tag'
+import InputText from 'primevue/inputtext'
+import Button from 'primevue/button'
 import { usersService } from '@/services/users.service'
-import { useToast } from '@/composables/useToast'
-import Button from '@/components/ui/Button.vue'
-import Badge from '@/components/ui/Badge.vue'
-import DataTable from '@/components/ui/DataTable.vue'
-import Modal from '@/components/ui/Modal.vue'
-import Input from '@/components/ui/Input.vue'
-import Spinner from '@/components/ui/Spinner.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
-import Avatar from '@/components/ui/Avatar.vue'
-import { Plus, Search, Users, Shield, ShieldOff, Trash2 } from 'lucide-vue-next'
-import type { User, CreateUserRequest } from '@/types/user'
+import dayjs from 'dayjs'
+import type { User } from '@/types/user'
+import { Shield, ShieldOff } from 'lucide-vue-next'
 
-const toast = useToast()
-const loading = ref(true)
-const users = ref<User[]>([])
-const total = ref(0)
-const search = ref('')
-const showCreateModal = ref(false)
-const creating = ref(false)
+const page = ref(0)
+const pageSize = 20
+const globalFilter = ref('')
 
-const createForm = reactive<CreateUserRequest>({
-  email: '',
-  fullName: '',
-  password: '',
-  roleIds: []
+const { data: result, isLoading, refetch } = useQuery({
+  queryKey: computed(() => ['users', page.value]),
+  queryFn: () => usersService.list({ page: page.value, size: pageSize }),
+  staleTime: 15000
 })
-const createErrors = reactive({ email: '', fullName: '', password: '' })
 
-const mockUsers: User[] = [
-  { id: '1', email: 'admin@controltower.mx', fullName: 'Carlos Mendoza', status: 'ACTIVE', twoFactorEnabled: true, tenantId: 't1', roles: [{ id: 'r1', name: 'ADMIN', permissions: ['*'] }], createdAt: new Date(Date.now() - 86400000 * 180).toISOString() },
-  { id: '2', email: 'soporte@controltower.mx', fullName: 'Ana García', status: 'ACTIVE', twoFactorEnabled: false, tenantId: 't1', roles: [{ id: 'r2', name: 'SUPPORT', permissions: ['tickets:read', 'tickets:write'] }], createdAt: new Date(Date.now() - 86400000 * 90).toISOString() },
-  { id: '3', email: 'billing@controltower.mx', fullName: 'Roberto Silva', status: 'ACTIVE', twoFactorEnabled: true, tenantId: 't1', roles: [{ id: 'r3', name: 'BILLING', permissions: ['licenses:read', 'licenses:write'] }], createdAt: new Date(Date.now() - 86400000 * 45).toISOString() },
-  { id: '4', email: 'tech@controltower.mx', fullName: 'María López', status: 'INACTIVE', twoFactorEnabled: false, tenantId: 't1', roles: [{ id: 'r2', name: 'SUPPORT', permissions: ['tickets:read'] }], createdAt: new Date(Date.now() - 86400000 * 20).toISOString() }
-]
+const users = computed(() => result.value?.content ?? [])
+const totalRecords = computed(() => result.value?.totalElements ?? 0)
 
-const columns = [
-  { key: 'name', label: 'User', sortable: true },
-  { key: 'status', label: 'Status', width: '100px' },
-  { key: 'twoFactorEnabled', label: '2FA', width: '80px', align: 'center' as const },
-  { key: 'roles', label: 'Roles' },
-  { key: 'createdAt', label: 'Joined', width: '120px', align: 'right' as const },
-  { key: 'actions', label: '', width: '80px', align: 'right' as const }
-]
-
-async function fetchUsers() {
-  loading.value = true
-  try {
-    const res = await usersService.list({ search: search.value || undefined, size: 50 })
-    users.value = res.content
-    total.value = res.totalElements
-  } catch {
-    const filtered = search.value
-      ? mockUsers.filter(u => u.fullName.toLowerCase().includes(search.value.toLowerCase()) || u.email.toLowerCase().includes(search.value.toLowerCase()))
-      : mockUsers
-    users.value = filtered
-    total.value = filtered.length
-  } finally {
-    loading.value = false
+function statusSeverity(status: User['status']): 'success' | 'secondary' | 'danger' {
+  const map: Record<string, 'success' | 'secondary' | 'danger'> = {
+    ACTIVE: 'success',
+    INACTIVE: 'secondary',
+    SUSPENDED: 'danger'
   }
+  return map[status] ?? 'secondary'
+}
+
+function formatDate(dateStr: string) {
+  return dayjs(dateStr).format('DD MMM YYYY')
+}
+
+function onPage(event: { page: number }) {
+  page.value = event.page
 }
 
 let searchTimeout: ReturnType<typeof setTimeout>
-watch(search, () => {
+function onSearch() {
   clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => fetchUsers(), 400)
-})
-
-onMounted(fetchUsers)
-
-function statusVariant(status: User['status']): string {
-  const map: Record<string, string> = { ACTIVE: 'success', INACTIVE: 'default', SUSPENDED: 'danger' }
-  return map[status] ?? 'default'
-}
-
-function formatDate(dateStr: string): string {
-  return new Date(dateStr).toLocaleDateString('es-MX', { month: 'short', day: 'numeric', year: 'numeric' })
-}
-
-function validateCreate(): boolean {
-  createErrors.email = ''
-  createErrors.fullName = ''
-  createErrors.password = ''
-  if (!createForm.fullName.trim()) { createErrors.fullName = 'Full name is required'; return false }
-  if (!createForm.email.trim()) { createErrors.email = 'Email is required'; return false }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(createForm.email)) { createErrors.email = 'Invalid email'; return false }
-  if (!createForm.password || createForm.password.length < 8) { createErrors.password = 'Password must be at least 8 characters'; return false }
-  return true
-}
-
-async function handleCreate() {
-  if (!validateCreate()) return
-  creating.value = true
-  try {
-    const user = await usersService.create(createForm)
-    users.value.unshift(user)
-    total.value++
-    showCreateModal.value = false
-    createForm.email = ''; createForm.fullName = ''; createForm.password = ''; createForm.roleIds = []
-    toast.success('User created', `${user.fullName} has been added.`)
-  } catch {
-    toast.error('Failed to create user', 'Please try again.')
-  } finally {
-    creating.value = false
-  }
-}
-
-async function handleDelete(user: User) {
-  if (!confirm(`Delete user "${user.fullName}"?`)) return
-  try {
-    await usersService.delete(user.id)
-    users.value = users.value.filter(u => u.id !== user.id)
-    total.value--
-    toast.success('User deleted')
-  } catch {
-    toast.error('Failed to delete user')
-  }
+  searchTimeout = setTimeout(() => { page.value = 0; refetch() }, 400)
 }
 </script>
 
@@ -126,95 +54,83 @@ async function handleDelete(user: User) {
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-lg font-semibold text-[var(--text)]">Users</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ total }} total users</p>
+        <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} total users</p>
       </div>
-      <Button variant="primary" size="sm" @click="showCreateModal = true">
-        <Plus class="w-4 h-4" />
-        New User
-      </Button>
+      <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
 
     <!-- Search -->
-    <div class="relative max-w-md">
-      <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)]" />
-      <input
-        v-model="search"
-        type="text"
+    <div class="flex gap-3">
+      <InputText
+        v-model="globalFilter"
         placeholder="Search users..."
-        class="w-full pl-9 pr-4 py-2 text-sm bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] text-[var(--text)] placeholder:text-[var(--text-placeholder)] focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)] transition-all"
+        class="max-w-md"
+        @input="onSearch"
       />
     </div>
 
-    <div v-if="loading" class="flex items-center justify-center py-16">
-      <Spinner class="w-7 h-7 text-[var(--primary)]" />
-    </div>
-
-    <template v-else>
-      <DataTable :columns="columns" :rows="users as any[]" :loading="false">
-        <template #cell-name="{ row }">
-          <div class="flex items-center gap-2.5">
-            <Avatar :name="(row as unknown as User).fullName" size="xs" />
-            <div>
-              <p class="text-sm font-medium text-[var(--text)]">{{ (row as unknown as User).fullName }}</p>
-              <p class="text-xs text-[var(--text-muted)]">{{ (row as unknown as User).email }}</p>
-            </div>
+    <!-- DataTable -->
+    <DataTable
+      :value="users"
+      :loading="isLoading"
+      :rows="pageSize"
+      :total-records="totalRecords"
+      paginator
+      lazy
+      removable-sort
+      striped-rows
+      class="rounded-xl overflow-hidden"
+      @page="onPage"
+    >
+      <Column field="fullName" header="User" sortable style="min-width: 200px">
+        <template #body="{ data: row }: { data: User }">
+          <div>
+            <p class="text-sm font-medium text-[var(--text)]">{{ row.fullName }}</p>
+            <p class="text-xs text-[var(--text-muted)]">{{ row.email }}</p>
           </div>
         </template>
-        <template #cell-status="{ row }">
-          <Badge :variant="(statusVariant((row as unknown as User).status) as any)" dot>{{ (row as unknown as User).status }}</Badge>
+      </Column>
+
+      <Column field="status" header="Status" style="width: 110px">
+        <template #body="{ data: row }: { data: User }">
+          <Tag :severity="statusSeverity(row.status)" :value="row.status" />
         </template>
-        <template #cell-twoFactorEnabled="{ row }">
-          <div class="flex justify-center">
-            <Shield v-if="(row as unknown as User).twoFactorEnabled" class="w-4 h-4 text-green-500" title="2FA enabled" />
+      </Column>
+
+      <Column field="superAdmin" header="2FA / Admin" style="width: 120px">
+        <template #body="{ data: row }: { data: User }">
+          <div class="flex items-center gap-2">
+            <Shield v-if="row.twoFactorEnabled" class="w-4 h-4 text-green-500" title="2FA enabled" />
             <ShieldOff v-else class="w-4 h-4 text-[var(--text-muted)]" title="2FA disabled" />
+            <Tag v-if="row.superAdmin" severity="warn" value="SuperAdmin" class="text-xs" />
           </div>
         </template>
-        <template #cell-roles="{ row }">
+      </Column>
+
+      <Column field="roles" header="Roles" style="min-width: 160px">
+        <template #body="{ data: row }: { data: User }">
           <div class="flex flex-wrap gap-1">
-            <Badge v-for="role in (row as unknown as User).roles" :key="role.id" variant="purple" size="sm">
-              {{ role.name }}
-            </Badge>
+            <Tag
+              v-for="role in row.roles"
+              :key="role"
+              severity="secondary"
+              :value="role"
+              class="text-xs"
+            />
+            <span v-if="!row.roles?.length" class="text-[var(--text-muted)] text-sm">—</span>
           </div>
         </template>
-        <template #cell-createdAt="{ row }">
-          <span class="text-[var(--text-muted)]">{{ formatDate((row as unknown as User).createdAt) }}</span>
+      </Column>
+
+      <Column field="createdAt" header="Joined" sortable style="width: 130px">
+        <template #body="{ data: row }: { data: User }">
+          <span class="text-[var(--text-muted)] text-sm">{{ formatDate(row.createdAt) }}</span>
         </template>
-        <template #cell-actions="{ row }">
-          <div class="flex justify-end">
-            <button
-              class="p-1.5 rounded text-[var(--text-muted)] hover:text-[var(--danger)] hover:bg-red-50 dark:hover:bg-red-950 transition-colors"
-              title="Delete user"
-              @click="handleDelete(row as unknown as User)"
-            >
-              <Trash2 class="w-4 h-4" />
-            </button>
-          </div>
-        </template>
-      </DataTable>
+      </Column>
 
-      <EmptyState
-        v-if="users.length === 0"
-        title="No users found"
-        description="Add team members to give them access to Control Tower."
-        action-label="Add User"
-        @action="showCreateModal = true"
-      >
-        <template #icon><Users class="w-6 h-6" /></template>
-      </EmptyState>
-    </template>
-
-    <!-- Create Modal -->
-    <Modal :open="showCreateModal" title="New User" size="md" @close="showCreateModal = false">
-      <form class="space-y-4" @submit.prevent="handleCreate">
-        <Input v-model="createForm.fullName" label="Full Name" placeholder="Ana García" :error="createErrors.fullName" required />
-        <Input v-model="createForm.email" label="Email" type="email" placeholder="ana@company.com" :error="createErrors.email" required />
-        <Input v-model="createForm.password" label="Temporary Password" type="password" placeholder="Min 8 characters" :error="createErrors.password" required hint="User will be asked to change on first login" />
-      </form>
-
-      <template #footer>
-        <Button variant="ghost" size="sm" @click="showCreateModal = false">Cancel</Button>
-        <Button variant="primary" size="sm" :loading="creating" @click="handleCreate">Create User</Button>
+      <template #empty>
+        <div class="text-center py-8 text-[var(--text-muted)]">No users found</div>
       </template>
-    </Modal>
+    </DataTable>
   </div>
 </template>

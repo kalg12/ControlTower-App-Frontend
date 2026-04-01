@@ -1,16 +1,18 @@
 export interface Notification {
   id: string
+  type: string
   title: string
-  message: string
-  type: 'INFO' | 'WARNING' | 'ERROR' | 'SUCCESS'
+  body: string        // backend uses 'body' not 'message'
+  severity: string
+  metadata?: Record<string, string>
   read: boolean
+  readAt?: string
   createdAt: string
-  link?: string
 }
 
 export interface NotificationFilters {
   read?: boolean
-  type?: Notification['type']
+  type?: string
   page?: number
   size?: number
 }
