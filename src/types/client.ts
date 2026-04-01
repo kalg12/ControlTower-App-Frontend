@@ -29,15 +29,16 @@ export interface ClientBranch {
 
 export interface CreateClientRequest {
   name: string
-  slug: string
-  contactEmail?: string
-  contactPhone?: string
+  legalName?: string
+  taxId?: string
+  country?: string
 }
 
 export interface UpdateClientRequest {
   name?: string
-  contactEmail?: string
-  contactPhone?: string
+  legalName?: string
+  taxId?: string
+  country?: string
 }
 
 export interface ClientFilters {
