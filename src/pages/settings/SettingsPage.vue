@@ -9,7 +9,7 @@ import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
 import Card from '@/components/ui/Card.vue'
 import Avatar from '@/components/ui/Avatar.vue'
-import { User, Lock, Bell, Sun, Moon, ShieldOff } from 'lucide-vue-next'
+import { User, Lock, Bell, Sun, Moon, ShieldOff, Shield } from 'lucide-vue-next'
 
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
@@ -76,6 +76,65 @@ async function handleChangePassword() {
     toast.error('Failed to change password', 'Check your current password and try again.')
   } finally {
     savingPassword.value = false
+  }
+}
+
+// 2FA
+type TwoFaState = 'idle' | 'setup' | 'enabled' | 'disabling'
+const twoFaState = ref<TwoFaState>('idle')
+const twoFaLoading = ref(false)
+const twoFaSecret = ref('')
+const twoFaQrUrl = ref('')
+const twoFaCode = ref('')
+
+async function startSetup2FA() {
+  twoFaLoading.value = true
+  try {
+    const res = await authService.setup2FA()
+    twoFaSecret.value = res.secret
+    twoFaQrUrl.value = res.qrUrl
+    twoFaState.value = 'setup'
+    twoFaCode.value = ''
+  } catch {
+    toast.error('Failed to start 2FA setup')
+  } finally {
+    twoFaLoading.value = false
+  }
+}
+
+async function confirmEnable2FA() {
+  if (!twoFaCode.value || twoFaCode.value.length !== 6) {
+    toast.error('Enter a valid 6-digit code')
+    return
+  }
+  twoFaLoading.value = true
+  try {
+    await authService.enable2FA(twoFaCode.value)
+    twoFaState.value = 'enabled'
+    twoFaCode.value = ''
+    toast.success('2FA enabled', 'Your account is now protected with two-factor authentication.')
+  } catch {
+    toast.error('Invalid code', 'The code was incorrect. Please try again.')
+  } finally {
+    twoFaLoading.value = false
+  }
+}
+
+async function confirmDisable2FA() {
+  if (!twoFaCode.value || twoFaCode.value.length !== 6) {
+    toast.error('Enter a valid 6-digit code')
+    return
+  }
+  twoFaLoading.value = true
+  try {
+    await authService.disable2FA(twoFaCode.value)
+    twoFaState.value = 'idle'
+    twoFaCode.value = ''
+    toast.success('2FA disabled')
+  } catch {
+    toast.error('Invalid code')
+  } finally {
+    twoFaLoading.value = false
   }
 }
 
@@ -191,21 +250,68 @@ const notifPrefs = reactive({
         </form>
       </Card>
 
+      <!-- 2FA card -->
       <Card>
         <template #header>
-          <h3 class="text-sm font-semibold text-[var(--text)]">Two-Factor Authentication</h3>
+          <div class="flex items-center gap-2">
+            <Shield class="w-4 h-4 text-[var(--primary)]" />
+            <h3 class="text-sm font-semibold text-[var(--text)]">Two-Factor Authentication</h3>
+          </div>
         </template>
-        <div class="flex items-start justify-between gap-4">
+
+        <!-- IDLE: 2FA disabled -->
+        <div v-if="twoFaState === 'idle'" class="flex items-start justify-between gap-4">
           <div class="flex items-start gap-3">
             <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-[var(--surface-raised)]">
               <ShieldOff class="w-5 h-5 text-[var(--text-muted)]" />
             </div>
             <div>
               <p class="text-sm font-medium text-[var(--text)]">2FA is disabled</p>
-              <p class="text-xs text-[var(--text-muted)] mt-0.5">Add extra security with an authenticator app.</p>
+              <p class="text-xs text-[var(--text-muted)] mt-0.5">Add extra security with an authenticator app (Google Authenticator, Authy, etc.).</p>
             </div>
           </div>
-          <Button variant="primary" size="sm">Enable 2FA</Button>
+          <Button variant="primary" size="sm" :loading="twoFaLoading" @click="startSetup2FA">Enable 2FA</Button>
+        </div>
+
+        <!-- SETUP: Show secret + TOTP input -->
+        <div v-else-if="twoFaState === 'setup'" class="space-y-4">
+          <div class="p-3 bg-[var(--surface-raised)] rounded-lg border border-[var(--border)] space-y-2">
+            <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">1. Scan this secret in your authenticator app</p>
+            <p class="text-base font-mono font-bold tracking-widest text-[var(--primary)] select-all">{{ twoFaSecret }}</p>
+            <p class="text-xs text-[var(--text-muted)]">Or copy the URL: <span class="font-mono text-[10px] break-all">{{ twoFaQrUrl }}</span></p>
+          </div>
+          <div>
+            <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide mb-2">2. Enter the 6-digit code to confirm</p>
+            <Input v-model="twoFaCode" type="text" placeholder="000000" maxlength="6" />
+          </div>
+          <div class="flex gap-2">
+            <Button variant="primary" size="sm" :loading="twoFaLoading" @click="confirmEnable2FA">Verify &amp; Enable</Button>
+            <Button variant="ghost" size="sm" @click="twoFaState = 'idle'">Cancel</Button>
+          </div>
+        </div>
+
+        <!-- ENABLED: 2FA active -->
+        <div v-else-if="twoFaState === 'enabled'" class="flex items-start justify-between gap-4">
+          <div class="flex items-start gap-3">
+            <div class="w-9 h-9 rounded-lg flex items-center justify-center bg-green-50 dark:bg-green-950">
+              <Shield class="w-5 h-5 text-green-600 dark:text-green-400" />
+            </div>
+            <div>
+              <p class="text-sm font-medium text-[var(--text)]">2FA is enabled</p>
+              <p class="text-xs text-[var(--text-muted)] mt-0.5">Your account is protected with two-factor authentication.</p>
+            </div>
+          </div>
+          <Button variant="danger" size="sm" @click="twoFaState = 'disabling'">Disable 2FA</Button>
+        </div>
+
+        <!-- DISABLING: prompt for code -->
+        <div v-else-if="twoFaState === 'disabling'" class="space-y-3">
+          <p class="text-sm text-[var(--text)]">Enter your authenticator code to disable 2FA:</p>
+          <Input v-model="twoFaCode" type="text" placeholder="000000" maxlength="6" />
+          <div class="flex gap-2">
+            <Button variant="danger" size="sm" :loading="twoFaLoading" @click="confirmDisable2FA">Disable</Button>
+            <Button variant="ghost" size="sm" @click="twoFaState = 'enabled'">Cancel</Button>
+          </div>
         </div>
       </Card>
     </div>

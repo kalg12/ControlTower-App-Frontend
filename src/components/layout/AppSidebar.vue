@@ -9,7 +9,8 @@ import {
   Bell,
   Users,
   Settings,
-  Zap
+  Zap,
+  Building
 } from 'lucide-vue-next'
 
 interface Props {
@@ -27,6 +28,7 @@ const navItems = [
   { to: '/clients', label: 'Clients', icon: Building2 },
   { to: '/health', label: 'Health', icon: Activity },
   { to: '/licenses', label: 'Licenses', icon: CreditCard },
+  { to: '/tenants', label: 'Tenants', icon: Building },
   { to: '/notifications', label: 'Notifications', icon: Bell },
   { to: '/users', label: 'Users', icon: Users },
   { to: '/settings', label: 'Settings', icon: Settings }

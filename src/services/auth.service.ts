@@ -43,5 +43,18 @@ export const authService = {
 
   async verifyTotp(totpCode: string): Promise<void> {
     await api.post('/auth/totp/verify', { totpCode })
+  },
+
+  async setup2FA(): Promise<{ secret: string; qrUrl: string }> {
+    const res = await api.post<{ secret: string; qrUrl: string }>('/auth/2fa/setup')
+    return res.data
+  },
+
+  async enable2FA(totpCode: string): Promise<void> {
+    await api.post('/auth/2fa/enable', { totpCode })
+  },
+
+  async disable2FA(totpCode: string): Promise<void> {
+    await api.post('/auth/2fa/disable', { totpCode })
   }
 }

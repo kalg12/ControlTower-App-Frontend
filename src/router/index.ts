@@ -57,6 +57,12 @@ const router = createRouter({
       meta: { layout: 'app', title: 'Health' }
     },
     {
+      path: '/tenants',
+      name: 'tenants',
+      component: () => import('@/pages/tenants/TenantsPage.vue'),
+      meta: { layout: 'app', title: 'Tenants' }
+    },
+    {
       path: '/notifications',
       name: 'notifications',
       component: () => import('@/pages/notifications/NotificationsPage.vue'),
