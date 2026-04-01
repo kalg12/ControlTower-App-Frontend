@@ -1,11 +1,14 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useConfirm } from 'primevue/useconfirm'
+import { vAutoAnimate } from '@formkit/auto-animate/vue'
 import { notificationsService } from '@/services/notifications.service'
 import { useToast } from '@/composables/useToast'
 import Button from '@/components/ui/Button.vue'
 import Skeleton from 'primevue/skeleton'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import Select from 'primevue/select'
 import { Bell, CheckCheck, Info, AlertTriangle, XCircle, CheckCircle, Trash2 } from 'lucide-vue-next'
 import type { Notification } from '@/types/notification'
 import dayjs from 'dayjs'
@@ -15,6 +18,16 @@ dayjs.extend(relativeTime)
 
 const toast = useToast()
 const queryClient = useQueryClient()
+const confirm = useConfirm()
+
+const filterValue = ref<'all' | 'unread' | 'read'>('all')
+const filterOptions = [
+  { label: 'All', value: 'all' },
+  { label: 'Unread', value: 'unread' },
+  { label: 'Read', value: 'read' }
+]
+
+// auto-animate is registered as a directive (v-auto-animate)
 
 const { data: page, isLoading } = useQuery({
   queryKey: ['notifications'],
@@ -22,8 +35,13 @@ const { data: page, isLoading } = useQuery({
   staleTime: 10000
 })
 
-const items = computed(() => page.value?.content ?? [])
-const unreadCount = computed(() => items.value.filter(n => !n.read).length)
+const allItems = computed(() => page.value?.content ?? [])
+const unreadCount = computed(() => allItems.value.filter(n => !n.read).length)
+const items = computed(() => {
+  if (filterValue.value === 'unread') return allItems.value.filter(n => !n.read)
+  if (filterValue.value === 'read') return allItems.value.filter(n => n.read)
+  return allItems.value
+})
 
 async function handleMarkAllRead() {
   try {
@@ -49,6 +67,25 @@ async function handleDelete(id: string) {
   } catch {
     toast.error('Failed to delete notification')
   }
+}
+
+function handleClearAll() {
+  confirm.require({
+    message: 'Delete all notifications? This cannot be undone.',
+    header: 'Clear All Notifications',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Clear All', severity: 'danger' },
+    accept: async () => {
+      try {
+        await Promise.all(allItems.value.map(n => notificationsService.remove(n.id)))
+        queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        toast.success('All notifications cleared')
+      } catch {
+        toast.error('Failed to clear notifications')
+      }
+    }
+  })
 }
 
 // severity/type → icon & style
@@ -85,7 +122,7 @@ const grouped = computed(() => {
   <div class="max-w-2xl mx-auto space-y-6">
 
     <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-center justify-between gap-4 flex-wrap">
       <div>
         <h1 class="text-xl font-bold text-[var(--text)]">Notifications</h1>
         <p class="text-sm text-[var(--text-muted)] mt-0.5">
@@ -96,15 +133,33 @@ const grouped = computed(() => {
         </p>
       </div>
 
-      <Button
-        v-if="unreadCount > 0"
-        variant="outline"
-        size="sm"
-        @click="handleMarkAllRead"
-      >
-        <CheckCheck class="w-4 h-4" />
-        Mark all as read
-      </Button>
+      <div class="flex items-center gap-2">
+        <Select
+          v-model="filterValue"
+          :options="filterOptions"
+          option-label="label"
+          option-value="value"
+          class="w-32"
+        />
+        <Button
+          v-if="unreadCount > 0"
+          variant="outline"
+          size="sm"
+          @click="handleMarkAllRead"
+        >
+          <CheckCheck class="w-4 h-4" />
+          Mark read
+        </Button>
+        <Button
+          v-if="allItems.length > 0"
+          variant="outline"
+          size="sm"
+          @click="handleClearAll"
+        >
+          <Trash2 class="w-4 h-4" />
+          Clear all
+        </Button>
+      </div>
     </div>
 
     <!-- Loading -->
@@ -141,7 +196,7 @@ const grouped = computed(() => {
         </div>
 
         <!-- Items -->
-        <div class="space-y-2">
+        <div v-auto-animate class="space-y-2">
           <div
             v-for="n in group.notifs"
             :key="n.id"

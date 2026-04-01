@@ -11,6 +11,7 @@ import App from '@/App.vue'
 import '@/assets/main.css'
 import 'primeicons/primeicons.css'
 import { Toaster } from 'vue-sonner'
+import VueApexCharts from 'vue3-apexcharts'
 
 const queryClient = new QueryClient({
   defaultOptions: { queries: { staleTime: 30000, retry: 1 } }
@@ -32,4 +33,5 @@ app.use(ToastService)
 app.use(ConfirmationService)
 app.use(VueQueryPlugin, { queryClient })
 app.component('Toaster', Toaster)
+app.component('VueApexCharts', VueApexCharts)
 app.mount('#app')
