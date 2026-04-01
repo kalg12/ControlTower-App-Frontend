@@ -37,6 +37,15 @@ export interface UpdateTicketRequest {
   tags?: string[]
 }
 
+export interface TicketComment {
+  id: string
+  ticketId: string
+  userId?: string
+  userName?: string
+  body: string
+  createdAt: string
+}
+
 export interface TicketFilters {
   status?: TicketStatus
   priority?: TicketPriority

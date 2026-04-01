@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
@@ -13,6 +14,7 @@ import type { Tenant } from '@/types/tenant'
 
 const toast = useToast()
 const queryClient = useQueryClient()
+const confirm = useConfirm()
 
 const page = ref(0)
 const pageSize = 20
@@ -53,32 +55,48 @@ function onPage(event: { page: number }) {
   page.value = event.page
 }
 
-async function suspendTenant(tenant: Tenant) {
-  if (!window.confirm(`Suspend tenant "${tenant.name}"? They will lose access.`)) return
-  actionLoading.value = tenant.id
-  try {
-    await tenantsService.suspend(tenant.id)
-    await queryClient.invalidateQueries({ queryKey: ['tenants'] })
-    toast.success('Tenant suspended', `"${tenant.name}" has been suspended.`)
-  } catch {
-    toast.error('Failed to suspend tenant')
-  } finally {
-    actionLoading.value = null
-  }
+function suspendTenant(tenant: Tenant) {
+  confirm.require({
+    message: `Suspend "${tenant.name}"? They will lose access.`,
+    header: 'Suspend Tenant',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Suspend', severity: 'warn' },
+    accept: async () => {
+      actionLoading.value = tenant.id
+      try {
+        await tenantsService.suspend(tenant.id)
+        await queryClient.invalidateQueries({ queryKey: ['tenants'] })
+        toast.success('Tenant suspended', `"${tenant.name}" has been suspended.`)
+      } catch {
+        toast.error('Failed to suspend tenant')
+      } finally {
+        actionLoading.value = null
+      }
+    }
+  })
 }
 
-async function reactivateTenant(tenant: Tenant) {
-  if (!window.confirm(`Reactivate tenant "${tenant.name}"?`)) return
-  actionLoading.value = tenant.id
-  try {
-    await tenantsService.reactivate(tenant.id)
-    await queryClient.invalidateQueries({ queryKey: ['tenants'] })
-    toast.success('Tenant reactivated', `"${tenant.name}" is now active.`)
-  } catch {
-    toast.error('Failed to reactivate tenant')
-  } finally {
-    actionLoading.value = null
-  }
+function reactivateTenant(tenant: Tenant) {
+  confirm.require({
+    message: `Reactivate "${tenant.name}"?`,
+    header: 'Reactivate Tenant',
+    icon: 'pi pi-check-circle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Reactivate', severity: 'success' },
+    accept: async () => {
+      actionLoading.value = tenant.id
+      try {
+        await tenantsService.reactivate(tenant.id)
+        await queryClient.invalidateQueries({ queryKey: ['tenants'] })
+        toast.success('Tenant reactivated', `"${tenant.name}" is now active.`)
+      } catch {
+        toast.error('Failed to reactivate tenant')
+      } finally {
+        actionLoading.value = null
+      }
+    }
+  })
 }
 </script>
 

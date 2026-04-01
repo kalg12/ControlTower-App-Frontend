@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useConfirm } from 'primevue/useconfirm'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
@@ -21,6 +22,7 @@ dayjs.extend(relativeTime)
 
 const queryClient = useQueryClient()
 const toast = useToast()
+const confirm = useConfirm()
 
 const { data: integrations, isLoading } = useQuery({
   queryKey: ['integrations'],
@@ -61,15 +63,23 @@ async function testWebhook(integration: Integration) {
   }
 }
 
-async function deleteIntegration(integration: Integration) {
-  if (!confirm(`Delete integration "${integration.name}"?`)) return
-  try {
-    await integrationsService.delete(integration.id)
-    await queryClient.invalidateQueries({ queryKey: ['integrations'] })
-    toast.success('Integration deleted')
-  } catch {
-    toast.error('Failed to delete integration')
-  }
+function deleteIntegration(integration: Integration) {
+  confirm.require({
+    message: `Delete integration "${integration.name}"?`,
+    header: 'Delete Integration',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Delete', severity: 'danger' },
+    accept: async () => {
+      try {
+        await integrationsService.delete(integration.id)
+        await queryClient.invalidateQueries({ queryKey: ['integrations'] })
+        toast.success('Integration deleted')
+      } catch {
+        toast.error('Failed to delete integration')
+      }
+    }
+  })
 }
 
 // --- Create Integration Dialog ---

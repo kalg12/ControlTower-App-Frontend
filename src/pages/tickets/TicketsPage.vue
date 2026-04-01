@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
+import { useConfirm } from 'primevue/useconfirm'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
@@ -22,6 +23,26 @@ import type { Ticket, TicketStatus, TicketPriority } from '@/types/ticket'
 const router = useRouter()
 const queryClient = useQueryClient()
 const toast = useToast()
+const confirm = useConfirm()
+
+function confirmDeleteTicket(ticket: Ticket) {
+  confirm.require({
+    message: `Delete "${ticket.title}"? This cannot be undone.`,
+    header: 'Delete Ticket',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Delete', severity: 'danger' },
+    accept: async () => {
+      try {
+        await ticketsService.delete(ticket.id)
+        await queryClient.invalidateQueries({ queryKey: ['tickets'] })
+        toast.success('Ticket deleted')
+      } catch {
+        toast.error('Failed to delete ticket')
+      }
+    }
+  })
+}
 
 const page = ref(0)
 const pageSize = 20
@@ -334,7 +355,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 110px">
+      <Column header="Actions" style="width: 140px">
         <template #body="{ data: row }: { data: Ticket }">
           <div class="flex gap-1">
             <Button
@@ -350,8 +371,16 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               severity="secondary"
               text
               rounded
-              v-tooltip.top="'View'"
+              v-tooltip.top="'View detail'"
               @click="router.push('/tickets/' + row.id)"
+            />
+            <Button
+              icon="pi pi-trash"
+              severity="danger"
+              text
+              rounded
+              v-tooltip.top="'Delete'"
+              @click="confirmDeleteTicket(row)"
             />
           </div>
         </template>

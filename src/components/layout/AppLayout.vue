@@ -2,6 +2,7 @@
 import { ref, onMounted, onUnmounted } from 'vue'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
+import ConfirmDialog from 'primevue/confirmdialog'
 import { useWebSocket } from '@/composables/useWebSocket'
 
 const sidebarOpen = ref(false)
@@ -54,4 +55,5 @@ function closeSidebar() {
       </main>
     </div>
   </div>
+  <ConfirmDialog />
 </template>

@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useForm } from 'vee-validate'
+import { useConfirm } from 'primevue/useconfirm'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import Skeleton from 'primevue/skeleton'
@@ -16,12 +17,13 @@ import FormField from '@/components/ui/FormField.vue'
 import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
-import type { ClientBranch } from '@/types/client'
+import type { Client, ClientBranch } from '@/types/client'
 
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const toast = useToast()
+const confirm = useConfirm()
 
 const id = computed(() => route.params.id as string)
 
@@ -50,6 +52,57 @@ function formatDate(dateStr: string) {
   return dayjs(dateStr).format('DD MMM YYYY')
 }
 
+// --- Edit Client Modal ---
+const showEditDialog = ref(false)
+const isEditSubmitting = ref(false)
+
+const clientSchema = z.object({
+  name: z.string().min(2, 'Min 2 characters'),
+  legalName: z.string().optional(),
+  taxId: z.string().optional(),
+  country: z.string().min(2).default('MX')
+})
+
+const editForm = useForm({
+  validationSchema: toTypedSchema(clientSchema),
+  initialValues: { name: '', legalName: '', taxId: '', country: 'MX' }
+})
+
+const [editName, editNameAttrs] = editForm.defineField('name')
+const [editLegalName, editLegalNameAttrs] = editForm.defineField('legalName')
+const [editTaxId, editTaxIdAttrs] = editForm.defineField('taxId')
+const [editCountry, editCountryAttrs] = editForm.defineField('country')
+
+function openEditDialog(c: Client) {
+  editForm.setValues({
+    name: c.name,
+    legalName: c.legalName ?? '',
+    taxId: c.taxId ?? '',
+    country: c.country ?? 'MX'
+  })
+  showEditDialog.value = true
+}
+
+const onEditSubmit = editForm.handleSubmit(async (values) => {
+  isEditSubmitting.value = true
+  try {
+    await clientsService.update(id.value, {
+      name: values.name,
+      legalName: values.legalName || undefined,
+      taxId: values.taxId || undefined,
+      country: values.country
+    })
+    await queryClient.invalidateQueries({ queryKey: ['client', id.value] })
+    await queryClient.invalidateQueries({ queryKey: ['clients'] })
+    showEditDialog.value = false
+    toast.success('Client updated')
+  } catch {
+    toast.error('Failed to update client')
+  } finally {
+    isEditSubmitting.value = false
+  }
+})
+
 // --- Add Branch Modal ---
 const showBranchDialog = ref(false)
 const isSubmittingBranch = ref(false)
@@ -62,23 +115,23 @@ const branchSchema = z.object({
   timezone: z.string().default('America/Mexico_City')
 })
 
-const { handleSubmit, errors, resetForm, defineField } = useForm({
+const branchForm = useForm({
   validationSchema: toTypedSchema(branchSchema),
   initialValues: { name: '', address: '', city: '', country: 'MX', timezone: 'America/Mexico_City' }
 })
 
-const [branchNameValue, branchNameAttrs] = defineField('name')
-const [addressValue, addressAttrs] = defineField('address')
-const [cityValue, cityAttrs] = defineField('city')
-const [countryValue, countryAttrs] = defineField('country')
-const [timezoneValue, timezoneAttrs] = defineField('timezone')
+const [branchNameValue, branchNameAttrs] = branchForm.defineField('name')
+const [addressValue, addressAttrs] = branchForm.defineField('address')
+const [cityValue, cityAttrs] = branchForm.defineField('city')
+const [countryValue, countryAttrs] = branchForm.defineField('country')
+const [timezoneValue, timezoneAttrs] = branchForm.defineField('timezone')
 
 function openBranchDialog() {
-  resetForm()
+  branchForm.resetForm()
   showBranchDialog.value = true
 }
 
-const onSubmitBranch = handleSubmit(async (values) => {
+const onSubmitBranch = branchForm.handleSubmit(async (values) => {
   isSubmittingBranch.value = true
   try {
     await clientsService.createBranch(id.value, {
@@ -97,6 +150,26 @@ const onSubmitBranch = handleSubmit(async (values) => {
     isSubmittingBranch.value = false
   }
 })
+
+// --- Delete Branch ---
+function confirmDeleteBranch(branch: ClientBranch) {
+  confirm.require({
+    message: `Delete branch "${branch.name}"? This cannot be undone.`,
+    header: 'Delete Branch',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Delete', severity: 'danger' },
+    accept: async () => {
+      try {
+        await clientsService.deleteBranch(id.value, branch.id)
+        await queryClient.invalidateQueries({ queryKey: ['branches', id.value] })
+        toast.success('Branch deleted')
+      } catch {
+        toast.error('Failed to delete branch')
+      }
+    }
+  })
+}
 </script>
 
 <template>
@@ -116,7 +189,7 @@ const onSubmitBranch = handleSubmit(async (values) => {
         label="Edit Client"
         severity="secondary"
         outlined
-        disabled
+        @click="openEditDialog(client)"
       />
     </div>
 
@@ -177,11 +250,13 @@ const onSubmitBranch = handleSubmit(async (values) => {
       <!-- Branches Section -->
       <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-base font-semibold text-[var(--text)]">Branches</h2>
+          <h2 class="text-base font-semibold text-[var(--text)]">
+            Branches
+            <span v-if="branches?.length" class="text-[var(--text-muted)] font-normal text-sm ml-1">({{ branches.length }})</span>
+          </h2>
           <Button label="Add Branch" icon="pi pi-plus" @click="openBranchDialog" />
         </div>
 
-        <!-- Branches loading -->
         <template v-if="branchesLoading">
           <Skeleton height="1rem" v-for="i in 4" :key="i" class="mb-2" />
         </template>
@@ -216,6 +291,19 @@ const onSubmitBranch = handleSubmit(async (values) => {
             </template>
           </Column>
 
+          <Column header="Actions" style="width: 80px">
+            <template #body="{ data: row }: { data: ClientBranch }">
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                text
+                rounded
+                v-tooltip.top="'Delete branch'"
+                @click="confirmDeleteBranch(row)"
+              />
+            </template>
+          </Column>
+
           <template #empty>
             <div class="text-center py-8 text-[var(--text-muted)]">No branches found</div>
           </template>
@@ -223,6 +311,35 @@ const onSubmitBranch = handleSubmit(async (values) => {
       </div>
     </template>
   </div>
+
+  <!-- Edit Client Dialog -->
+  <AppDialog
+    v-model:visible="showEditDialog"
+    title="Edit Client"
+    subtitle="Update client information."
+    :loading="isEditSubmitting"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
+      <FormField label="Name" name="edit-name" :error="editForm.errors.value.name" required>
+        <InputText id="edit-name" v-model="editName" v-bind="editNameAttrs" placeholder="Client name" class="w-full" :disabled="isEditSubmitting" />
+      </FormField>
+      <FormField label="Legal Name" name="edit-legalName" :error="editForm.errors.value.legalName">
+        <InputText id="edit-legalName" v-model="editLegalName" v-bind="editLegalNameAttrs" placeholder="Legal name (optional)" class="w-full" :disabled="isEditSubmitting" />
+      </FormField>
+      <FormField label="Tax ID / RFC" name="edit-taxId" :error="editForm.errors.value.taxId">
+        <InputText id="edit-taxId" v-model="editTaxId" v-bind="editTaxIdAttrs" placeholder="Tax ID (optional)" class="w-full" :disabled="isEditSubmitting" />
+      </FormField>
+      <FormField label="Country" name="edit-country" :error="editForm.errors.value.country" required>
+        <InputText id="edit-country" v-model="editCountry" v-bind="editCountryAttrs" placeholder="e.g. MX" class="w-full" :disabled="isEditSubmitting" />
+      </FormField>
+    </form>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button label="Cancel" severity="secondary" outlined :disabled="isEditSubmitting" @click="showEditDialog = false" />
+        <Button label="Save Changes" :loading="isEditSubmitting" @click="onEditSubmit" />
+      </div>
+    </template>
+  </AppDialog>
 
   <!-- Add Branch Dialog -->
   <AppDialog
@@ -232,78 +349,28 @@ const onSubmitBranch = handleSubmit(async (values) => {
     :loading="isSubmittingBranch"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onSubmitBranch">
-      <FormField label="Branch Name" name="name" :error="errors.name" required>
-        <InputText
-          id="branch-name"
-          v-model="branchNameValue"
-          v-bind="branchNameAttrs"
-          placeholder="Branch name"
-          class="w-full"
-          :disabled="isSubmittingBranch"
-        />
+      <FormField label="Branch Name" name="name" :error="branchForm.errors.value.name" required>
+        <InputText id="branch-name" v-model="branchNameValue" v-bind="branchNameAttrs" placeholder="Branch name" class="w-full" :disabled="isSubmittingBranch" />
       </FormField>
-
-      <FormField label="Address" name="address" :error="errors.address">
-        <InputText
-          id="branch-address"
-          v-model="addressValue"
-          v-bind="addressAttrs"
-          placeholder="Address (optional)"
-          class="w-full"
-          :disabled="isSubmittingBranch"
-        />
+      <FormField label="Address" name="address" :error="branchForm.errors.value.address">
+        <InputText id="branch-address" v-model="addressValue" v-bind="addressAttrs" placeholder="Address (optional)" class="w-full" :disabled="isSubmittingBranch" />
       </FormField>
-
-      <FormField label="City" name="city" :error="errors.city">
-        <InputText
-          id="branch-city"
-          v-model="cityValue"
-          v-bind="cityAttrs"
-          placeholder="City (optional)"
-          class="w-full"
-          :disabled="isSubmittingBranch"
-        />
+      <FormField label="City" name="city" :error="branchForm.errors.value.city">
+        <InputText id="branch-city" v-model="cityValue" v-bind="cityAttrs" placeholder="City (optional)" class="w-full" :disabled="isSubmittingBranch" />
       </FormField>
-
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="Country" name="country" :error="errors.country" required>
-          <InputText
-            id="branch-country"
-            v-model="countryValue"
-            v-bind="countryAttrs"
-            placeholder="e.g. MX"
-            class="w-full"
-            :disabled="isSubmittingBranch"
-          />
+        <FormField label="Country" name="country" :error="branchForm.errors.value.country" required>
+          <InputText id="branch-country" v-model="countryValue" v-bind="countryAttrs" placeholder="e.g. MX" class="w-full" :disabled="isSubmittingBranch" />
         </FormField>
-
-        <FormField label="Timezone" name="timezone" :error="errors.timezone" required>
-          <InputText
-            id="branch-timezone"
-            v-model="timezoneValue"
-            v-bind="timezoneAttrs"
-            placeholder="e.g. America/Mexico_City"
-            class="w-full"
-            :disabled="isSubmittingBranch"
-          />
+        <FormField label="Timezone" name="timezone" :error="branchForm.errors.value.timezone" required>
+          <InputText id="branch-timezone" v-model="timezoneValue" v-bind="timezoneAttrs" placeholder="America/Mexico_City" class="w-full" :disabled="isSubmittingBranch" />
         </FormField>
       </div>
     </form>
-
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button
-          label="Cancel"
-          severity="secondary"
-          outlined
-          :disabled="isSubmittingBranch"
-          @click="showBranchDialog = false"
-        />
-        <Button
-          label="Create Branch"
-          :loading="isSubmittingBranch"
-          @click="onSubmitBranch"
-        />
+        <Button label="Cancel" severity="secondary" outlined :disabled="isSubmittingBranch" @click="showBranchDialog = false" />
+        <Button label="Create Branch" :loading="isSubmittingBranch" @click="onSubmitBranch" />
       </div>
     </template>
   </AppDialog>

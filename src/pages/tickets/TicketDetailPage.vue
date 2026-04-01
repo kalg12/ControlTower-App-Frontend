@@ -2,16 +2,19 @@
 import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useConfirm } from 'primevue/useconfirm'
 import Skeleton from 'primevue/skeleton'
 import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
+import Avatar from '@/components/ui/Avatar.vue'
 import { ticketsService } from '@/services/tickets.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import type { TicketStatus, TicketPriority } from '@/types/ticket'
+import { MessageSquare, Clock } from 'lucide-vue-next'
 
 dayjs.extend(relativeTime)
 
@@ -19,6 +22,7 @@ const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
 const toast = useToast()
+const confirm = useConfirm()
 
 const id = computed(() => route.params.id as string)
 
@@ -26,6 +30,13 @@ const { data: ticket, isLoading, isError } = useQuery({
   queryKey: computed(() => ['ticket', id.value]),
   queryFn: () => ticketsService.getById(id.value),
   staleTime: 15000
+})
+
+const { data: comments, isLoading: commentsLoading, refetch: refetchComments } = useQuery({
+  queryKey: computed(() => ['ticket-comments', id.value]),
+  queryFn: () => ticketsService.getComments(id.value),
+  staleTime: 15000,
+  enabled: computed(() => !!id.value)
 })
 
 const statusOptions: { label: string; value: TicketStatus }[] = [
@@ -39,7 +50,6 @@ const statusOptions: { label: string; value: TicketStatus }[] = [
 const selectedStatus = ref<TicketStatus | null>(null)
 const isChangingStatus = ref(false)
 
-// Sync selected status when ticket data loads or changes
 watch(ticket, (val) => {
   if (val) selectedStatus.value = val.status
 }, { immediate: true })
@@ -60,6 +70,26 @@ async function onStatusChange(newStatus: TicketStatus) {
   }
 }
 
+function confirmDelete() {
+  confirm.require({
+    message: 'This action cannot be undone. Delete this ticket?',
+    header: 'Delete Ticket',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Delete', severity: 'danger' },
+    accept: async () => {
+      try {
+        await ticketsService.delete(id.value)
+        await queryClient.invalidateQueries({ queryKey: ['tickets'] })
+        toast.success('Ticket deleted')
+        router.push('/tickets')
+      } catch {
+        toast.error('Failed to delete ticket')
+      }
+    }
+  })
+}
+
 const commentText = ref('')
 const isSubmittingComment = ref(false)
 
@@ -69,6 +99,7 @@ async function submitComment() {
   try {
     await ticketsService.addComment(id.value, commentText.value.trim())
     commentText.value = ''
+    await refetchComments()
     toast.success('Comment added')
   } catch {
     toast.error('Failed to add comment')
@@ -79,21 +110,14 @@ async function submitComment() {
 
 function statusSeverity(status: TicketStatus): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
   const map: Record<TicketStatus, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
-    OPEN: 'info',
-    IN_PROGRESS: 'warn',
-    PENDING_CUSTOMER: 'warn',
-    RESOLVED: 'success',
-    CLOSED: 'secondary'
+    OPEN: 'info', IN_PROGRESS: 'warn', PENDING_CUSTOMER: 'warn', RESOLVED: 'success', CLOSED: 'secondary'
   }
   return map[status] ?? 'secondary'
 }
 
 function prioritySeverity(priority: TicketPriority): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
   const map: Record<TicketPriority, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
-    LOW: 'secondary',
-    MEDIUM: 'warn',
-    HIGH: 'danger',
-    CRITICAL: 'danger'
+    LOW: 'secondary', MEDIUM: 'warn', HIGH: 'danger', CRITICAL: 'danger'
   }
   return map[priority] ?? 'secondary'
 }
@@ -105,8 +129,6 @@ function formatDate(dateStr: string) {
 function fromNow(dateStr: string) {
   return dayjs(dateStr).fromNow()
 }
-
-
 </script>
 
 <template>
@@ -130,6 +152,13 @@ function fromNow(dateStr: string) {
           class="w-52"
           :disabled="isChangingStatus"
           @change="(e: { value: TicketStatus }) => onStatusChange(e.value)"
+        />
+        <Button
+          icon="pi pi-trash"
+          severity="danger"
+          outlined
+          v-tooltip.top="'Delete ticket'"
+          @click="confirmDelete"
         />
       </div>
     </div>
@@ -166,8 +195,8 @@ function fromNow(dateStr: string) {
         <h1 class="text-xl font-semibold text-[var(--text)] mb-2">{{ ticket.title }}</h1>
         <p class="text-sm text-[var(--text-muted)] mb-4">
           Created {{ fromNow(ticket.createdAt) }}
-          <span v-if="ticket.clientId"> · Client: <span class="font-mono text-xs">{{ ticket.clientId }}</span></span>
-          <span v-if="ticket.clientName"> ({{ ticket.clientName }})</span>
+          <span v-if="ticket.clientName"> · {{ ticket.clientName }}</span>
+          <span v-else-if="ticket.clientId"> · Client: <span class="font-mono text-xs">{{ ticket.clientId }}</span></span>
         </p>
         <div class="flex gap-2 mb-4">
           <Tag :severity="statusSeverity(ticket.status)" :value="ticket.status.replace(/_/g, ' ')" />
@@ -218,7 +247,7 @@ function fromNow(dateStr: string) {
               <span
                 v-for="tag in ticket.tags"
                 :key="tag"
-                class="text-xs bg-[var(--surface-alt,#f0f0f0)] text-[var(--text)] px-2 py-0.5 rounded-full"
+                class="text-xs bg-[var(--surface-raised)] text-[var(--text)] px-2 py-0.5 rounded-full"
               >{{ tag }}</span>
             </div>
           </div>
@@ -230,18 +259,68 @@ function fromNow(dateStr: string) {
           <Textarea
             v-model="commentText"
             placeholder="Write a comment..."
-            :rows="5"
+            :rows="4"
             class="w-full"
             :disabled="isSubmittingComment"
           />
           <div class="flex justify-end">
             <Button
-              label="Submit Comment"
+              label="Submit"
               icon="pi pi-send"
               :loading="isSubmittingComment"
               :disabled="!commentText.trim()"
               @click="submitComment"
             />
+          </div>
+        </div>
+      </div>
+
+      <!-- Comments History -->
+      <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
+        <div class="flex items-center gap-2 mb-4">
+          <MessageSquare class="w-4 h-4 text-[var(--text-muted)]" />
+          <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide">
+            Comments
+            <span v-if="comments?.length" class="text-[var(--text-muted)] font-normal normal-case ml-1">({{ comments.length }})</span>
+          </h2>
+        </div>
+
+        <!-- Loading -->
+        <div v-if="commentsLoading" class="space-y-4">
+          <div v-for="i in 3" :key="i" class="flex gap-3">
+            <Skeleton shape="circle" size="2rem" class="flex-shrink-0" />
+            <div class="flex-1 space-y-2">
+              <Skeleton height="0.75rem" width="30%" />
+              <Skeleton height="1rem" />
+              <Skeleton height="1rem" width="80%" />
+            </div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div v-else-if="!comments?.length" class="flex flex-col items-center py-8 gap-2 text-center">
+          <MessageSquare class="w-8 h-8 text-[var(--text-placeholder)]" />
+          <p class="text-sm text-[var(--text-muted)]">No comments yet. Be the first to comment.</p>
+        </div>
+
+        <!-- Comment list -->
+        <div v-else class="space-y-4">
+          <div
+            v-for="comment in comments"
+            :key="comment.id"
+            class="flex gap-3 group"
+          >
+            <Avatar :name="comment.userName ?? 'User'" size="sm" class="flex-shrink-0 mt-0.5" />
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-1">
+                <span class="text-sm font-medium text-[var(--text)]">{{ comment.userName ?? 'User' }}</span>
+                <span class="flex items-center gap-1 text-xs text-[var(--text-muted)]">
+                  <Clock class="w-3 h-3" />
+                  {{ fromNow(comment.createdAt) }}
+                </span>
+              </div>
+              <p class="text-sm text-[var(--text)] whitespace-pre-wrap bg-[var(--surface-raised)] rounded-lg px-3 py-2">{{ comment.body }}</p>
+            </div>
           </div>
         </div>
       </div>

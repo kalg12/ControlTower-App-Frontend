@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
@@ -12,6 +13,7 @@ import type { License, LicenseStatus } from '@/types/license'
 
 const toast = useToast()
 const queryClient = useQueryClient()
+const confirm = useConfirm()
 const page = ref(0)
 const pageSize = 20
 
@@ -55,25 +57,61 @@ function onPage(event: { page: number }) {
   page.value = event.page
 }
 
-async function handleSuspend(license: License) {
-  if (!confirm(`Suspend license ${license.id}?`)) return
-  try {
-    await licensesService.suspend(license.id)
-    queryClient.invalidateQueries({ queryKey: ['licenses'] })
-    toast.success('License suspended')
-  } catch {
-    toast.error('Failed to suspend license')
-  }
+function handleSuspend(license: License) {
+  confirm.require({
+    message: `Suspend license for ${license.clientName ?? license.clientId}?`,
+    header: 'Suspend License',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Suspend', severity: 'warn' },
+    accept: async () => {
+      try {
+        await licensesService.suspend(license.id)
+        queryClient.invalidateQueries({ queryKey: ['licenses'] })
+        toast.success('License suspended')
+      } catch {
+        toast.error('Failed to suspend license')
+      }
+    }
+  })
 }
 
-async function handleReactivate(license: License) {
-  try {
-    await licensesService.reactivate(license.id)
-    queryClient.invalidateQueries({ queryKey: ['licenses'] })
-    toast.success('License reactivated')
-  } catch {
-    toast.error('Failed to reactivate license')
-  }
+function handleReactivate(license: License) {
+  confirm.require({
+    message: `Reactivate license for ${license.clientName ?? license.clientId}?`,
+    header: 'Reactivate License',
+    icon: 'pi pi-check-circle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Reactivate', severity: 'success' },
+    accept: async () => {
+      try {
+        await licensesService.reactivate(license.id)
+        queryClient.invalidateQueries({ queryKey: ['licenses'] })
+        toast.success('License reactivated')
+      } catch {
+        toast.error('Failed to reactivate license')
+      }
+    }
+  })
+}
+
+function handleCancel(license: License) {
+  confirm.require({
+    message: `Cancel license for ${license.clientName ?? license.clientId}? This cannot be undone.`,
+    header: 'Cancel License',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Keep License', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Cancel License', severity: 'danger' },
+    accept: async () => {
+      try {
+        await licensesService.cancel(license.id)
+        queryClient.invalidateQueries({ queryKey: ['licenses'] })
+        toast.success('License cancelled')
+      } catch {
+        toast.error('Failed to cancel license')
+      }
+    }
+  })
 }
 </script>
 
@@ -130,7 +168,7 @@ async function handleReactivate(license: License) {
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 110px">
+      <Column header="Actions" style="width: 130px">
         <template #body="{ data: row }: { data: License }">
           <div class="flex items-center gap-1">
             <Button
@@ -138,8 +176,8 @@ async function handleReactivate(license: License) {
               icon="pi pi-pause"
               severity="warn"
               text
-              size="small"
-              title="Suspend"
+              rounded
+              v-tooltip.top="'Suspend'"
               @click="handleSuspend(row)"
             />
             <Button
@@ -147,9 +185,18 @@ async function handleReactivate(license: License) {
               icon="pi pi-play"
               severity="success"
               text
-              size="small"
-              title="Reactivate"
+              rounded
+              v-tooltip.top="'Reactivate'"
               @click="handleReactivate(row)"
+            />
+            <Button
+              v-if="row.status !== 'CANCELLED'"
+              icon="pi pi-times-circle"
+              severity="danger"
+              text
+              rounded
+              v-tooltip.top="'Cancel license'"
+              @click="handleCancel(row)"
             />
           </div>
         </template>

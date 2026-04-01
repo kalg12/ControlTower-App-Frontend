@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useConfirm } from 'primevue/useconfirm'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
@@ -20,6 +21,7 @@ import { Shield, ShieldOff } from 'lucide-vue-next'
 
 const queryClient = useQueryClient()
 const toast = useToast()
+const confirm = useConfirm()
 const page = ref(0)
 const pageSize = 20
 const globalFilter = ref('')
@@ -66,30 +68,93 @@ function onSearch() {
 }
 
 // --- Suspend / Reactivate ---
-async function handleToggleStatus(user: User) {
+function handleToggleStatus(user: User) {
   const nextStatus = user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
-  const action = nextStatus === 'SUSPENDED' ? 'Suspend' : 'Reactivate'
-  if (!confirm(`${action} user ${user.fullName}?`)) return
-  try {
-    await usersService.update(user.id, { status: nextStatus })
-    await queryClient.invalidateQueries({ queryKey: ['users'] })
-    toast.success(`User ${action.toLowerCase()}d`)
-  } catch {
-    toast.error(`Failed to ${action.toLowerCase()} user`)
-  }
+  const isSuspending = nextStatus === 'SUSPENDED'
+  confirm.require({
+    message: isSuspending
+      ? `Suspend ${user.fullName}? They will lose access.`
+      : `Reactivate ${user.fullName}?`,
+    header: isSuspending ? 'Suspend User' : 'Reactivate User',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: isSuspending ? 'Suspend' : 'Reactivate', severity: isSuspending ? 'warn' : 'success' },
+    accept: async () => {
+      try {
+        await usersService.update(user.id, { status: nextStatus })
+        await queryClient.invalidateQueries({ queryKey: ['users'] })
+        toast.success(isSuspending ? 'User suspended' : 'User reactivated')
+      } catch {
+        toast.error('Failed to update user status')
+      }
+    }
+  })
 }
 
 // --- Delete ---
-async function handleDelete(user: User) {
-  if (!confirm(`Delete user ${user.fullName}? This cannot be undone.`)) return
-  try {
-    await usersService.delete(user.id)
-    await queryClient.invalidateQueries({ queryKey: ['users'] })
-    toast.success('User deleted')
-  } catch {
-    toast.error('Failed to delete user')
-  }
+function handleDelete(user: User) {
+  confirm.require({
+    message: `Delete ${user.fullName}? This cannot be undone.`,
+    header: 'Delete User',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Delete', severity: 'danger' },
+    accept: async () => {
+      try {
+        await usersService.delete(user.id)
+        await queryClient.invalidateQueries({ queryKey: ['users'] })
+        toast.success('User deleted')
+      } catch {
+        toast.error('Failed to delete user')
+      }
+    }
+  })
 }
+
+// --- Edit User Modal ---
+const showEditDialog = ref(false)
+const editingUser = ref<User | null>(null)
+const isEditSubmitting = ref(false)
+
+const editSchema = z.object({
+  fullName: z.string().min(2, 'Min 2 characters'),
+  roleId: z.string().optional()
+})
+
+const editForm = useForm({
+  validationSchema: toTypedSchema(editSchema),
+  initialValues: { fullName: '', roleId: '' }
+})
+
+const [editFullName, editFullNameAttrs] = editForm.defineField('fullName')
+const [editRoleId, editRoleIdAttrs] = editForm.defineField('roleId')
+
+function openEditDialog(user: User) {
+  editingUser.value = user
+  editForm.setValues({
+    fullName: user.fullName,
+    roleId: user.roles?.[0] ?? ''
+  })
+  showEditDialog.value = true
+}
+
+const onEditSubmit = editForm.handleSubmit(async (values) => {
+  if (!editingUser.value) return
+  isEditSubmitting.value = true
+  try {
+    await usersService.update(editingUser.value.id, { fullName: values.fullName })
+    if (values.roleId) {
+      await usersService.assignRoles(editingUser.value.id, [values.roleId])
+    }
+    await queryClient.invalidateQueries({ queryKey: ['users'] })
+    showEditDialog.value = false
+    toast.success('User updated')
+  } catch {
+    toast.error('Failed to update user')
+  } finally {
+    isEditSubmitting.value = false
+  }
+})
 
 // --- Invite / Create User ---
 const showInviteDialog = ref(false)
@@ -220,9 +285,17 @@ const onSubmit = handleSubmit(async (values) => {
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 110px">
+      <Column header="Actions" style="width: 140px">
         <template #body="{ data: row }: { data: User }">
           <div class="flex items-center gap-1">
+            <Button
+              icon="pi pi-pencil"
+              severity="secondary"
+              text
+              rounded
+              v-tooltip.top="'Edit user'"
+              @click="openEditDialog(row)"
+            />
             <Button
               :icon="row.status === 'ACTIVE' ? 'pi pi-lock' : 'pi pi-unlock'"
               :severity="row.status === 'ACTIVE' ? 'warn' : 'success'"
@@ -320,6 +393,58 @@ const onSubmit = handleSubmit(async (values) => {
           label="Create User"
           :loading="isInviting"
           @click="onSubmit"
+        />
+      </div>
+    </template>
+  </AppDialog>
+
+  <!-- Edit User Dialog -->
+  <AppDialog
+    v-model:visible="showEditDialog"
+    title="Edit User"
+    subtitle="Update user name and role assignment."
+    :loading="isEditSubmitting"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
+      <FormField label="Full Name" name="edit-fullName" :error="editForm.errors.value.fullName" required>
+        <InputText
+          id="edit-fullName"
+          v-model="editFullName"
+          v-bind="editFullNameAttrs"
+          placeholder="Full name"
+          class="w-full"
+          :disabled="isEditSubmitting"
+        />
+      </FormField>
+
+      <FormField label="Role" name="edit-roleId" :error="editForm.errors.value.roleId">
+        <Select
+          id="edit-roleId"
+          v-model="editRoleId"
+          v-bind="editRoleIdAttrs"
+          :options="roleOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="Select a role (optional)"
+          class="w-full"
+          :disabled="isEditSubmitting"
+        />
+      </FormField>
+    </form>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          outlined
+          :disabled="isEditSubmitting"
+          @click="showEditDialog = false"
+        />
+        <Button
+          label="Save Changes"
+          :loading="isEditSubmitting"
+          @click="onEditSubmit"
         />
       </div>
     </template>

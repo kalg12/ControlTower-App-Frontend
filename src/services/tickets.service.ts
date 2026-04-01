@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { Ticket, CreateTicketRequest, UpdateTicketRequest, TicketFilters } from '@/types/ticket'
+import type { Ticket, TicketComment, CreateTicketRequest, UpdateTicketRequest, TicketFilters } from '@/types/ticket'
 import type { PaginatedResponse } from '@/types/api'
 
 export const ticketsService = {
@@ -37,6 +37,11 @@ export const ticketsService = {
 
   async assign(id: string, assigneeId: string): Promise<Ticket> {
     const res = await api.post<Ticket>(`/tickets/${id}/assign`, { assigneeId })
+    return res.data
+  },
+
+  async getComments(id: string): Promise<TicketComment[]> {
+    const res = await api.get<TicketComment[]>(`/tickets/${id}/comments`)
     return res.data
   },
 
