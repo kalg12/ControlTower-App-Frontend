@@ -33,10 +33,22 @@ const router = createRouter({
       meta: { layout: 'app', title: 'Tickets' }
     },
     {
+      path: '/tickets/:id',
+      name: 'ticket-detail',
+      component: () => import('@/pages/tickets/TicketDetailPage.vue'),
+      meta: { layout: 'app', title: 'Ticket Detail' }
+    },
+    {
       path: '/clients',
       name: 'clients',
       component: () => import('@/pages/clients/ClientsPage.vue'),
       meta: { layout: 'app', title: 'Clients' }
+    },
+    {
+      path: '/clients/:id',
+      name: 'client-detail',
+      component: () => import('@/pages/clients/ClientDetailPage.vue'),
+      meta: { layout: 'app', title: 'Client Detail' }
     },
     {
       path: '/health',

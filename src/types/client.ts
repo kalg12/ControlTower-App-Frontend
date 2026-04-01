@@ -41,6 +41,14 @@ export interface UpdateClientRequest {
   country?: string
 }
 
+export interface CreateBranchRequest {
+  name: string
+  address?: string
+  city?: string
+  country?: string
+  timezone?: string
+}
+
 export interface ClientFilters {
   search?: string
   page?: number

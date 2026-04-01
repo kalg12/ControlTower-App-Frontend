@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { Client, ClientBranch, CreateClientRequest, UpdateClientRequest, ClientFilters } from '@/types/client'
+import type { Client, ClientBranch, CreateClientRequest, UpdateClientRequest, ClientFilters, CreateBranchRequest } from '@/types/client'
 import type { PaginatedResponse } from '@/types/api'
 
 export const clientsService = {
@@ -32,7 +32,7 @@ export const clientsService = {
     return res.data
   },
 
-  async createBranch(clientId: string, data: Omit<ClientBranch, 'id' | 'clientId'>): Promise<ClientBranch> {
+  async createBranch(clientId: string, data: CreateBranchRequest): Promise<ClientBranch> {
     const res = await api.post<ClientBranch>(`/clients/${clientId}/branches`, data)
     return res.data
   },
