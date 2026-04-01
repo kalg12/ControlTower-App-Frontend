@@ -13,7 +13,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import Badge from '@/components/ui/Badge.vue'
 import Card from '@/components/ui/Card.vue'
-import Spinner from '@/components/ui/Spinner.vue'
+import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import { Building2, MessageSquare, Activity, CreditCard, AlertTriangle } from 'lucide-vue-next'
 
 dayjs.extend(relativeTime)
@@ -66,9 +66,15 @@ function formatNow() {
 <template>
   <div class="space-y-6">
     <!-- Loading skeleton -->
-    <div v-if="isLoading" class="flex items-center justify-center py-20">
-      <Spinner class="w-8 h-8 text-[var(--primary)]" />
-    </div>
+    <template v-if="isLoading">
+      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <SkeletonCard v-for="i in 4" :key="i" :lines="1" />
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <SkeletonCard :lines="3" />
+        <SkeletonCard :lines="5" />
+      </div>
+    </template>
 
     <!-- Error state -->
     <div v-else-if="isError" class="flex items-center justify-center py-20">

@@ -4,7 +4,7 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { notificationsService } from '@/services/notifications.service'
 import { useToast } from '@/composables/useToast'
 import Button from '@/components/ui/Button.vue'
-import Spinner from '@/components/ui/Spinner.vue'
+import Skeleton from 'primevue/skeleton'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import { Bell, CheckCheck, Info, AlertTriangle, XCircle, CheckCircle, Trash2 } from 'lucide-vue-next'
 import type { Notification } from '@/types/notification'
@@ -108,8 +108,15 @@ const grouped = computed(() => {
     </div>
 
     <!-- Loading -->
-    <div v-if="isLoading" class="flex items-center justify-center py-20">
-      <Spinner class="w-7 h-7 text-[var(--primary)]" />
+    <div v-if="isLoading" class="space-y-2">
+      <div v-for="i in 5" :key="i" class="flex gap-4 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
+        <Skeleton shape="circle" height="2.25rem" width="2.25rem" />
+        <div class="flex-1 space-y-2">
+          <Skeleton height="0.875rem" width="60%" />
+          <Skeleton height="0.75rem" width="85%" />
+          <Skeleton height="0.625rem" width="30%" />
+        </div>
+      </div>
     </div>
 
     <!-- Empty state -->

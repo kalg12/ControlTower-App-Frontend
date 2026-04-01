@@ -1,19 +1,24 @@
 <script setup lang="ts">
 import { computed } from 'vue'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import Card from '@/components/ui/Card.vue'
-import Spinner from '@/components/ui/Spinner.vue'
+import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import { CheckCircle, AlertTriangle, XCircle } from 'lucide-vue-next'
 import { healthService } from '@/services/health.service'
-import type { HealthCheck, HealthStatus } from '@/types/health'
+import { useToast } from '@/composables/useToast'
+import type { HealthCheck, HealthIncident, HealthStatus } from '@/types/health'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 
 dayjs.extend(relativeTime)
+
+const toast = useToast()
+const queryClient = useQueryClient()
 
 const { data: checks, isLoading, refetch } = useQuery({
   queryKey: ['health-clients'],
@@ -22,7 +27,15 @@ const { data: checks, isLoading, refetch } = useQuery({
   refetchInterval: 60000 // auto-refresh every minute
 })
 
+const { data: incidentsPage, isLoading: isLoadingIncidents } = useQuery({
+  queryKey: ['health-incidents'],
+  queryFn: () => healthService.getIncidents({ page: 0, size: 20 }),
+  staleTime: 15000,
+  refetchInterval: 60000
+})
+
 const items = computed(() => checks.value ?? [])
+const incidents = computed(() => incidentsPage.value?.content ?? [])
 
 const summary = computed(() => {
   const arr = items.value
@@ -41,8 +54,20 @@ function statusSeverity(status: HealthStatus): 'success' | 'warn' | 'danger' | '
   return 'secondary'
 }
 
+function incidentSeverity(severity: string): 'danger' | 'warn' | 'info' | 'secondary' {
+  const s = severity?.toUpperCase()
+  if (s === 'CRITICAL' || s === 'HIGH') return 'danger'
+  if (s === 'MEDIUM' || s === 'WARNING') return 'warn'
+  if (s === 'LOW') return 'info'
+  return 'secondary'
+}
+
 function formatTime(dateStr: string) {
   return dayjs(dateStr).fromNow()
+}
+
+function formatDateTime(dateStr: string) {
+  return dayjs(dateStr).format('DD MMM YYYY, HH:mm')
 }
 
 function latencyClass(ms?: number) {
@@ -50,6 +75,18 @@ function latencyClass(ms?: number) {
   if (ms > 500) return 'text-red-500 font-medium'
   if (ms > 200) return 'text-amber-500 font-medium'
   return 'text-green-500 font-medium'
+}
+
+async function handleResolve(incident: HealthIncident) {
+  if (!incident.id) return
+  try {
+    await healthService.resolveIncident(incident.id)
+    queryClient.invalidateQueries({ queryKey: ['health-incidents'] })
+    queryClient.invalidateQueries({ queryKey: ['health-clients'] })
+    toast.success('Incident resolved successfully')
+  } catch {
+    toast.error('Failed to resolve incident')
+  }
 }
 </script>
 
@@ -64,9 +101,12 @@ function latencyClass(ms?: number) {
     </div>
 
     <!-- Loading -->
-    <div v-if="isLoading" class="flex items-center justify-center py-16">
-      <Spinner class="w-7 h-7 text-[var(--primary)]" />
-    </div>
+    <template v-if="isLoading">
+      <div class="grid grid-cols-3 gap-4">
+        <SkeletonCard v-for="i in 3" :key="i" />
+      </div>
+      <SkeletonTable :rows="5" :cols="5" />
+    </template>
 
     <template v-else>
       <!-- Summary cards -->
@@ -161,6 +201,72 @@ function latencyClass(ms?: number) {
           <div class="text-center py-8 text-[var(--text-muted)]">No health data available</div>
         </template>
       </DataTable>
+
+      <!-- Open Incidents section -->
+      <div>
+        <h3 class="text-base font-semibold text-[var(--text)] mb-3">Open Incidents</h3>
+
+        <!-- Incidents loading -->
+        <SkeletonTable v-if="isLoadingIncidents" :rows="5" :cols="5" />
+
+        <DataTable
+          v-else
+          :value="incidents"
+          removable-sort
+          striped-rows
+          class="rounded-xl overflow-hidden"
+        >
+          <Column field="severity" header="Severity" style="width: 120px">
+            <template #body="{ data: row }: { data: HealthIncident }">
+              <Tag :severity="incidentSeverity(row.severity)" :value="row.severity" />
+            </template>
+          </Column>
+
+          <Column field="description" header="Description" style="min-width: 200px">
+            <template #body="{ data: row }: { data: HealthIncident }">
+              <span class="text-sm text-[var(--text)]">{{ row.description }}</span>
+            </template>
+          </Column>
+
+          <Column field="branchId" header="Branch ID" style="width: 160px">
+            <template #body="{ data: row }: { data: HealthIncident }">
+              <span class="font-mono text-sm text-[var(--text-muted)]">{{ row.branchId }}</span>
+            </template>
+          </Column>
+
+          <Column field="openedAt" header="Opened At" sortable style="width: 160px">
+            <template #body="{ data: row }: { data: HealthIncident }">
+              <span class="text-sm text-[var(--text-muted)]">{{ formatDateTime(row.openedAt) }}</span>
+            </template>
+          </Column>
+
+          <Column field="open" header="Status" style="width: 110px">
+            <template #body="{ data: row }: { data: HealthIncident }">
+              <Tag
+                :severity="row.open ? 'danger' : 'success'"
+                :value="row.open ? 'open' : 'resolved'"
+              />
+            </template>
+          </Column>
+
+          <Column header="Actions" style="width: 110px">
+            <template #body="{ data: row }: { data: HealthIncident }">
+              <Button
+                v-if="row.open && row.id"
+                label="Resolve"
+                size="small"
+                severity="secondary"
+                outlined
+                @click="handleResolve(row)"
+              />
+            </template>
+          </Column>
+
+          <template #empty>
+            <div class="text-center py-8 text-[var(--text-muted)]">No open incidents</div>
+          </template>
+        </DataTable>
+      </div>
     </template>
   </div>
 </template>
