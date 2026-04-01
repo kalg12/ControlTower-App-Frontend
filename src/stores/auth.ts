@@ -3,9 +3,20 @@ import { ref, computed } from 'vue'
 import { authService } from '@/services/auth.service'
 import type { CurrentUser, LoginRequest } from '@/types/auth'
 
+function readStoredUser(): CurrentUser | null {
+  try {
+    const raw = localStorage.getItem('user')
+    return raw ? (JSON.parse(raw) as CurrentUser) : null
+  } catch {
+    return null
+  }
+}
+
 export const useAuthStore = defineStore('auth', () => {
-  const user = ref<CurrentUser | null>(null)
-  const accessToken = ref<string | null>(null)
+  // Initialize synchronously so the router guard can read auth state
+  // before App.vue mounts.
+  const accessToken = ref<string | null>(localStorage.getItem('accessToken'))
+  const user = ref<CurrentUser | null>(readStoredUser())
   const loading = ref(false)
 
   const isAuthenticated = computed(() => !!accessToken.value && !!user.value)
@@ -47,21 +58,6 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  function loadFromStorage() {
-    const token = localStorage.getItem('accessToken')
-    const savedUser = localStorage.getItem('user')
-    if (token && savedUser) {
-      try {
-        accessToken.value = token
-        user.value = JSON.parse(savedUser) as CurrentUser
-      } catch {
-        localStorage.removeItem('accessToken')
-        localStorage.removeItem('refreshToken')
-        localStorage.removeItem('user')
-      }
-    }
-  }
-
   return {
     user,
     accessToken,
@@ -70,7 +66,6 @@ export const useAuthStore = defineStore('auth', () => {
     hasPermission,
     hasRole,
     login,
-    logout,
-    loadFromStorage
+    logout
   }
 })
