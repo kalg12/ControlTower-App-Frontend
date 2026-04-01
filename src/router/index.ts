@@ -106,7 +106,9 @@ const router = createRouter({
     },
     {
       path: '/:pathMatch(.*)*',
-      redirect: '/dashboard'
+      name: 'not-found',
+      component: () => import('@/pages/NotFoundPage.vue'),
+      meta: { layout: 'none' }
     }
   ]
 })

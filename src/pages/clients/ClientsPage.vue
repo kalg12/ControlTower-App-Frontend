@@ -67,22 +67,22 @@ const schema = z.object({
   country: z.string().min(2, 'Country code (e.g. MX)').default('MX')
 })
 
-const { handleSubmit, errors, resetForm, defineField } = useForm({
+const createForm = useForm({
   validationSchema: toTypedSchema(schema),
   initialValues: { name: '', legalName: '', taxId: '', country: 'MX' }
 })
 
-const [nameValue, nameAttrs] = defineField('name')
-const [legalNameValue, legalNameAttrs] = defineField('legalName')
-const [taxIdValue, taxIdAttrs] = defineField('taxId')
-const [countryValue, countryAttrs] = defineField('country')
+const [nameValue, nameAttrs] = createForm.defineField('name')
+const [legalNameValue, legalNameAttrs] = createForm.defineField('legalName')
+const [taxIdValue, taxIdAttrs] = createForm.defineField('taxId')
+const [countryValue, countryAttrs] = createForm.defineField('country')
 
 function openCreateDialog() {
-  resetForm()
+  createForm.resetForm()
   showCreateDialog.value = true
 }
 
-const onSubmit = handleSubmit(async (values) => {
+const onSubmit = createForm.handleSubmit(async (values) => {
   isSubmitting.value = true
   try {
     await clientsService.create({
@@ -98,6 +98,52 @@ const onSubmit = handleSubmit(async (values) => {
     toast.error('Failed to create client')
   } finally {
     isSubmitting.value = false
+  }
+})
+
+// --- Edit Client Modal ---
+const showEditDialog = ref(false)
+const editingClient = ref<Client | null>(null)
+const isEditSubmitting = ref(false)
+
+const editForm = useForm({
+  validationSchema: toTypedSchema(schema),
+  initialValues: { name: '', legalName: '', taxId: '', country: 'MX' }
+})
+
+const [editName, editNameAttrs] = editForm.defineField('name')
+const [editLegalName, editLegalNameAttrs] = editForm.defineField('legalName')
+const [editTaxId, editTaxIdAttrs] = editForm.defineField('taxId')
+const [editCountry, editCountryAttrs] = editForm.defineField('country')
+
+function openEditDialog(client: Client) {
+  editingClient.value = client
+  editForm.setValues({
+    name: client.name,
+    legalName: client.legalName ?? '',
+    taxId: client.taxId ?? '',
+    country: client.country ?? 'MX'
+  })
+  showEditDialog.value = true
+}
+
+const onEditSubmit = editForm.handleSubmit(async (values) => {
+  if (!editingClient.value) return
+  isEditSubmitting.value = true
+  try {
+    await clientsService.update(editingClient.value.id, {
+      name: values.name,
+      legalName: values.legalName || undefined,
+      taxId: values.taxId || undefined,
+      country: values.country
+    })
+    await queryClient.invalidateQueries({ queryKey: ['clients'] })
+    showEditDialog.value = false
+    toast.success('Client updated')
+  } catch {
+    toast.error('Failed to update client')
+  } finally {
+    isEditSubmitting.value = false
   }
 })
 </script>
@@ -175,15 +221,26 @@ const onSubmit = handleSubmit(async (values) => {
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 80px">
+      <Column header="Actions" style="width: 110px">
         <template #body="{ data: row }: { data: Client }">
-          <Button
-            icon="pi pi-eye"
-            severity="secondary"
-            text
-            rounded
-            @click="router.push('/clients/' + row.id)"
-          />
+          <div class="flex gap-1">
+            <Button
+              icon="pi pi-pencil"
+              severity="secondary"
+              text
+              rounded
+              v-tooltip.top="'Edit'"
+              @click="openEditDialog(row)"
+            />
+            <Button
+              icon="pi pi-eye"
+              severity="secondary"
+              text
+              rounded
+              v-tooltip.top="'View'"
+              @click="router.push('/clients/' + row.id)"
+            />
+          </div>
         </template>
       </Column>
 
@@ -201,7 +258,7 @@ const onSubmit = handleSubmit(async (values) => {
     :loading="isSubmitting"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
-      <FormField label="Name" name="name" :error="errors.name" required>
+      <FormField label="Name" name="name" :error="createForm.errors.value.name" required>
         <InputText
           id="name"
           v-model="nameValue"
@@ -212,7 +269,7 @@ const onSubmit = handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField label="Legal Name" name="legalName" :error="errors.legalName">
+      <FormField label="Legal Name" name="legalName" :error="createForm.errors.value.legalName">
         <InputText
           id="legalName"
           v-model="legalNameValue"
@@ -223,7 +280,7 @@ const onSubmit = handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField label="Tax ID / RFC" name="taxId" :error="errors.taxId">
+      <FormField label="Tax ID / RFC" name="taxId" :error="createForm.errors.value.taxId">
         <InputText
           id="taxId"
           v-model="taxIdValue"
@@ -234,7 +291,7 @@ const onSubmit = handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField label="Country" name="country" :error="errors.country" required>
+      <FormField label="Country" name="country" :error="createForm.errors.value.country" required>
         <InputText
           id="country"
           v-model="countryValue"
@@ -259,6 +316,77 @@ const onSubmit = handleSubmit(async (values) => {
           label="Create Client"
           :loading="isSubmitting"
           @click="onSubmit"
+        />
+      </div>
+    </template>
+  </AppDialog>
+
+  <!-- Edit Client Dialog -->
+  <AppDialog
+    v-model:visible="showEditDialog"
+    title="Edit Client"
+    subtitle="Update client information."
+    :loading="isEditSubmitting"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
+      <FormField label="Name" name="edit-name" :error="editForm.errors.value.name" required>
+        <InputText
+          id="edit-name"
+          v-model="editName"
+          v-bind="editNameAttrs"
+          placeholder="Client name"
+          class="w-full"
+          :disabled="isEditSubmitting"
+        />
+      </FormField>
+
+      <FormField label="Legal Name" name="edit-legalName" :error="editForm.errors.value.legalName">
+        <InputText
+          id="edit-legalName"
+          v-model="editLegalName"
+          v-bind="editLegalNameAttrs"
+          placeholder="Legal name (optional)"
+          class="w-full"
+          :disabled="isEditSubmitting"
+        />
+      </FormField>
+
+      <FormField label="Tax ID / RFC" name="edit-taxId" :error="editForm.errors.value.taxId">
+        <InputText
+          id="edit-taxId"
+          v-model="editTaxId"
+          v-bind="editTaxIdAttrs"
+          placeholder="Tax ID / RFC (optional)"
+          class="w-full"
+          :disabled="isEditSubmitting"
+        />
+      </FormField>
+
+      <FormField label="Country" name="edit-country" :error="editForm.errors.value.country" required>
+        <InputText
+          id="edit-country"
+          v-model="editCountry"
+          v-bind="editCountryAttrs"
+          placeholder="e.g. MX"
+          class="w-full"
+          :disabled="isEditSubmitting"
+        />
+      </FormField>
+    </form>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          outlined
+          :disabled="isEditSubmitting"
+          @click="showEditDialog = false"
+        />
+        <Button
+          label="Save Changes"
+          :loading="isEditSubmitting"
+          @click="onEditSubmit"
         />
       </div>
     </template>
