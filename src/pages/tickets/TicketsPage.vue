@@ -68,6 +68,14 @@ const priorityOptions = [
   { label: 'Critical', value: 'CRITICAL' }
 ]
 
+const statusOptions = [
+  { label: 'Open', value: 'OPEN' },
+  { label: 'In Progress', value: 'IN_PROGRESS' },
+  { label: 'Pending Customer', value: 'PENDING_CUSTOMER' },
+  { label: 'Resolved', value: 'RESOLVED' },
+  { label: 'Closed', value: 'CLOSED' }
+]
+
 function statusSeverity(status: TicketStatus): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
   const map: Record<TicketStatus, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
     OPEN: 'info',
@@ -108,33 +116,57 @@ function onSearch() {
   searchTimeout = setTimeout(() => { page.value = 0; refetch() }, 400)
 }
 
+// --- CSV Export ---
+const exporting = ref(false)
+async function handleExport() {
+  exporting.value = true
+  try {
+    const blob = await ticketsService.exportCsv({
+      status: statusFilter.value ?? undefined,
+      priority: priorityFilter.value ?? undefined,
+      search: globalFilter.value || undefined
+    })
+    const url = URL.createObjectURL(blob)
+    const a = document.createElement('a')
+    a.href = url
+    a.download = `tickets-${dayjs().format('YYYY-MM-DD')}.csv`
+    a.click()
+    URL.revokeObjectURL(url)
+    toast.success('Tickets exported')
+  } catch {
+    toast.error('Export failed')
+  } finally {
+    exporting.value = false
+  }
+}
+
 // --- Create Ticket Modal ---
 const showCreateDialog = ref(false)
 const isSubmitting = ref(false)
 
-const schema = z.object({
+const createSchema = z.object({
   title: z.string().min(3, 'Min 3 characters').max(200),
   description: z.string().min(10, 'Min 10 characters'),
   priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   clientId: z.string().optional()
 })
 
-const { handleSubmit, errors, resetForm, defineField } = useForm({
-  validationSchema: toTypedSchema(schema),
+const createForm = useForm({
+  validationSchema: toTypedSchema(createSchema),
   initialValues: { title: '', description: '', priority: 'MEDIUM', clientId: '' }
 })
 
-const [titleValue, titleAttrs] = defineField('title')
-const [descriptionValue, descriptionAttrs] = defineField('description')
-const [priorityValue, priorityAttrs] = defineField('priority')
-const [clientIdValue, clientIdAttrs] = defineField('clientId')
+const [titleValue, titleAttrs] = createForm.defineField('title')
+const [descriptionValue, descriptionAttrs] = createForm.defineField('description')
+const [priorityValue, priorityAttrs] = createForm.defineField('priority')
+const [clientIdValue, clientIdAttrs] = createForm.defineField('clientId')
 
 function openCreateDialog() {
-  resetForm()
+  createForm.resetForm()
   showCreateDialog.value = true
 }
 
-const onSubmit = handleSubmit(async (values) => {
+const onSubmit = createForm.handleSubmit(async (values) => {
   isSubmitting.value = true
   try {
     await ticketsService.create({
@@ -152,6 +184,59 @@ const onSubmit = handleSubmit(async (values) => {
     isSubmitting.value = false
   }
 })
+
+// --- Edit Ticket Modal ---
+const showEditDialog = ref(false)
+const editingTicket = ref<Ticket | null>(null)
+const isEditSubmitting = ref(false)
+
+const editSchema = z.object({
+  title: z.string().min(3, 'Min 3 characters').max(200),
+  description: z.string().min(10, 'Min 10 characters'),
+  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'PENDING_CUSTOMER', 'RESOLVED', 'CLOSED'])
+})
+
+const editForm = useForm({
+  validationSchema: toTypedSchema(editSchema),
+  initialValues: { title: '', description: '', priority: 'MEDIUM' as const, status: 'OPEN' as const }
+})
+
+const [editTitle, editTitleAttrs] = editForm.defineField('title')
+const [editDescription, editDescriptionAttrs] = editForm.defineField('description')
+const [editPriority, editPriorityAttrs] = editForm.defineField('priority')
+const [editStatus, editStatusAttrs] = editForm.defineField('status')
+
+function openEditDialog(ticket: Ticket) {
+  editingTicket.value = ticket
+  editForm.setValues({
+    title: ticket.title,
+    description: ticket.description,
+    priority: ticket.priority,
+    status: ticket.status
+  })
+  showEditDialog.value = true
+}
+
+const onEditSubmit = editForm.handleSubmit(async (values) => {
+  if (!editingTicket.value) return
+  isEditSubmitting.value = true
+  try {
+    await ticketsService.update(editingTicket.value.id, {
+      title: values.title,
+      description: values.description,
+      priority: values.priority,
+      status: values.status
+    })
+    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    showEditDialog.value = false
+    toast.success('Ticket updated')
+  } catch {
+    toast.error('Failed to update ticket')
+  } finally {
+    isEditSubmitting.value = false
+  }
+})
 </script>
 
 <template>
@@ -162,7 +247,17 @@ const onSubmit = handleSubmit(async (values) => {
         <h2 class="text-lg font-semibold text-[var(--text)]">Support Tickets</h2>
         <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} total tickets</p>
       </div>
-      <Button label="New Ticket" icon="pi pi-plus" @click="openCreateDialog" />
+      <div class="flex gap-2">
+        <Button
+          label="Export CSV"
+          icon="pi pi-download"
+          severity="secondary"
+          outlined
+          :loading="exporting"
+          @click="handleExport"
+        />
+        <Button label="New Ticket" icon="pi pi-plus" @click="openCreateDialog" />
+      </div>
     </div>
 
     <!-- Filters -->
@@ -229,13 +324,7 @@ const onSubmit = handleSubmit(async (values) => {
 
       <Column field="clientId" header="Client" style="min-width: 140px">
         <template #body="{ data: row }: { data: Ticket }">
-          <span class="text-[var(--text-muted)] text-sm">{{ row.clientId ?? '—' }}</span>
-        </template>
-      </Column>
-
-      <Column field="branchId" header="Branch" style="width: 130px">
-        <template #body="{ data: row }: { data: Ticket }">
-          <span class="text-[var(--text-muted)] text-sm">{{ (row as any).branchId ?? '—' }}</span>
+          <span class="text-[var(--text-muted)] text-sm">{{ row.clientName ?? row.clientId ?? '—' }}</span>
         </template>
       </Column>
 
@@ -245,15 +334,26 @@ const onSubmit = handleSubmit(async (values) => {
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 80px">
+      <Column header="Actions" style="width: 110px">
         <template #body="{ data: row }: { data: Ticket }">
-          <Button
-            icon="pi pi-eye"
-            severity="secondary"
-            text
-            rounded
-            @click="router.push('/tickets/' + row.id)"
-          />
+          <div class="flex gap-1">
+            <Button
+              icon="pi pi-pencil"
+              severity="secondary"
+              text
+              rounded
+              v-tooltip.top="'Edit'"
+              @click="openEditDialog(row)"
+            />
+            <Button
+              icon="pi pi-eye"
+              severity="secondary"
+              text
+              rounded
+              v-tooltip.top="'View'"
+              @click="router.push('/tickets/' + row.id)"
+            />
+          </div>
         </template>
       </Column>
 
@@ -271,7 +371,7 @@ const onSubmit = handleSubmit(async (values) => {
     :loading="isSubmitting"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
-      <FormField label="Title" name="title" :error="errors.title" required>
+      <FormField label="Title" name="title" :error="createForm.errors.value.title" required>
         <InputText
           id="title"
           v-model="titleValue"
@@ -282,7 +382,7 @@ const onSubmit = handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField label="Description" name="description" :error="errors.description" required>
+      <FormField label="Description" name="description" :error="createForm.errors.value.description" required>
         <Textarea
           id="description"
           v-model="descriptionValue"
@@ -294,7 +394,7 @@ const onSubmit = handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField label="Priority" name="priority" :error="errors.priority" required>
+      <FormField label="Priority" name="priority" :error="createForm.errors.value.priority" required>
         <Select
           id="priority"
           v-model="priorityValue"
@@ -308,7 +408,7 @@ const onSubmit = handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField label="Client ID" name="clientId" :error="errors.clientId">
+      <FormField label="Client ID" name="clientId" :error="createForm.errors.value.clientId">
         <InputText
           id="clientId"
           v-model="clientIdValue"
@@ -333,6 +433,86 @@ const onSubmit = handleSubmit(async (values) => {
           label="Create Ticket"
           :loading="isSubmitting"
           @click="onSubmit"
+        />
+      </div>
+    </template>
+  </AppDialog>
+
+  <!-- Edit Ticket Dialog -->
+  <AppDialog
+    v-model:visible="showEditDialog"
+    title="Edit Ticket"
+    subtitle="Update ticket details and status."
+    :loading="isEditSubmitting"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
+      <FormField label="Title" name="edit-title" :error="editForm.errors.value.title" required>
+        <InputText
+          id="edit-title"
+          v-model="editTitle"
+          v-bind="editTitleAttrs"
+          placeholder="Ticket title"
+          class="w-full"
+          :disabled="isEditSubmitting"
+        />
+      </FormField>
+
+      <FormField label="Description" name="edit-description" :error="editForm.errors.value.description" required>
+        <Textarea
+          id="edit-description"
+          v-model="editDescription"
+          v-bind="editDescriptionAttrs"
+          placeholder="Describe the issue..."
+          :rows="3"
+          class="w-full"
+          :disabled="isEditSubmitting"
+        />
+      </FormField>
+
+      <div class="grid grid-cols-2 gap-4">
+        <FormField label="Status" name="edit-status" :error="editForm.errors.value.status" required>
+          <Select
+            id="edit-status"
+            v-model="editStatus"
+            v-bind="editStatusAttrs"
+            :options="statusOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="Select status"
+            class="w-full"
+            :disabled="isEditSubmitting"
+          />
+        </FormField>
+
+        <FormField label="Priority" name="edit-priority" :error="editForm.errors.value.priority" required>
+          <Select
+            id="edit-priority"
+            v-model="editPriority"
+            v-bind="editPriorityAttrs"
+            :options="priorityOptions"
+            option-label="label"
+            option-value="value"
+            placeholder="Select priority"
+            class="w-full"
+            :disabled="isEditSubmitting"
+          />
+        </FormField>
+      </div>
+    </form>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          outlined
+          :disabled="isEditSubmitting"
+          @click="showEditDialog = false"
+        />
+        <Button
+          label="Save Changes"
+          :loading="isEditSubmitting"
+          @click="onEditSubmit"
         />
       </div>
     </template>

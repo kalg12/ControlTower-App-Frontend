@@ -42,5 +42,15 @@ export const ticketsService = {
 
   async addComment(id: string, comment: string): Promise<void> {
     await api.post(`/tickets/${id}/comments`, { comment })
+  },
+
+  async exportCsv(filters?: Pick<TicketFilters, 'status' | 'priority' | 'search'>): Promise<Blob> {
+    const res = await api.get('/tickets/export', {
+      params: filters,
+      responseType: 'blob',
+      // bypass the ApiResponse interceptor for blob responses
+      transformResponse: [(data) => data]
+    })
+    return res.data as Blob
   }
 }

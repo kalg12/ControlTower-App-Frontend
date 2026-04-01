@@ -87,6 +87,24 @@ const router = createRouter({
       meta: { layout: 'app', title: 'Settings' }
     },
     {
+      path: '/audit',
+      name: 'audit',
+      component: () => import('@/pages/audit/AuditPage.vue'),
+      meta: { layout: 'app', title: 'Audit Log' }
+    },
+    {
+      path: '/billing',
+      name: 'billing',
+      component: () => import('@/pages/billing/BillingPage.vue'),
+      meta: { layout: 'app', title: 'Billing' }
+    },
+    {
+      path: '/integrations',
+      name: 'integrations',
+      component: () => import('@/pages/integrations/IntegrationsPage.vue'),
+      meta: { layout: 'app', title: 'Integrations' }
+    },
+    {
       path: '/:pathMatch(.*)*',
       redirect: '/dashboard'
     }
