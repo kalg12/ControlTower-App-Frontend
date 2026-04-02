@@ -61,7 +61,7 @@ const clientOptions = computed(() =>
   clientsData.value?.content.map(c => ({ label: c.name, value: c.id })) ?? []
 )
 
-const { data: result, isLoading, refetch } = useQuery({
+const { data: result, isLoading, isError, refetch } = useQuery({
   queryKey: computed(() => ['tickets', page.value, statusFilter.value, priorityFilter.value]),
   queryFn: () => ticketsService.list({
     page: page.value,
@@ -319,6 +319,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         @change="applyFilters"
       />
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
+    </div>
+
+    <!-- Error state -->
+    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+      <span>Failed to load tickets. Check your connection or permissions.</span>
+      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
     </div>
 
     <!-- Skeleton on first load -->

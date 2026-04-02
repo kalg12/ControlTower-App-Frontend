@@ -105,6 +105,12 @@ const router = createRouter({
       meta: { layout: 'app', title: 'Integrations' }
     },
     {
+      path: '/campaigns',
+      name: 'campaigns',
+      component: () => import('@/pages/campaigns/CampaignsPage.vue'),
+      meta: { layout: 'app', title: 'Campaigns' }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/pages/NotFoundPage.vue'),

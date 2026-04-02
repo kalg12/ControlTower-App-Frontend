@@ -18,7 +18,7 @@ const confirm = useConfirm()
 const page = ref(0)
 const pageSize = 20
 
-const { data: result, isLoading, refetch } = useQuery({
+const { data: result, isLoading, isError, refetch } = useQuery({
   queryKey: computed(() => ['licenses', page.value]),
   queryFn: () => licensesService.list({ page: page.value, size: pageSize }),
   staleTime: 15000
@@ -124,6 +124,12 @@ function handleCancel(license: License) {
         <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} total licenses</p>
       </div>
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
+    </div>
+
+    <!-- Error state -->
+    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+      <span>Failed to load licenses. Check your connection or permissions.</span>
+      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
     </div>
 
     <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="5" />

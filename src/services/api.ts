@@ -109,7 +109,11 @@ api.interceptors.response.use(
 
     // ── Other HTTP errors ──────────────────────────────────────────────────
     if (error.response?.status === 403) {
-      toast.warning('No tienes permisos para esta acción')
+      // Only toast on mutations — GET failures are shown via the page's own error state
+      const method = (error.config?.method ?? 'get').toLowerCase()
+      if (method !== 'get') {
+        toast.warning('No tienes permisos para esta acción')
+      }
     } else if (error.response?.status === 500 || error.response?.status === 503) {
       toast.error('Error del servidor. Intenta de nuevo más tarde.')
     } else if (error.code === 'ECONNABORTED') {

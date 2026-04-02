@@ -14,7 +14,8 @@ import {
   Zap,
   Building,
   ClipboardList,
-  Plug
+  Plug,
+  Megaphone
 } from 'lucide-vue-next'
 import { useNotificationsStore } from '@/stores/notifications'
 
@@ -36,6 +37,7 @@ const mainItems = [
   { to: '/licenses', label: 'Licenses', icon: CreditCard },
   { to: '/billing', label: 'Billing', icon: Receipt },
   { to: '/integrations', label: 'Integrations', icon: Plug },
+  { to: '/campaigns', label: 'Campaigns', icon: Megaphone },
 ]
 
 const adminItems = [

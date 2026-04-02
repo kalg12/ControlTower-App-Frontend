@@ -16,7 +16,7 @@ const pageSize = 25
 const searchUser = ref('')
 const searchAction = ref('')
 
-const { data: result, isLoading, refetch } = useQuery({
+const { data: result, isLoading, isError, refetch } = useQuery({
   queryKey: computed(() => ['audit', page.value, searchUser.value, searchAction.value]),
   queryFn: () => auditService.list({
     page: page.value,
@@ -77,6 +77,12 @@ function onSearch() {
         class="flex-1"
         @input="onSearch"
       />
+    </div>
+
+    <!-- Error state -->
+    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+      <span>Failed to load audit logs. Check your connection or permissions.</span>
+      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
     </div>
 
     <!-- Skeleton on first load -->
