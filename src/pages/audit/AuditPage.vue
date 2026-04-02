@@ -7,6 +7,7 @@ import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import { auditService } from '@/services/audit.service'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import dayjs from 'dayjs'
 import type { AuditLog } from '@/types/audit'
 
@@ -78,8 +79,12 @@ function onSearch() {
       />
     </div>
 
+    <!-- Skeleton on first load -->
+    <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="5" />
+
     <!-- DataTable -->
     <DataTable
+      v-else
       :value="logs"
       :loading="isLoading"
       :rows="pageSize"

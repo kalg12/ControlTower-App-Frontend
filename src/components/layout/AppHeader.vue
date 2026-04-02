@@ -7,9 +7,10 @@ import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useToast } from '@/composables/useToast'
+import { wsConnected } from '@/composables/useWebSocket'
 import type { Notification } from '@/types/notification'
 
-const emit = defineEmits<{ toggleSidebar: [] }>()
+const emit = defineEmits<{ toggleSidebar: []; toggleCollapse: [] }>()
 
 const route = useRoute()
 const router = useRouter()
@@ -86,9 +87,18 @@ function goToNotif(n: Notification) {
 
     <!-- Left -->
     <div class="flex items-center gap-3">
+      <!-- Mobile: open overlay sidebar -->
       <button
         class="lg:hidden p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] transition-colors"
         @click="emit('toggleSidebar')"
+      >
+        <Menu class="w-5 h-5" />
+      </button>
+      <!-- Desktop: collapse/expand sidebar -->
+      <button
+        class="hidden lg:flex p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] transition-colors"
+        title="Toggle sidebar"
+        @click="emit('toggleCollapse')"
       >
         <Menu class="w-5 h-5" />
       </button>
@@ -110,9 +120,12 @@ function goToNotif(n: Notification) {
 
       <!-- Live connection indicator -->
       <span
-        class="w-2 h-2 rounded-full bg-green-400 animate-pulse"
-        title="Real-time connected"
-        aria-label="Connected"
+        :class="[
+          'w-2 h-2 rounded-full transition-colors duration-500',
+          wsConnected ? 'bg-green-400 animate-pulse' : 'bg-[var(--text-placeholder)]'
+        ]"
+        :title="wsConnected ? 'Real-time connected' : 'Connecting...'"
+        :aria-label="wsConnected ? 'Connected' : 'Disconnected'"
       />
 
       <!-- Notifications dropdown -->

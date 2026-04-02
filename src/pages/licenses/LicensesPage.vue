@@ -8,6 +8,7 @@ import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import { useToast } from '@/composables/useToast'
 import { licensesService } from '@/services/licenses.service'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import dayjs from 'dayjs'
 import type { License, LicenseStatus } from '@/types/license'
 
@@ -125,7 +126,10 @@ function handleCancel(license: License) {
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
 
+    <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="5" />
+
     <DataTable
+      v-else
       :value="licenses"
       :loading="isLoading"
       :rows="pageSize"

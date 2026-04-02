@@ -1,5 +1,13 @@
+import axios from 'axios'
 import api from '@/services/api'
 import type { LoginRequest, LoginResponse, ForgotPasswordRequest, ResetPasswordRequest } from '@/types/auth'
+
+// Bare axios instance with NO interceptors — used exclusively for token refresh
+// to avoid the infinite-loop where the interceptor catches the refresh 401
+const plainAxios = axios.create({
+  baseURL: '/api/v1',
+  headers: { 'Content-Type': 'application/json' }
+})
 
 export const authService = {
   async login(data: LoginRequest): Promise<LoginResponse> {
@@ -23,9 +31,12 @@ export const authService = {
     await api.post('/auth/reset-password', data)
   },
 
+  // Uses plainAxios (no interceptors) to avoid triggering the 401 retry loop
   async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
-    const res = await api.post('/auth/refresh', { refreshToken })
-    return res.data
+    const res = await plainAxios.post('/auth/refresh', { refreshToken })
+    // Unwrap ApiResponse envelope if present
+    const body = res.data
+    return (body && typeof body === 'object' && 'data' in body) ? body.data : body
   },
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {

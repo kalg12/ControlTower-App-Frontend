@@ -15,7 +15,9 @@ import Select from 'primevue/select'
 import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import { ticketsService } from '@/services/tickets.service'
+import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import type { Ticket, TicketStatus, TicketPriority } from '@/types/ticket'
@@ -49,6 +51,15 @@ const pageSize = 20
 const statusFilter = ref<TicketStatus | null>(null)
 const priorityFilter = ref<TicketPriority | null>(null)
 const globalFilter = ref('')
+
+const { data: clientsData } = useQuery({
+  queryKey: ['clients-dropdown'],
+  queryFn: () => clientsService.list({ page: 0, size: 200 }),
+  staleTime: 60000
+})
+const clientOptions = computed(() =>
+  clientsData.value?.content.map(c => ({ label: c.name, value: c.id })) ?? []
+)
 
 const { data: result, isLoading, refetch } = useQuery({
   queryKey: computed(() => ['tickets', page.value, statusFilter.value, priorityFilter.value]),
@@ -310,8 +321,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
 
+    <!-- Skeleton on first load -->
+    <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="5" />
+
     <!-- DataTable -->
     <DataTable
+      v-else
       :value="tickets"
       :loading="isLoading"
       :rows="pageSize"
@@ -437,12 +452,17 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField label="Client ID" name="clientId" :error="createForm.errors.value.clientId">
-        <InputText
+      <FormField label="Client" name="clientId" :error="createForm.errors.value.clientId">
+        <Select
           id="clientId"
           v-model="clientIdValue"
           v-bind="clientIdAttrs"
-          placeholder="Client UUID (optional)"
+          :options="clientOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="Select client (optional)"
+          filter
+          show-clear
           class="w-full"
           :disabled="isSubmitting"
         />

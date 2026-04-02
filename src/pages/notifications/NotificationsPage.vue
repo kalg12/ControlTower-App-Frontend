@@ -29,13 +29,18 @@ const filterOptions = [
 
 // auto-animate is registered as a directive (v-auto-animate)
 
-const { data: page, isLoading } = useQuery({
-  queryKey: ['notifications'],
-  queryFn: () => notificationsService.list({ page: 0, size: 50 }),
-  staleTime: 10000
+const pageSize = ref(20)
+
+const { data: notifPage, isLoading, isFetching } = useQuery({
+  queryKey: computed(() => ['notifications', pageSize.value]),
+  queryFn: () => notificationsService.list({ page: 0, size: pageSize.value }),
+  staleTime: 10000,
+  placeholderData: (prev) => prev
 })
 
-const allItems = computed(() => page.value?.content ?? [])
+const allItems = computed(() => notifPage.value?.content ?? [])
+const totalElements = computed(() => notifPage.value?.totalElements ?? 0)
+const hasMore = computed(() => allItems.value.length < totalElements.value)
 const unreadCount = computed(() => allItems.value.filter(n => !n.read).length)
 const items = computed(() => {
   if (filterValue.value === 'unread') return allItems.value.filter(n => !n.read)
@@ -46,7 +51,7 @@ const items = computed(() => {
 async function handleMarkAllRead() {
   try {
     await notificationsService.markAllRead()
-    queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false })
     toast.success('All notifications marked as read')
   } catch {
     toast.error('Failed to mark all as read')
@@ -56,14 +61,14 @@ async function handleMarkAllRead() {
 async function handleMarkRead(id: string) {
   try {
     await notificationsService.markRead(id)
-    queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false })
   } catch { /* ignore */ }
 }
 
 async function handleDelete(id: string) {
   try {
     await notificationsService.remove(id)
-    queryClient.invalidateQueries({ queryKey: ['notifications'] })
+    queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false })
   } catch {
     toast.error('Failed to delete notification')
   }
@@ -79,7 +84,7 @@ function handleClearAll() {
     accept: async () => {
       try {
         await Promise.all(allItems.value.map(n => notificationsService.remove(n.id)))
-        queryClient.invalidateQueries({ queryKey: ['notifications'] })
+        queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false })
         toast.success('All notifications cleared')
       } catch {
         toast.error('Failed to clear notifications')
@@ -187,6 +192,7 @@ const grouped = computed(() => {
     <template v-else>
       <div v-for="group in grouped" :key="group.label" class="space-y-2">
 
+
         <!-- Group separator -->
         <div class="flex items-center gap-3">
           <span class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest whitespace-nowrap">
@@ -266,6 +272,18 @@ const grouped = computed(() => {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Load more -->
+      <div v-if="hasMore" class="flex justify-center pt-2">
+        <Button
+          variant="outline"
+          size="sm"
+          :loading="isFetching"
+          @click="pageSize += 20"
+        >
+          Load more ({{ totalElements - allItems.length }} remaining)
+        </Button>
       </div>
     </template>
 

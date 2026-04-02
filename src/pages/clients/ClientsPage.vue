@@ -13,6 +13,7 @@ import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
@@ -203,8 +204,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
     </div>
 
+    <!-- Skeleton on first load -->
+    <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="6" />
+
     <!-- DataTable -->
     <DataTable
+      v-else
       :value="clients"
       :loading="isLoading"
       :rows="pageSize"

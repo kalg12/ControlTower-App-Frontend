@@ -151,6 +151,59 @@ const onSubmitBranch = branchForm.handleSubmit(async (values) => {
   }
 })
 
+// --- Edit Branch Modal ---
+const showEditBranchDialog = ref(false)
+const editingBranch = ref<ClientBranch | null>(null)
+const isEditingBranch = ref(false)
+
+const editBranchSchema = z.object({
+  name: z.string().min(2, 'Min 2 characters'),
+  address: z.string().optional(),
+  city: z.string().optional(),
+  isActive: z.boolean().default(true)
+})
+
+const editBranchForm = useForm({
+  validationSchema: toTypedSchema(editBranchSchema),
+  initialValues: { name: '', address: '', city: '', isActive: true }
+})
+
+const [ebName, ebNameAttrs] = editBranchForm.defineField('name')
+const [ebAddress, ebAddressAttrs] = editBranchForm.defineField('address')
+const [ebCity, ebCityAttrs] = editBranchForm.defineField('city')
+const [ebIsActive] = editBranchForm.defineField('isActive')
+
+function openEditBranchDialog(branch: ClientBranch) {
+  editingBranch.value = branch
+  editBranchForm.setValues({
+    name: branch.name,
+    address: branch.address ?? '',
+    city: branch.city ?? '',
+    isActive: branch.isActive ?? true
+  })
+  showEditBranchDialog.value = true
+}
+
+const onEditBranchSubmit = editBranchForm.handleSubmit(async (values) => {
+  if (!editingBranch.value) return
+  isEditingBranch.value = true
+  try {
+    await clientsService.updateBranch(id.value, editingBranch.value.id, {
+      name: values.name,
+      address: values.address || undefined,
+      city: values.city || undefined,
+      isActive: values.isActive
+    })
+    await queryClient.invalidateQueries({ queryKey: ['branches', id.value] })
+    showEditBranchDialog.value = false
+    toast.success('Branch updated')
+  } catch {
+    toast.error('Failed to update branch')
+  } finally {
+    isEditingBranch.value = false
+  }
+})
+
 // --- Delete Branch ---
 function confirmDeleteBranch(branch: ClientBranch) {
   confirm.require({
@@ -291,16 +344,26 @@ function confirmDeleteBranch(branch: ClientBranch) {
             </template>
           </Column>
 
-          <Column header="Actions" style="width: 80px">
+          <Column header="Actions" style="width: 110px">
             <template #body="{ data: row }: { data: ClientBranch }">
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                v-tooltip.top="'Delete branch'"
-                @click="confirmDeleteBranch(row)"
-              />
+              <div class="flex gap-1">
+                <Button
+                  icon="pi pi-pencil"
+                  severity="secondary"
+                  text
+                  rounded
+                  v-tooltip.top="'Edit branch'"
+                  @click="openEditBranchDialog(row)"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text
+                  rounded
+                  v-tooltip.top="'Delete branch'"
+                  @click="confirmDeleteBranch(row)"
+                />
+              </div>
             </template>
           </Column>
 
@@ -337,6 +400,45 @@ function confirmDeleteBranch(branch: ClientBranch) {
       <div class="flex justify-end gap-2">
         <Button label="Cancel" severity="secondary" outlined :disabled="isEditSubmitting" @click="showEditDialog = false" />
         <Button label="Save Changes" :loading="isEditSubmitting" @click="onEditSubmit" />
+      </div>
+    </template>
+  </AppDialog>
+
+  <!-- Edit Branch Dialog -->
+  <AppDialog
+    v-model:visible="showEditBranchDialog"
+    title="Edit Branch"
+    subtitle="Update branch details."
+    :loading="isEditingBranch"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onEditBranchSubmit">
+      <FormField label="Branch Name" name="eb-name" :error="editBranchForm.errors.value.name" required>
+        <InputText id="eb-name" v-model="ebName" v-bind="ebNameAttrs" placeholder="Branch name" class="w-full" :disabled="isEditingBranch" />
+      </FormField>
+      <FormField label="Address" name="eb-address" :error="editBranchForm.errors.value.address">
+        <InputText id="eb-address" v-model="ebAddress" v-bind="ebAddressAttrs" placeholder="Address (optional)" class="w-full" :disabled="isEditingBranch" />
+      </FormField>
+      <FormField label="City" name="eb-city" :error="editBranchForm.errors.value.city">
+        <InputText id="eb-city" v-model="ebCity" v-bind="ebCityAttrs" placeholder="City (optional)" class="w-full" :disabled="isEditingBranch" />
+      </FormField>
+      <div class="flex items-center justify-between py-2">
+        <div>
+          <p class="text-sm font-medium text-[var(--text)]">Active</p>
+          <p class="text-xs text-[var(--text-muted)]">Branch is operational</p>
+        </div>
+        <button
+          type="button"
+          :class="['relative w-11 h-6 rounded-full transition-colors duration-200', ebIsActive ? 'bg-[var(--primary)]' : 'bg-[var(--border)]']"
+          @click="ebIsActive = !ebIsActive"
+        >
+          <span :class="['absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200', ebIsActive ? 'translate-x-5' : 'translate-x-0.5']" />
+        </button>
+      </div>
+    </form>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button label="Cancel" severity="secondary" outlined :disabled="isEditingBranch" @click="showEditBranchDialog = false" />
+        <Button label="Save Changes" :loading="isEditingBranch" @click="onEditBranchSubmit" />
       </div>
     </template>
   </AppDialog>

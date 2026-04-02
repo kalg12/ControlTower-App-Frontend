@@ -6,6 +6,7 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import { useWebSocket } from '@/composables/useWebSocket'
 
 const sidebarOpen = ref(false)
+const sidebarCollapsed = ref(false)
 
 const { connect, disconnect } = useWebSocket()
 onMounted(connect)
@@ -39,16 +40,17 @@ function closeSidebar() {
     <!-- Sidebar (desktop: fixed, mobile: overlay) -->
     <div
       :class="[
-        'fixed inset-y-0 left-0 z-50 w-[var(--sidebar-width)] transform transition-transform duration-200 lg:relative lg:translate-x-0 lg:flex-shrink-0',
-        sidebarOpen ? 'translate-x-0' : '-translate-x-full'
+        'fixed inset-y-0 left-0 z-50 transform transition-all duration-200 lg:relative lg:translate-x-0 lg:flex-shrink-0',
+        sidebarOpen ? 'translate-x-0' : '-translate-x-full',
+        sidebarCollapsed ? 'w-14' : 'w-[var(--sidebar-width)]'
       ]"
     >
-      <AppSidebar @close="closeSidebar" />
+      <AppSidebar :collapsed="sidebarCollapsed" @close="closeSidebar" />
     </div>
 
     <!-- Main content -->
     <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
-      <AppHeader @toggle-sidebar="toggleSidebar" />
+      <AppHeader @toggle-sidebar="toggleSidebar" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" />
 
       <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--bg-subtle)]">
         <RouterView />

@@ -2,13 +2,19 @@
 import { ref, computed } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { z } from 'zod'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import AppDialog from '@/components/ui/AppDialog.vue'
+import FormField from '@/components/ui/FormField.vue'
 import { tenantsService } from '@/services/tenants.service'
 import { useToast } from '@/composables/useToast'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import dayjs from 'dayjs'
 import type { Tenant } from '@/types/tenant'
 
@@ -98,6 +104,76 @@ function reactivateTenant(tenant: Tenant) {
     }
   })
 }
+
+// --- Create Tenant ---
+const showCreateDialog = ref(false)
+const isCreating = ref(false)
+
+const tenantSchema = z.object({
+  name: z.string().min(2, 'Min 2 characters'),
+  slug: z.string().optional()
+})
+
+const createForm = useForm({
+  validationSchema: toTypedSchema(tenantSchema),
+  initialValues: { name: '', slug: '' }
+})
+
+const [createName, createNameAttrs] = createForm.defineField('name')
+const [createSlug, createSlugAttrs] = createForm.defineField('slug')
+
+function openCreateDialog() {
+  createForm.resetForm()
+  showCreateDialog.value = true
+}
+
+const onCreateSubmit = createForm.handleSubmit(async (values) => {
+  isCreating.value = true
+  try {
+    await tenantsService.create({ name: values.name, slug: values.slug || undefined })
+    await queryClient.invalidateQueries({ queryKey: ['tenants'] })
+    showCreateDialog.value = false
+    toast.success('Tenant created')
+  } catch {
+    toast.error('Failed to create tenant')
+  } finally {
+    isCreating.value = false
+  }
+})
+
+// --- Edit Tenant ---
+const showEditDialog = ref(false)
+const editingTenant = ref<Tenant | null>(null)
+const isEditing = ref(false)
+
+const editForm = useForm({
+  validationSchema: toTypedSchema(tenantSchema),
+  initialValues: { name: '', slug: '' }
+})
+
+const [editName, editNameAttrs] = editForm.defineField('name')
+const [editSlug, editSlugAttrs] = editForm.defineField('slug')
+
+function openEditDialog(tenant: Tenant) {
+  editingTenant.value = tenant
+  editForm.setValues({ name: tenant.name, slug: tenant.slug ?? '' })
+  showEditDialog.value = true
+}
+
+const onEditSubmit = editForm.handleSubmit(async (values) => {
+  if (!editingTenant.value) return
+  isEditing.value = true
+  try {
+    await tenantsService.update(editingTenant.value.id, { name: values.name, slug: values.slug || undefined })
+    await queryClient.invalidateQueries({ queryKey: ['tenants'] })
+    showEditDialog.value = false
+    toast.success('Tenant updated')
+  } catch {
+    toast.error('Failed to update tenant')
+  } finally {
+    isEditing.value = false
+  }
+})
 </script>
 
 <template>
@@ -108,12 +184,10 @@ function reactivateTenant(tenant: Tenant) {
         <h2 class="text-lg font-semibold text-[var(--text)]">Tenants</h2>
         <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} total tenants</p>
       </div>
-      <Button
-        icon="pi pi-refresh"
-        severity="secondary"
-        outlined
-        @click="queryClient.invalidateQueries({ queryKey: ['tenants'] })"
-      />
+      <div class="flex gap-2">
+        <Button icon="pi pi-refresh" severity="secondary" outlined @click="queryClient.invalidateQueries({ queryKey: ['tenants'] })" />
+        <Button label="New Tenant" icon="pi pi-plus" @click="openCreateDialog" />
+      </div>
     </div>
 
     <!-- Search -->
@@ -125,8 +199,12 @@ function reactivateTenant(tenant: Tenant) {
       />
     </div>
 
+    <!-- Skeleton on first load -->
+    <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="4" />
+
     <!-- DataTable -->
     <DataTable
+      v-else
       :value="filteredTenants"
       :loading="isLoading"
       :rows="pageSize"
@@ -164,26 +242,35 @@ function reactivateTenant(tenant: Tenant) {
 
       <Column header="Actions" style="width: 140px">
         <template #body="{ data: row }: { data: Tenant }">
-          <div class="flex items-center gap-2">
+          <div class="flex items-center gap-1">
+            <Button
+              icon="pi pi-pencil"
+              severity="secondary"
+              text
+              rounded
+              v-tooltip.top="'Edit'"
+              @click="openEditDialog(row)"
+            />
             <Button
               v-if="row.status === 'ACTIVE'"
-              label="Suspend"
+              icon="pi pi-pause"
               severity="warn"
-              size="small"
-              outlined
+              text
+              rounded
+              v-tooltip.top="'Suspend'"
               :loading="actionLoading === row.id"
               @click="suspendTenant(row)"
             />
             <Button
               v-else-if="row.status === 'SUSPENDED'"
-              label="Reactivate"
+              icon="pi pi-play"
               severity="success"
-              size="small"
-              outlined
+              text
+              rounded
+              v-tooltip.top="'Reactivate'"
               :loading="actionLoading === row.id"
               @click="reactivateTenant(row)"
             />
-            <span v-else class="text-[var(--text-muted)] text-sm">—</span>
           </div>
         </template>
       </Column>
@@ -193,4 +280,78 @@ function reactivateTenant(tenant: Tenant) {
       </template>
     </DataTable>
   </div>
+
+  <!-- Create Tenant Dialog -->
+  <AppDialog
+    v-model:visible="showCreateDialog"
+    title="New Tenant"
+    subtitle="Fill in the details to create a new tenant."
+    :loading="isCreating"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onCreateSubmit">
+      <FormField label="Name" name="name" :error="createForm.errors.value.name" required>
+        <InputText
+          id="tenant-name"
+          v-model="createName"
+          v-bind="createNameAttrs"
+          placeholder="Tenant name"
+          class="w-full"
+          :disabled="isCreating"
+        />
+      </FormField>
+      <FormField label="Slug" name="slug" :error="createForm.errors.value.slug">
+        <InputText
+          id="tenant-slug"
+          v-model="createSlug"
+          v-bind="createSlugAttrs"
+          placeholder="tenant-slug (optional)"
+          class="w-full"
+          :disabled="isCreating"
+        />
+      </FormField>
+    </form>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button label="Cancel" severity="secondary" outlined :disabled="isCreating" @click="showCreateDialog = false" />
+        <Button label="Create Tenant" :loading="isCreating" @click="onCreateSubmit" />
+      </div>
+    </template>
+  </AppDialog>
+
+  <!-- Edit Tenant Dialog -->
+  <AppDialog
+    v-model:visible="showEditDialog"
+    title="Edit Tenant"
+    subtitle="Update tenant information."
+    :loading="isEditing"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
+      <FormField label="Name" name="edit-name" :error="editForm.errors.value.name" required>
+        <InputText
+          id="edit-tenant-name"
+          v-model="editName"
+          v-bind="editNameAttrs"
+          placeholder="Tenant name"
+          class="w-full"
+          :disabled="isEditing"
+        />
+      </FormField>
+      <FormField label="Slug" name="edit-slug" :error="editForm.errors.value.slug">
+        <InputText
+          id="edit-tenant-slug"
+          v-model="editSlug"
+          v-bind="editSlugAttrs"
+          placeholder="tenant-slug (optional)"
+          class="w-full"
+          :disabled="isEditing"
+        />
+      </FormField>
+    </form>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button label="Cancel" severity="secondary" outlined :disabled="isEditing" @click="showEditDialog = false" />
+        <Button label="Save Changes" :loading="isEditing" @click="onEditSubmit" />
+      </div>
+    </template>
+  </AppDialog>
 </template>

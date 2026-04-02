@@ -8,6 +8,7 @@ import { z } from 'zod'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import Select from 'primevue/select'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import Card from '@/components/ui/Card.vue'
@@ -85,6 +86,15 @@ function deleteIntegration(integration: Integration) {
 // --- Create Integration Dialog ---
 const showCreateDialog = ref(false)
 const isSubmitting = ref(false)
+
+const integrationTypes = [
+  { label: 'Webhook', value: 'WEBHOOK' },
+  { label: 'Slack', value: 'SLACK' },
+  { label: 'Microsoft Teams', value: 'TEAMS' },
+  { label: 'PagerDuty', value: 'PAGERDUTY' },
+  { label: 'Discord', value: 'DISCORD' },
+  { label: 'Custom', value: 'CUSTOM' }
+]
 
 const schema = z.object({
   name: z.string().min(2, 'Min 2 characters').max(100),
@@ -259,11 +269,14 @@ function formatLastTriggered(dateStr?: string) {
       </FormField>
 
       <FormField label="Type" name="type" :error="errors.type" required>
-        <InputText
+        <Select
           id="int-type"
           v-model="typeValue"
           v-bind="typeAttrs"
-          placeholder="WEBHOOK, SLACK, TEAMS..."
+          :options="integrationTypes"
+          option-label="label"
+          option-value="value"
+          placeholder="Select type"
           class="w-full"
           :disabled="isSubmitting"
         />

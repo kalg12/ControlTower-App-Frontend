@@ -6,6 +6,7 @@ import type { Notification } from '@/types/notification'
 import { toast } from 'vue-sonner'
 
 const stompClient = ref<StompClient | null>(null)
+export const wsConnected = ref(false)
 
 export function useWebSocket() {
   const authStore = useAuthStore()
@@ -24,6 +25,7 @@ export function useWebSocket() {
       heartbeatIncoming: 10000,
       heartbeatOutgoing: 10000,
       onConnect: (_frame: IFrame) => {
+        wsConnected.value = true
         client.subscribe('/user/queue/notifications', (message: IMessage) => {
           try {
             const notification: Notification = JSON.parse(message.body)
@@ -45,6 +47,7 @@ export function useWebSocket() {
         })
       },
       onDisconnect: () => {
+        wsConnected.value = false
         console.log('[WS] Disconnected')
       },
       onStompError: (frame: IFrame) => {
@@ -63,10 +66,11 @@ export function useWebSocket() {
     if (stompClient.value?.connected) {
       stompClient.value.deactivate()
       stompClient.value = null
+      wsConnected.value = false
     }
   }
 
   onUnmounted(disconnect)
 
-  return { connect, disconnect, isConnected: stompClient.value?.connected ?? false }
+  return { connect, disconnect, isConnected: wsConnected }
 }

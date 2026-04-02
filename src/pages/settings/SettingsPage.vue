@@ -1,9 +1,11 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
+import { ref, reactive, watch } from 'vue'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { usersService } from '@/services/users.service'
 import { authService } from '@/services/auth.service'
+import { settingsService } from '@/services/settings.service'
 import { useToast } from '@/composables/useToast'
 import Button from '@/components/ui/Button.vue'
 import Input from '@/components/ui/Input.vue'
@@ -139,6 +141,13 @@ async function confirmDisable2FA() {
 }
 
 // Notification prefs
+const queryClient = useQueryClient()
+const { data: savedPrefs } = useQuery({
+  queryKey: ['notification-prefs'],
+  queryFn: settingsService.getNotificationPreferences,
+  staleTime: 60000
+})
+
 const notifPrefs = reactive({
   emailAlerts: true,
   ticketUpdates: true,
@@ -146,6 +155,23 @@ const notifPrefs = reactive({
   licenseAlerts: true,
   weeklyDigest: false
 })
+
+watch(savedPrefs, v => { if (v) Object.assign(notifPrefs, v) }, { immediate: true })
+
+const savingNotifications = ref(false)
+
+async function saveNotificationSettings() {
+  savingNotifications.value = true
+  try {
+    await settingsService.saveNotificationPreferences({ ...notifPrefs })
+    await queryClient.invalidateQueries({ queryKey: ['notification-prefs'] })
+    toast.success('Preferences saved')
+  } catch {
+    toast.error('Failed to save preferences')
+  } finally {
+    savingNotifications.value = false
+  }
+}
 </script>
 
 <template>
@@ -353,7 +379,7 @@ const notifPrefs = reactive({
           </div>
         </div>
         <div class="flex justify-end mt-4">
-          <Button variant="primary" size="sm" @click="toast.success('Preferences saved')">
+          <Button variant="primary" size="sm" :loading="savingNotifications" @click="saveNotificationSettings">
             Save Preferences
           </Button>
         </div>

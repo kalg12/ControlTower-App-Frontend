@@ -7,6 +7,7 @@ import Skeleton from 'primevue/skeleton'
 import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
+import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Avatar from '@/components/ui/Avatar.vue'
 import { ticketsService } from '@/services/tickets.service'
@@ -14,7 +15,7 @@ import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import type { TicketStatus, TicketPriority } from '@/types/ticket'
-import { MessageSquare, Clock } from 'lucide-vue-next'
+import { MessageSquare, Clock, Pencil } from 'lucide-vue-next'
 
 dayjs.extend(relativeTime)
 
@@ -48,10 +49,15 @@ const statusOptions: { label: string; value: TicketStatus }[] = [
 ]
 
 const selectedStatus = ref<TicketStatus | null>(null)
+const selectedPriority = ref<TicketPriority | null>(null)
 const isChangingStatus = ref(false)
+const isChangingPriority = ref(false)
 
 watch(ticket, (val) => {
-  if (val) selectedStatus.value = val.status
+  if (val) {
+    selectedStatus.value = val.status
+    selectedPriority.value = val.priority
+  }
 }, { immediate: true })
 
 async function onStatusChange(newStatus: TicketStatus) {
@@ -67,6 +73,29 @@ async function onStatusChange(newStatus: TicketStatus) {
     selectedStatus.value = ticket.value.status
   } finally {
     isChangingStatus.value = false
+  }
+}
+
+const priorityOptions: { label: string; value: TicketPriority }[] = [
+  { label: 'Low', value: 'LOW' },
+  { label: 'Medium', value: 'MEDIUM' },
+  { label: 'High', value: 'HIGH' },
+  { label: 'Critical', value: 'CRITICAL' }
+]
+
+async function onPriorityChange(newPriority: TicketPriority) {
+  if (!ticket.value || newPriority === ticket.value.priority) return
+  isChangingPriority.value = true
+  try {
+    await ticketsService.update(id.value, { priority: newPriority })
+    await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
+    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    toast.success('Priority updated')
+  } catch {
+    toast.error('Failed to update priority')
+    selectedPriority.value = ticket.value.priority
+  } finally {
+    isChangingPriority.value = false
   }
 }
 
@@ -108,6 +137,57 @@ async function submitComment() {
   }
 }
 
+// --- Inline edit ---
+const editingTitle = ref(false)
+const editingDesc = ref(false)
+const editTitleValue = ref('')
+const editDescValue = ref('')
+const isSavingEdit = ref(false)
+
+function startEditTitle() {
+  editTitleValue.value = ticket.value?.title ?? ''
+  editingTitle.value = true
+}
+
+function startEditDesc() {
+  editDescValue.value = ticket.value?.description ?? ''
+  editingDesc.value = true
+}
+
+async function saveTitle() {
+  if (!editTitleValue.value.trim() || editTitleValue.value === ticket.value?.title) {
+    editingTitle.value = false; return
+  }
+  isSavingEdit.value = true
+  try {
+    await ticketsService.update(id.value, { title: editTitleValue.value.trim() })
+    await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
+    editingTitle.value = false
+    toast.success('Title updated')
+  } catch {
+    toast.error('Failed to update title')
+  } finally {
+    isSavingEdit.value = false
+  }
+}
+
+async function saveDesc() {
+  if (!editDescValue.value.trim() || editDescValue.value === ticket.value?.description) {
+    editingDesc.value = false; return
+  }
+  isSavingEdit.value = true
+  try {
+    await ticketsService.update(id.value, { description: editDescValue.value.trim() })
+    await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
+    editingDesc.value = false
+    toast.success('Description updated')
+  } catch {
+    toast.error('Failed to update description')
+  } finally {
+    isSavingEdit.value = false
+  }
+}
+
 function statusSeverity(status: TicketStatus): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
   const map: Record<TicketStatus, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
     OPEN: 'info', IN_PROGRESS: 'warn', PENDING_CUSTOMER: 'warn', RESOLVED: 'success', CLOSED: 'secondary'
@@ -144,11 +224,21 @@ function fromNow(dateStr: string) {
       />
       <div v-if="ticket && !isLoading" class="flex items-center gap-2">
         <Select
+          v-model="selectedPriority"
+          :options="priorityOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="Priority"
+          class="w-36"
+          :disabled="isChangingPriority"
+          @change="(e: { value: TicketPriority }) => onPriorityChange(e.value)"
+        />
+        <Select
           v-model="selectedStatus"
           :options="statusOptions"
           option-label="label"
           option-value="value"
-          placeholder="Change Status"
+          placeholder="Status"
           class="w-52"
           :disabled="isChangingStatus"
           @change="(e: { value: TicketStatus }) => onStatusChange(e.value)"
@@ -192,7 +282,32 @@ function fromNow(dateStr: string) {
     <template v-else-if="ticket">
       <!-- Main card -->
       <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
-        <h1 class="text-xl font-semibold text-[var(--text)] mb-2">{{ ticket.title }}</h1>
+        <!-- Title (inline editable) -->
+        <div class="group flex items-start gap-2 mb-2">
+          <div v-if="!editingTitle" class="flex-1 flex items-center gap-2">
+            <h1 class="text-xl font-semibold text-[var(--text)]">{{ ticket.title }}</h1>
+            <button
+              class="opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--text-muted)] hover:text-[var(--primary)] transition-all"
+              title="Edit title"
+              @click="startEditTitle"
+            >
+              <Pencil class="w-4 h-4" />
+            </button>
+          </div>
+          <div v-else class="flex-1 flex items-center gap-2">
+            <InputText
+              v-model="editTitleValue"
+              class="flex-1 text-xl font-semibold"
+              :disabled="isSavingEdit"
+              autofocus
+              @keydown.enter="saveTitle"
+              @keydown.escape="editingTitle = false"
+            />
+            <Button icon="pi pi-check" severity="success" text rounded size="small" :loading="isSavingEdit" @click="saveTitle" />
+            <Button icon="pi pi-times" severity="secondary" text rounded size="small" @click="editingTitle = false" />
+          </div>
+        </div>
+
         <p class="text-sm text-[var(--text-muted)] mb-4">
           Created {{ fromNow(ticket.createdAt) }}
           <span v-if="ticket.clientName"> · {{ ticket.clientName }}</span>
@@ -202,7 +317,33 @@ function fromNow(dateStr: string) {
           <Tag :severity="statusSeverity(ticket.status)" :value="ticket.status.replace(/_/g, ' ')" />
           <Tag :severity="prioritySeverity(ticket.priority)" :value="ticket.priority" />
         </div>
-        <p class="text-[var(--text)] whitespace-pre-wrap">{{ ticket.description }}</p>
+
+        <!-- Description (inline editable) -->
+        <div class="group">
+          <div v-if="!editingDesc" class="relative">
+            <p class="text-[var(--text)] whitespace-pre-wrap pr-8">{{ ticket.description }}</p>
+            <button
+              class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--text-muted)] hover:text-[var(--primary)] transition-all"
+              title="Edit description"
+              @click="startEditDesc"
+            >
+              <Pencil class="w-4 h-4" />
+            </button>
+          </div>
+          <div v-else class="flex flex-col gap-2">
+            <Textarea
+              v-model="editDescValue"
+              :rows="5"
+              class="w-full"
+              :disabled="isSavingEdit"
+              autofocus
+            />
+            <div class="flex gap-2 justify-end">
+              <Button label="Cancel" size="small" severity="secondary" outlined @click="editingDesc = false" />
+              <Button label="Save" size="small" :loading="isSavingEdit" @click="saveDesc" />
+            </div>
+          </div>
+        </div>
       </div>
 
       <!-- Bottom grid -->

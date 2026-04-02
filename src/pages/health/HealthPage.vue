@@ -156,9 +156,12 @@ async function handleResolve(incident: HealthIncident) {
         striped-rows
         class="rounded-xl overflow-hidden"
       >
-        <Column field="branchId" header="Branch ID" sortable style="min-width: 160px">
+        <Column field="branchName" header="Branch" sortable style="min-width: 180px">
           <template #body="{ data: row }: { data: HealthCheck }">
-            <span class="font-medium text-[var(--text)] font-mono text-sm">{{ row.branchId }}</span>
+            <div>
+              <span class="font-medium text-[var(--text)]">{{ row.branchName ?? '—' }}</span>
+              <span class="block text-xs text-[var(--text-muted)] font-mono">{{ row.branchId }}</span>
+            </div>
           </template>
         </Column>
 
@@ -228,9 +231,12 @@ async function handleResolve(incident: HealthIncident) {
             </template>
           </Column>
 
-          <Column field="branchId" header="Branch ID" style="width: 160px">
+          <Column field="branchName" header="Branch" style="width: 180px">
             <template #body="{ data: row }: { data: HealthIncident }">
-              <span class="font-mono text-sm text-[var(--text-muted)]">{{ row.branchId }}</span>
+              <div>
+                <span class="text-sm text-[var(--text)]">{{ row.branchName ?? '—' }}</span>
+                <span class="block text-xs text-[var(--text-muted)] font-mono">{{ row.branchId }}</span>
+              </div>
             </template>
           </Column>
 

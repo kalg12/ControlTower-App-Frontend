@@ -24,7 +24,7 @@ dayjs.extend(relativeTime)
 
 const router = useRouter()
 
-const { data, isLoading, isError } = useQuery({
+const { data, isLoading, isError, refetch, isFetching } = useQuery({
   queryKey: ['dashboard'],
   queryFn: () => dashboardService.getDashboard(),
   staleTime: 30000
@@ -140,8 +140,20 @@ function formatNow() {
     </div>
 
     <template v-if="!isLoading">
-      <!-- Last updated -->
-      <p class="text-xs text-[var(--text-placeholder)] text-right">Updated {{ formatNow() }}</p>
+      <!-- Header row: last updated + refresh -->
+      <div class="flex items-center justify-between">
+        <p class="text-xs text-[var(--text-placeholder)]">Updated {{ formatNow() }}</p>
+        <button
+          class="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-raised)]"
+          :class="isFetching ? 'opacity-50 pointer-events-none' : ''"
+          @click="refetch()"
+        >
+          <svg :class="['w-3.5 h-3.5', isFetching ? 'animate-spin' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
+            <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+          </svg>
+          {{ isFetching ? 'Refreshing...' : 'Refresh' }}
+        </button>
+      </div>
 
       <!-- Stats cards -->
       <div class="grid grid-cols-2 lg:grid-cols-4 gap-4">
