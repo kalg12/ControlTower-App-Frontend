@@ -1,4 +1,4 @@
-export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'PENDING_CUSTOMER' | 'RESOLVED' | 'CLOSED'
+export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING' | 'RESOLVED' | 'CLOSED'
 export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 
 export interface Ticket {
@@ -12,11 +12,12 @@ export interface Ticket {
   clientName?: string
   assigneeId?: string
   assigneeName?: string
+  labels?: string[]
+  commentsCount?: number
   createdAt: string
   updatedAt: string
   resolvedAt?: string
   slaDeadline?: string
-  tags?: string[]
 }
 
 export interface CreateTicketRequest {

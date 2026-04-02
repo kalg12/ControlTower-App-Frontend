@@ -89,7 +89,7 @@ const statuses: { label: string; value: TicketStatus | null }[] = [
   { label: 'All Status', value: null },
   { label: 'Open', value: 'OPEN' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
-  { label: 'Pending Customer', value: 'PENDING_CUSTOMER' },
+  { label: 'Waiting', value: 'WAITING' },
   { label: 'Resolved', value: 'RESOLVED' },
   { label: 'Closed', value: 'CLOSED' }
 ]
@@ -112,7 +112,7 @@ const priorityOptions = [
 const statusOptions = [
   { label: 'Open', value: 'OPEN' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
-  { label: 'Pending Customer', value: 'PENDING_CUSTOMER' },
+  { label: 'Waiting', value: 'WAITING' },
   { label: 'Resolved', value: 'RESOLVED' },
   { label: 'Closed', value: 'CLOSED' }
 ]
@@ -121,7 +121,7 @@ function statusSeverity(status: TicketStatus): 'info' | 'warn' | 'success' | 'da
   const map: Record<TicketStatus, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
     OPEN: 'info',
     IN_PROGRESS: 'warn',
-    PENDING_CUSTOMER: 'warn',
+    WAITING: 'warn',
     RESOLVED: 'success',
     CLOSED: 'secondary'
   }
