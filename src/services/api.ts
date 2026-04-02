@@ -1,5 +1,8 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'vue3-toastify'
+import { i18n } from '@/i18n'
+
+const tt = (key: string) => i18n.global.t(key)
 
 const api: AxiosInstance = axios.create({
   baseURL: '/api/v1',
@@ -33,7 +36,7 @@ async function doLogout() {
     authStore.user = null
   } catch { /* ignore if store unavailable */ }
 
-  toast.warning('Tu sesión expiró. Inicia sesión nuevamente.')
+  toast.warning(tt('errors.sessionExpired'))
 
   const { default: router } = await import('@/router')
   if (router.currentRoute.value.name !== 'login') {
@@ -108,16 +111,16 @@ api.interceptors.response.use(
     }
 
     // ── Other HTTP errors ──────────────────────────────────────────────────
+    // Only show toasts for mutations — page error states handle read failures
+    const method = (error.config?.method ?? 'get').toLowerCase()
+    const isMutation = method !== 'get'
+
     if (error.response?.status === 403) {
-      // Only toast on mutations — GET failures are shown via the page's own error state
-      const method = (error.config?.method ?? 'get').toLowerCase()
-      if (method !== 'get') {
-        toast.warning('No tienes permisos para esta acción')
-      }
+      if (isMutation) toast.warning(tt('errors.forbidden'))
     } else if (error.response?.status === 500 || error.response?.status === 503) {
-      toast.error('Error del servidor. Intenta de nuevo más tarde.')
+      if (isMutation) toast.error(tt('errors.server'))
     } else if (error.code === 'ECONNABORTED') {
-      toast.error('La solicitud tardó demasiado. Verifica tu conexión.')
+      toast.error(tt('errors.timeout'))
     }
 
     return Promise.reject(error)

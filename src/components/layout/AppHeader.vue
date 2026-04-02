@@ -1,7 +1,10 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
+import Select from 'primevue/select'
 import { Menu, Bell, Sun, Moon, ChevronDown, LogOut, Settings, Info, AlertTriangle, XCircle, CheckCircle, CheckCheck } from 'lucide-vue-next'
+import { getLocale, setLocale, type LocaleCode } from '@/i18n'
 import Avatar from '@/components/ui/Avatar.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
@@ -14,6 +17,7 @@ const emit = defineEmits<{ toggleSidebar: []; toggleCollapse: [] }>()
 
 const route = useRoute()
 const router = useRouter()
+const { t } = useI18n()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const notifStore = useNotificationsStore()
@@ -22,7 +26,21 @@ const toast = useToast()
 const userMenuOpen = ref(false)
 const notifOpen = ref(false)
 
-const pageTitle = computed(() => (route.meta.title as string | undefined) ?? 'Control Tower')
+const pageTitle = computed(() => {
+  const tk = route.meta.titleKey as string | undefined
+  if (tk) return t(tk)
+  return (route.meta.title as string | undefined) ?? t('app.name')
+})
+
+const localeModel = computed({
+  get: (): LocaleCode => getLocale(),
+  set: (v: LocaleCode) => setLocale(v)
+})
+
+const localeOptions = computed(() => [
+  { label: t('common.english'), value: 'en' as const },
+  { label: t('common.spanish'), value: 'es' as const }
+])
 
 const recentNotifs = computed(() => notifStore.items.slice(0, 5))
 
@@ -72,7 +90,7 @@ async function handleLogout() {
   userMenuOpen.value = false
   await authStore.logout()
   router.push('/login')
-  toast.success('Sesión cerrada')
+  toast.success(t('auth.logoutSuccess'))
 }
 
 function goToNotif(n: Notification) {
@@ -97,7 +115,7 @@ function goToNotif(n: Notification) {
       <!-- Desktop: collapse/expand sidebar -->
       <button
         class="hidden lg:flex p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] transition-colors"
-        title="Toggle sidebar"
+        :title="t('header.toggleSidebar')"
         @click="emit('toggleCollapse')"
       >
         <Menu class="w-5 h-5" />
@@ -107,6 +125,14 @@ function goToNotif(n: Notification) {
 
     <!-- Right -->
     <div class="flex items-center gap-1">
+      <Select
+        v-model="localeModel"
+        :options="localeOptions"
+        option-label="label"
+        option-value="value"
+        class="w-[7.5rem] text-xs hidden sm:block"
+        :aria-label="t('common.language')"
+      />
 
       <!-- Theme toggle -->
       <button

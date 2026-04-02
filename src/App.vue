@@ -21,7 +21,12 @@ onMounted(async () => {
   routerReady.value = true
 })
 
-const layout = computed(() => route.meta.layout as string | undefined)
+/** Shell: only `none` and `auth` opt out; missing `layout` defaults to app (avoids empty RouterView shell). */
+const layout = computed(() => {
+  const raw = route.meta.layout as string | undefined
+  if (raw === 'none' || raw === 'auth') return raw
+  return 'app'
+})
 </script>
 
 <template>

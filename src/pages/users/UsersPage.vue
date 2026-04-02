@@ -14,7 +14,8 @@ import Select from 'primevue/select'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
-import { usersService } from '@/services/users.service'
+import { usersService, rolesService } from '@/services/users.service'
+import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import type { User } from '@/types/user'
@@ -23,26 +24,42 @@ import { Shield, ShieldOff } from 'lucide-vue-next'
 const queryClient = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
+const authStore = useAuthStore()
 const page = ref(0)
 const pageSize = 20
 const globalFilter = ref('')
 
 const { data: result, isLoading, isError, refetch } = useQuery({
-  queryKey: computed(() => ['users', page.value, globalFilter.value]),
-  queryFn: () => usersService.list({ page: page.value, size: pageSize, search: globalFilter.value || undefined }),
+  queryKey: computed(() => ['users', authStore.user?.tenantId, page.value]),
+  queryFn: () =>
+    usersService.list({
+      tenantId: authStore.user!.tenantId,
+      page: page.value,
+      size: pageSize
+    }),
+  enabled: computed(() => !!authStore.user?.tenantId),
   staleTime: 15000
 })
 
 const { data: rolesData } = useQuery({
-  queryKey: ['roles'],
-  queryFn: () => usersService.getRoles(),
+  queryKey: ['roles', 'page0'],
+  queryFn: () => rolesService.listRoles(0, 100),
   staleTime: 60000
 })
 
-const users = computed(() => result.value?.content ?? [])
+const users = computed(() => {
+  const list = result.value?.content ?? []
+  const q = globalFilter.value.trim().toLowerCase()
+  if (!q) return list
+  return list.filter(
+    (u) =>
+      u.fullName.toLowerCase().includes(q) ||
+      u.email.toLowerCase().includes(q)
+  )
+})
 const totalRecords = computed(() => result.value?.totalElements ?? 0)
 const roleOptions = computed(() =>
-  (rolesData.value ?? []).map(r => ({ label: r.name, value: r.id }))
+  (rolesData.value?.content ?? []).map((r) => ({ label: r.name, value: r.id }))
 )
 
 function statusSeverity(status: User['status']): 'success' | 'secondary' | 'danger' {
@@ -68,30 +85,6 @@ function onSearch() {
   searchTimeout = setTimeout(() => { page.value = 0; refetch() }, 400)
 }
 
-// --- Suspend / Reactivate ---
-function handleToggleStatus(user: User) {
-  const nextStatus = user.status === 'ACTIVE' ? 'SUSPENDED' : 'ACTIVE'
-  const isSuspending = nextStatus === 'SUSPENDED'
-  confirm.require({
-    message: isSuspending
-      ? `Suspend ${user.fullName}? They will lose access.`
-      : `Reactivate ${user.fullName}?`,
-    header: isSuspending ? 'Suspend User' : 'Reactivate User',
-    icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
-    acceptProps: { label: isSuspending ? 'Suspend' : 'Reactivate', severity: isSuspending ? 'warn' : 'success' },
-    accept: async () => {
-      try {
-        await usersService.update(user.id, { status: nextStatus })
-        await queryClient.invalidateQueries({ queryKey: ['users'] })
-        toast.success(isSuspending ? 'User suspended' : 'User reactivated')
-      } catch {
-        toast.error('Failed to update user status')
-      }
-    }
-  })
-}
-
 // --- Delete ---
 function handleDelete(user: User) {
   confirm.require({
@@ -111,51 +104,6 @@ function handleDelete(user: User) {
     }
   })
 }
-
-// --- Edit User Modal ---
-const showEditDialog = ref(false)
-const editingUser = ref<User | null>(null)
-const isEditSubmitting = ref(false)
-
-const editSchema = z.object({
-  fullName: z.string().min(2, 'Min 2 characters'),
-  roleId: z.string().optional()
-})
-
-const editForm = useForm({
-  validationSchema: toTypedSchema(editSchema),
-  initialValues: { fullName: '', roleId: '' }
-})
-
-const [editFullName, editFullNameAttrs] = editForm.defineField('fullName')
-const [editRoleId, editRoleIdAttrs] = editForm.defineField('roleId')
-
-function openEditDialog(user: User) {
-  editingUser.value = user
-  editForm.setValues({
-    fullName: user.fullName,
-    roleId: user.roles?.[0] ?? ''
-  })
-  showEditDialog.value = true
-}
-
-const onEditSubmit = editForm.handleSubmit(async (values) => {
-  if (!editingUser.value) return
-  isEditSubmitting.value = true
-  try {
-    await usersService.update(editingUser.value.id, { fullName: values.fullName })
-    if (values.roleId) {
-      await usersService.assignRoles(editingUser.value.id, [values.roleId])
-    }
-    await queryClient.invalidateQueries({ queryKey: ['users'] })
-    showEditDialog.value = false
-    toast.success('User updated')
-  } catch {
-    toast.error('Failed to update user')
-  } finally {
-    isEditSubmitting.value = false
-  }
-})
 
 // --- Invite / Create User ---
 const showInviteDialog = ref(false)
@@ -184,9 +132,10 @@ function openInviteDialog() {
 }
 
 const onSubmit = handleSubmit(async (values) => {
+  if (!authStore.user?.tenantId) return
   isInviting.value = true
   try {
-    await usersService.create({
+    await usersService.create(authStore.user.tenantId, {
       fullName: values.fullName,
       email: values.email,
       password: values.password,
@@ -244,7 +193,6 @@ const onSubmit = handleSubmit(async (values) => {
       :rows="pageSize"
       :total-records="totalRecords"
       paginator
-      lazy
       removable-sort
       striped-rows
       class="rounded-xl overflow-hidden"
@@ -299,22 +247,6 @@ const onSubmit = handleSubmit(async (values) => {
       <Column header="Actions" style="width: 140px">
         <template #body="{ data: row }: { data: User }">
           <div class="flex items-center gap-1">
-            <Button
-              icon="pi pi-pencil"
-              severity="secondary"
-              text
-              rounded
-              v-tooltip.top="'Edit user'"
-              @click="openEditDialog(row)"
-            />
-            <Button
-              :icon="row.status === 'ACTIVE' ? 'pi pi-lock' : 'pi pi-unlock'"
-              :severity="row.status === 'ACTIVE' ? 'warn' : 'success'"
-              text
-              rounded
-              v-tooltip.top="row.status === 'ACTIVE' ? 'Suspend' : 'Reactivate'"
-              @click="handleToggleStatus(row)"
-            />
             <Button
               icon="pi pi-trash"
               severity="danger"
@@ -409,55 +341,4 @@ const onSubmit = handleSubmit(async (values) => {
     </template>
   </AppDialog>
 
-  <!-- Edit User Dialog -->
-  <AppDialog
-    v-model:visible="showEditDialog"
-    title="Edit User"
-    subtitle="Update user name and role assignment."
-    :loading="isEditSubmitting"
-  >
-    <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
-      <FormField label="Full Name" name="edit-fullName" :error="editForm.errors.value.fullName" required>
-        <InputText
-          id="edit-fullName"
-          v-model="editFullName"
-          v-bind="editFullNameAttrs"
-          placeholder="Full name"
-          class="w-full"
-          :disabled="isEditSubmitting"
-        />
-      </FormField>
-
-      <FormField label="Role" name="edit-roleId" :error="editForm.errors.value.roleId">
-        <Select
-          id="edit-roleId"
-          v-model="editRoleId"
-          v-bind="editRoleIdAttrs"
-          :options="roleOptions"
-          option-label="label"
-          option-value="value"
-          placeholder="Select a role (optional)"
-          class="w-full"
-          :disabled="isEditSubmitting"
-        />
-      </FormField>
-    </form>
-
-    <template #footer>
-      <div class="flex justify-end gap-2">
-        <Button
-          label="Cancel"
-          severity="secondary"
-          outlined
-          :disabled="isEditSubmitting"
-          @click="showEditDialog = false"
-        />
-        <Button
-          label="Save Changes"
-          :loading="isEditSubmitting"
-          @click="onEditSubmit"
-        />
-      </div>
-    </template>
-  </AppDialog>
 </template>

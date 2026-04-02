@@ -8,6 +8,7 @@ import ConfirmationService from 'primevue/confirmationservice'
 import Tooltip from 'primevue/tooltip'
 import { VueQueryPlugin, QueryClient, keepPreviousData } from '@tanstack/vue-query'
 import router from '@/router'
+import { i18n } from '@/i18n'
 import App from '@/App.vue'
 import '@/assets/main.css'
 import 'primeicons/primeicons.css'
@@ -33,6 +34,7 @@ pinia.use(piniaPluginPersistedstate)
 
 const app = createApp(App)
 app.use(pinia)
+app.use(i18n)
 app.use(router)
 app.use(PrimeVue, {
   theme: {
@@ -52,4 +54,11 @@ app.use(Vue3Toastify, {
 })
 app.directive('tooltip', Tooltip)
 app.component('VueApexCharts', VueApexCharts)
+
+if (import.meta.env.DEV) {
+  app.config.errorHandler = (err, instance, info) => {
+    console.error('[Vue error]', info, err, instance)
+  }
+}
+
 app.mount('#app')

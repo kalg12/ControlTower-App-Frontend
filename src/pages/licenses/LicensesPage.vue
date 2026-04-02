@@ -141,7 +141,6 @@ function handleCancel(license: License) {
       :rows="pageSize"
       :total-records="totalRecords"
       paginator
-      lazy
       removable-sort
       striped-rows
       class="rounded-xl overflow-hidden"

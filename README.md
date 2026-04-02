@@ -1,5 +1,21 @@
-# Vue 3 + TypeScript + Vite
+# Control Tower — Frontend
 
-This template should help get you started developing with Vue 3 and TypeScript in Vite. The template uses Vue 3 `<script setup>` SFCs, check out the [script setup docs](https://v3.vuejs.org/api/sfc-script-setup.html#sfc-script-setup) to learn more.
+Vue 3 + TypeScript + Vite + PrimeVue + TanStack Query + Pinia.
 
-Learn more about the recommended Project Setup and IDE Support in the [Vue Docs TypeScript Guide](https://vuejs.org/guide/typescript/overview.html#project-setup).
+## Scripts
+
+- `npm run dev` — dev server (proxies `/api` → `http://localhost:8080`)
+- `npm run build` — typecheck + production build
+- `npm run preview` — preview production build
+
+## i18n
+
+English (default) and Spanish. Locale is stored in `localStorage` (`controltower.locale`). Switch from the header.
+
+## SPA deployment
+
+See [docs/SPA-DEPLOYMENT.md](docs/SPA-DEPLOYMENT.md) so **refresh on deep links** works (history mode + server fallback).
+
+## API surface
+
+See [docs/BACKEND-API-COVERAGE.md](docs/BACKEND-API-COVERAGE.md). Kanban gaps vs full editing: [docs/KANBAN-BACKEND-GAPS.md](docs/KANBAN-BACKEND-GAPS.md).

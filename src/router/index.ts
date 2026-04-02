@@ -2,7 +2,8 @@ import { createRouter, createWebHistory } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 
 const router = createRouter({
-  history: createWebHistory(),
+  // Respect Vite `base` so deep links work when the app is served under a subpath
+  history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
       path: '/login',
@@ -24,91 +25,103 @@ const router = createRouter({
       path: '/dashboard',
       name: 'dashboard',
       component: () => import('@/pages/dashboard/DashboardPage.vue'),
-      meta: { layout: 'app', title: 'Dashboard' }
+      meta: { layout: 'app', titleKey: 'nav.dashboard' }
     },
     {
       path: '/tickets',
       name: 'tickets',
       component: () => import('@/pages/tickets/TicketsPage.vue'),
-      meta: { layout: 'app', title: 'Tickets' }
+      meta: { layout: 'app', titleKey: 'nav.tickets' }
     },
     {
       path: '/tickets/:id',
       name: 'ticket-detail',
       component: () => import('@/pages/tickets/TicketDetailPage.vue'),
-      meta: { layout: 'app', title: 'Ticket Detail' }
+      meta: { layout: 'app', titleKey: 'nav.ticketDetail' }
     },
     {
       path: '/clients',
       name: 'clients',
       component: () => import('@/pages/clients/ClientsPage.vue'),
-      meta: { layout: 'app', title: 'Clients' }
+      meta: { layout: 'app', titleKey: 'nav.clients' }
     },
     {
       path: '/clients/:id',
       name: 'client-detail',
       component: () => import('@/pages/clients/ClientDetailPage.vue'),
-      meta: { layout: 'app', title: 'Client Detail' }
+      meta: { layout: 'app', titleKey: 'nav.clientDetail' }
     },
     {
       path: '/health',
       name: 'health',
       component: () => import('@/pages/health/HealthPage.vue'),
-      meta: { layout: 'app', title: 'Health' }
+      meta: { layout: 'app', titleKey: 'nav.health' }
+    },
+    {
+      path: '/kanban',
+      name: 'kanban',
+      component: () => import('@/pages/kanban/KanbanBoardsPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.kanban' }
+    },
+    {
+      path: '/kanban/:id',
+      name: 'kanban-board',
+      component: () => import('@/pages/kanban/KanbanBoardPage.vue'),
+      meta: { layout: 'app', titleKey: 'kanban.boardDetail' }
     },
     {
       path: '/tenants',
       name: 'tenants',
       component: () => import('@/pages/tenants/TenantsPage.vue'),
-      meta: { layout: 'app', title: 'Tenants' }
+      meta: { layout: 'app', titleKey: 'nav.tenants' }
     },
     {
       path: '/notifications',
       name: 'notifications',
       component: () => import('@/pages/notifications/NotificationsPage.vue'),
-      meta: { layout: 'app', title: 'Notifications' }
+      meta: { layout: 'app', titleKey: 'nav.notifications' }
     },
     {
       path: '/licenses',
       name: 'licenses',
       component: () => import('@/pages/licenses/LicensesPage.vue'),
-      meta: { layout: 'app', title: 'Licenses' }
+      meta: { layout: 'app', titleKey: 'nav.licenses' }
     },
     {
       path: '/users',
       name: 'users',
       component: () => import('@/pages/users/UsersPage.vue'),
-      meta: { layout: 'app', title: 'Users' }
+      meta: { layout: 'app', titleKey: 'nav.users' }
     },
     {
       path: '/settings',
       name: 'settings',
       component: () => import('@/pages/settings/SettingsPage.vue'),
-      meta: { layout: 'app', title: 'Settings' }
+      meta: { layout: 'app', titleKey: 'nav.settings' }
     },
     {
       path: '/audit',
       name: 'audit',
       component: () => import('@/pages/audit/AuditPage.vue'),
-      meta: { layout: 'app', title: 'Audit Log' }
+      meta: { layout: 'app', titleKey: 'nav.audit' }
     },
     {
       path: '/billing',
       name: 'billing',
       component: () => import('@/pages/billing/BillingPage.vue'),
-      meta: { layout: 'app', title: 'Billing' }
+      meta: { layout: 'app', titleKey: 'nav.billing' }
     },
     {
       path: '/integrations',
       name: 'integrations',
       component: () => import('@/pages/integrations/IntegrationsPage.vue'),
-      meta: { layout: 'app', title: 'Integrations' }
+      meta: { layout: 'app', titleKey: 'nav.integrations' }
     },
     {
       path: '/campaigns',
       name: 'campaigns',
       component: () => import('@/pages/campaigns/CampaignsPage.vue'),
-      meta: { layout: 'app', title: 'Campaigns' }
+      meta: { layout: 'app', titleKey: 'nav.campaigns' }
     },
     {
       path: '/:pathMatch(.*)*',
@@ -131,6 +144,11 @@ router.beforeEach((to, _from, next) => {
 
   if (!authStore.isAuthenticated) {
     return next({ name: 'login', query: { redirect: to.fullPath } })
+  }
+
+  const l = to.meta.layout as string | undefined
+  if (l !== 'auth' && l !== 'none' && l !== 'app') {
+    to.meta.layout = 'app'
   }
 
   next()

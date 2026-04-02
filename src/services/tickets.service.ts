@@ -1,10 +1,20 @@
 import api from '@/services/api'
-import type { Ticket, TicketComment, CreateTicketRequest, UpdateTicketRequest, TicketFilters } from '@/types/ticket'
+import type { Ticket, CreateTicketRequest, TicketFilters, TicketStatus } from '@/types/ticket'
 import type { PaginatedResponse } from '@/types/api'
 
+/** Aligned with backend TicketController (/api/v1/tickets) */
 export const ticketsService = {
-  async list(filters?: TicketFilters): Promise<PaginatedResponse<Ticket>> {
-    const res = await api.get<PaginatedResponse<Ticket>>('/tickets', { params: filters })
+  async list(filters?: TicketFilters & { slaAtRisk?: boolean; slaWindowHours?: number }): Promise<PaginatedResponse<Ticket>> {
+    const res = await api.get<PaginatedResponse<Ticket>>('/tickets', {
+      params: {
+        status: filters?.status,
+        priority: filters?.priority,
+        clientId: filters?.clientId,
+        assigneeId: filters?.assigneeId,
+        page: filters?.page,
+        size: filters?.size
+      }
+    })
     return res.data
   },
 
@@ -18,8 +28,8 @@ export const ticketsService = {
     return res.data
   },
 
-  async update(id: string, data: UpdateTicketRequest): Promise<Ticket> {
-    const res = await api.patch<Ticket>(`/tickets/${id}`, data)
+  async updateStatus(id: string, status: TicketStatus): Promise<Ticket> {
+    const res = await api.patch<Ticket>(`/tickets/${id}/status`, null, { params: { status } })
     return res.data
   },
 
@@ -27,33 +37,40 @@ export const ticketsService = {
     await api.delete(`/tickets/${id}`)
   },
 
-  async bulkUpdateStatus(ids: string[], status: string): Promise<void> {
-    await api.post('/tickets/bulk/status', { ids, status })
+  async bulkUpdateStatus(ticketIds: string[], status: TicketStatus): Promise<Ticket[]> {
+    const res = await api.post<Ticket[]>('/tickets/bulk/status', { ticketIds, status })
+    return res.data
   },
 
-  async bulkDelete(ids: string[]): Promise<void> {
-    await api.post('/tickets/bulk/delete', { ids })
+  async bulkAssign(ticketIds: string[], assigneeId: string): Promise<Ticket[]> {
+    const res = await api.post<Ticket[]>('/tickets/bulk/assign', { ticketIds, assigneeId })
+    return res.data
   },
 
   async assign(id: string, assigneeId: string): Promise<Ticket> {
-    const res = await api.post<Ticket>(`/tickets/${id}/assign`, { assigneeId })
+    const res = await api.post<Ticket>(`/tickets/${id}/assign`, null, { params: { assigneeId } })
     return res.data
   },
 
-  async getComments(id: string): Promise<TicketComment[]> {
-    const res = await api.get<TicketComment[]>(`/tickets/${id}/comments`)
+  async escalate(id: string): Promise<Ticket> {
+    const res = await api.post<Ticket>(`/tickets/${id}/escalate`)
     return res.data
   },
 
-  async addComment(id: string, comment: string): Promise<void> {
-    await api.post(`/tickets/${id}/comments`, { comment })
+  /** Backend has no GET comments; use when/if added */
+  async getComments(_id: string): Promise<never[]> {
+    return []
   },
 
-  async exportCsv(filters?: Pick<TicketFilters, 'status' | 'priority' | 'search'>): Promise<Blob> {
+  async addComment(id: string, content: string, internal = false): Promise<Ticket> {
+    const res = await api.post<Ticket>(`/tickets/${id}/comments`, { content, internal })
+    return res.data
+  },
+
+  async exportCsv(filters?: Pick<TicketFilters, 'status' | 'priority'>): Promise<Blob> {
     const res = await api.get('/tickets/export', {
       params: filters,
       responseType: 'blob',
-      // bypass the ApiResponse interceptor for blob responses
       transformResponse: [(data) => data]
     })
     return res.data as Blob

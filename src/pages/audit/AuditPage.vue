@@ -96,7 +96,6 @@ function onSearch() {
       :rows="pageSize"
       :total-records="totalRecords"
       paginator
-      lazy
       paginator-template="PrevPageLink PageLinks NextPageLink"
       striped-rows
       class="rounded-xl overflow-hidden text-sm"

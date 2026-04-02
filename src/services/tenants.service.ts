@@ -19,7 +19,7 @@ export const tenantsService = {
   },
 
   async update(id: string, data: { name?: string; slug?: string }): Promise<Tenant> {
-    const res = await api.patch<Tenant>(`/tenants/${id}`, data)
+    const res = await api.put<Tenant>(`/tenants/${id}`, data)
     return res.data
   },
 

@@ -3,7 +3,6 @@ import { ref, reactive, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
-import { usersService } from '@/services/users.service'
 import { authService } from '@/services/auth.service'
 import { settingsService } from '@/services/settings.service'
 import { useToast } from '@/composables/useToast'
@@ -31,30 +30,15 @@ const profileForm = reactive({
   email: authStore.user?.email ?? ''
 })
 const profileErrors = reactive({ fullName: '', email: '' })
-const savingProfile = ref(false)
-
-async function handleSaveProfile() {
+function handleSaveProfile() {
+  /** Backend has no PATCH /users/me — profile is read-only in UI until an endpoint exists */
   profileErrors.fullName = ''
   profileErrors.email = ''
   if (!profileForm.fullName.trim()) { profileErrors.fullName = 'Name is required'; return }
   if (!profileForm.email.trim() || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(profileForm.email)) {
     profileErrors.email = 'Valid email required'; return
   }
-  if (!authStore.user?.id) return
-  savingProfile.value = true
-  try {
-    await usersService.update(authStore.user.id, { fullName: profileForm.fullName })
-    if (authStore.user) {
-      authStore.user.fullName = profileForm.fullName
-      authStore.user.email = profileForm.email
-      localStorage.setItem('user', JSON.stringify(authStore.user))
-    }
-    toast.success('Profile updated')
-  } catch {
-    toast.error('Failed to update profile')
-  } finally {
-    savingProfile.value = false
-  }
+  toast.info('Profile is read-only', 'Your tenant admin must update the account in the backend.')
 }
 
 // Password form
@@ -224,7 +208,7 @@ async function saveNotificationSettings() {
           <Input v-model="profileForm.email" label="Email Address" type="email" placeholder="you@company.com" :error="profileErrors.email" required />
 
           <div class="flex justify-end pt-2">
-            <Button type="submit" variant="primary" size="sm" :loading="savingProfile">
+            <Button type="submit" variant="primary" size="sm">
               Save Changes
             </Button>
           </div>

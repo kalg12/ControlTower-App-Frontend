@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { computed } from 'vue'
 import { useRoute } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import {
   LayoutDashboard,
   MessageSquare,
@@ -15,7 +16,8 @@ import {
   Building,
   ClipboardList,
   Plug,
-  Megaphone
+  Megaphone,
+  LayoutGrid
 } from 'lucide-vue-next'
 import { useNotificationsStore } from '@/stores/notifications'
 
@@ -28,28 +30,30 @@ const emit = defineEmits<{ close: [] }>()
 
 const route = useRoute()
 const notifStore = useNotificationsStore()
+const { t } = useI18n()
 
-const mainItems = [
-  { to: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
-  { to: '/tickets', label: 'Tickets', icon: MessageSquare },
-  { to: '/clients', label: 'Clients', icon: Building2 },
-  { to: '/health', label: 'Health', icon: Activity },
-  { to: '/licenses', label: 'Licenses', icon: CreditCard },
-  { to: '/billing', label: 'Billing', icon: Receipt },
-  { to: '/integrations', label: 'Integrations', icon: Plug },
-  { to: '/campaigns', label: 'Campaigns', icon: Megaphone },
-]
+const mainItems = computed(() => [
+  { to: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+  { to: '/tickets', label: t('nav.tickets'), icon: MessageSquare },
+  { to: '/clients', label: t('nav.clients'), icon: Building2 },
+  { to: '/kanban', label: t('nav.kanban'), icon: LayoutGrid },
+  { to: '/health', label: t('nav.health'), icon: Activity },
+  { to: '/licenses', label: t('nav.licenses'), icon: CreditCard },
+  { to: '/billing', label: t('nav.billing'), icon: Receipt },
+  { to: '/integrations', label: t('nav.integrations'), icon: Plug },
+  { to: '/campaigns', label: t('nav.campaigns'), icon: Megaphone }
+])
 
-const adminItems = [
-  { to: '/tenants', label: 'Tenants', icon: Building },
-  { to: '/users', label: 'Users', icon: Users },
-  { to: '/audit', label: 'Audit Log', icon: ClipboardList },
-]
+const adminItems = computed(() => [
+  { to: '/tenants', label: t('nav.tenants'), icon: Building },
+  { to: '/users', label: t('nav.users'), icon: Users },
+  { to: '/audit', label: t('nav.audit'), icon: ClipboardList }
+])
 
-const accountItems = [
-  { to: '/notifications', label: 'Notifications', icon: Bell },
-  { to: '/settings', label: 'Settings', icon: Settings },
-]
+const accountItems = computed(() => [
+  { to: '/notifications', label: t('nav.notifications'), icon: Bell },
+  { to: '/settings', label: t('nav.settings'), icon: Settings }
+])
 
 const unreadCount = computed(() => notifStore.unreadCount)
 
@@ -75,7 +79,7 @@ function badge(to: string): number | null {
       <div class="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center flex-shrink-0">
         <Zap class="w-4 h-4 text-white" />
       </div>
-      <span v-if="!collapsed" class="font-bold text-[var(--text)] text-sm tracking-tight whitespace-nowrap">Control Tower</span>
+      <span v-if="!collapsed" class="font-bold text-[var(--text)] text-sm tracking-tight whitespace-nowrap">{{ t('app.name') }}</span>
     </div>
 
     <!-- Navigation -->
@@ -83,7 +87,7 @@ function badge(to: string): number | null {
 
       <!-- Main section -->
       <div>
-        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">Main</p>
+        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">{{ t('nav.main') }}</p>
         <div class="space-y-0.5">
           <RouterLink
             v-for="item in mainItems"
@@ -109,7 +113,7 @@ function badge(to: string): number | null {
 
       <!-- Admin section -->
       <div>
-        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">Admin</p>
+        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">{{ t('nav.admin') }}</p>
         <div class="space-y-0.5">
           <RouterLink
             v-for="item in adminItems"
@@ -135,7 +139,7 @@ function badge(to: string): number | null {
 
       <!-- Account section -->
       <div>
-        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">Account</p>
+        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">{{ t('nav.account') }}</p>
         <div class="space-y-0.5">
           <RouterLink
             v-for="item in accountItems"
@@ -172,7 +176,7 @@ function badge(to: string): number | null {
 
     <!-- Bottom info -->
     <div class="px-3 py-3 border-t border-[var(--border)] flex-shrink-0">
-      <p v-if="!collapsed" class="text-[10px] text-[var(--text-placeholder)] font-medium uppercase tracking-wider">CT v1.0</p>
+      <p v-if="!collapsed" class="text-[10px] text-[var(--text-placeholder)] font-medium uppercase tracking-wider">{{ t('app.version') }}</p>
       <div v-else class="w-4 h-4 rounded-full bg-[var(--surface-raised)] mx-auto" />
     </div>
   </aside>

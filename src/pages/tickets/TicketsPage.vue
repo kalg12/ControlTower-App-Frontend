@@ -155,8 +155,7 @@ async function handleExport() {
   try {
     const blob = await ticketsService.exportCsv({
       status: statusFilter.value ?? undefined,
-      priority: priorityFilter.value ?? undefined,
-      search: globalFilter.value || undefined
+      priority: priorityFilter.value ?? undefined
     })
     const url = URL.createObjectURL(blob)
     const a = document.createElement('a')
@@ -223,28 +222,19 @@ const editingTicket = ref<Ticket | null>(null)
 const isEditSubmitting = ref(false)
 
 const editSchema = z.object({
-  title: z.string().min(3, 'Min 3 characters').max(200),
-  description: z.string().min(10, 'Min 10 characters'),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
   status: z.enum(['OPEN', 'IN_PROGRESS', 'PENDING_CUSTOMER', 'RESOLVED', 'CLOSED'])
 })
 
 const editForm = useForm({
   validationSchema: toTypedSchema(editSchema),
-  initialValues: { title: '', description: '', priority: 'MEDIUM' as const, status: 'OPEN' as const }
+  initialValues: { status: 'OPEN' as const }
 })
 
-const [editTitle, editTitleAttrs] = editForm.defineField('title')
-const [editDescription, editDescriptionAttrs] = editForm.defineField('description')
-const [editPriority, editPriorityAttrs] = editForm.defineField('priority')
 const [editStatus, editStatusAttrs] = editForm.defineField('status')
 
 function openEditDialog(ticket: Ticket) {
   editingTicket.value = ticket
   editForm.setValues({
-    title: ticket.title,
-    description: ticket.description,
-    priority: ticket.priority,
     status: ticket.status
   })
   showEditDialog.value = true
@@ -254,12 +244,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
   if (!editingTicket.value) return
   isEditSubmitting.value = true
   try {
-    await ticketsService.update(editingTicket.value.id, {
-      title: values.title,
-      description: values.description,
-      priority: values.priority,
-      status: values.status
-    })
+    await ticketsService.updateStatus(editingTicket.value.id, values.status)
     await queryClient.invalidateQueries({ queryKey: ['tickets'] })
     showEditDialog.value = false
     toast.success('Ticket updated')
@@ -338,7 +323,6 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       :rows="pageSize"
       :total-records="totalRecords"
       paginator
-      lazy
       :paginator-template="'PrevPageLink PageLinks NextPageLink RowsPerPageDropdown'"
       :rows-per-page-options="[10, 20, 50]"
       removable-sort
@@ -497,62 +481,23 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
   <AppDialog
     v-model:visible="showEditDialog"
     title="Edit Ticket"
-    subtitle="Update ticket details and status."
+    subtitle="Update ticket status (backend supports status changes only)."
     :loading="isEditSubmitting"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
-      <FormField label="Title" name="edit-title" :error="editForm.errors.value.title" required>
-        <InputText
-          id="edit-title"
-          v-model="editTitle"
-          v-bind="editTitleAttrs"
-          placeholder="Ticket title"
+      <FormField label="Status" name="edit-status" :error="editForm.errors.value.status" required>
+        <Select
+          id="edit-status"
+          v-model="editStatus"
+          v-bind="editStatusAttrs"
+          :options="statusOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="Select status"
           class="w-full"
           :disabled="isEditSubmitting"
         />
       </FormField>
-
-      <FormField label="Description" name="edit-description" :error="editForm.errors.value.description" required>
-        <Textarea
-          id="edit-description"
-          v-model="editDescription"
-          v-bind="editDescriptionAttrs"
-          placeholder="Describe the issue..."
-          :rows="3"
-          class="w-full"
-          :disabled="isEditSubmitting"
-        />
-      </FormField>
-
-      <div class="grid grid-cols-2 gap-4">
-        <FormField label="Status" name="edit-status" :error="editForm.errors.value.status" required>
-          <Select
-            id="edit-status"
-            v-model="editStatus"
-            v-bind="editStatusAttrs"
-            :options="statusOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="Select status"
-            class="w-full"
-            :disabled="isEditSubmitting"
-          />
-        </FormField>
-
-        <FormField label="Priority" name="edit-priority" :error="editForm.errors.value.priority" required>
-          <Select
-            id="edit-priority"
-            v-model="editPriority"
-            v-bind="editPriorityAttrs"
-            :options="priorityOptions"
-            option-label="label"
-            option-value="value"
-            placeholder="Select priority"
-            class="w-full"
-            :disabled="isEditSubmitting"
-          />
-        </FormField>
-      </div>
     </form>
 
     <template #footer>

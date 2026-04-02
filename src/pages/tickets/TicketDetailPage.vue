@@ -7,15 +7,13 @@ import Skeleton from 'primevue/skeleton'
 import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
-import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
-import Avatar from '@/components/ui/Avatar.vue'
 import { ticketsService } from '@/services/tickets.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import type { TicketStatus, TicketPriority } from '@/types/ticket'
-import { MessageSquare, Clock, Pencil } from 'lucide-vue-next'
+import { MessageSquare } from 'lucide-vue-next'
 
 dayjs.extend(relativeTime)
 
@@ -33,12 +31,7 @@ const { data: ticket, isLoading, isError } = useQuery({
   staleTime: 15000
 })
 
-const { data: comments, isLoading: commentsLoading, refetch: refetchComments } = useQuery({
-  queryKey: computed(() => ['ticket-comments', id.value]),
-  queryFn: () => ticketsService.getComments(id.value),
-  staleTime: 15000,
-  enabled: computed(() => !!id.value)
-})
+/** Backend has no GET /tickets/{id}/comments — history not available yet */
 
 const statusOptions: { label: string; value: TicketStatus }[] = [
   { label: 'Open', value: 'OPEN' },
@@ -49,22 +42,17 @@ const statusOptions: { label: string; value: TicketStatus }[] = [
 ]
 
 const selectedStatus = ref<TicketStatus | null>(null)
-const selectedPriority = ref<TicketPriority | null>(null)
 const isChangingStatus = ref(false)
-const isChangingPriority = ref(false)
 
 watch(ticket, (val) => {
-  if (val) {
-    selectedStatus.value = val.status
-    selectedPriority.value = val.priority
-  }
+  if (val) selectedStatus.value = val.status
 }, { immediate: true })
 
 async function onStatusChange(newStatus: TicketStatus) {
   if (!ticket.value || newStatus === ticket.value.status) return
   isChangingStatus.value = true
   try {
-    await ticketsService.update(id.value, { status: newStatus })
+    await ticketsService.updateStatus(id.value, newStatus)
     await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
     await queryClient.invalidateQueries({ queryKey: ['tickets'] })
     toast.success('Status updated')
@@ -73,29 +61,6 @@ async function onStatusChange(newStatus: TicketStatus) {
     selectedStatus.value = ticket.value.status
   } finally {
     isChangingStatus.value = false
-  }
-}
-
-const priorityOptions: { label: string; value: TicketPriority }[] = [
-  { label: 'Low', value: 'LOW' },
-  { label: 'Medium', value: 'MEDIUM' },
-  { label: 'High', value: 'HIGH' },
-  { label: 'Critical', value: 'CRITICAL' }
-]
-
-async function onPriorityChange(newPriority: TicketPriority) {
-  if (!ticket.value || newPriority === ticket.value.priority) return
-  isChangingPriority.value = true
-  try {
-    await ticketsService.update(id.value, { priority: newPriority })
-    await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
-    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-    toast.success('Priority updated')
-  } catch {
-    toast.error('Failed to update priority')
-    selectedPriority.value = ticket.value.priority
-  } finally {
-    isChangingPriority.value = false
   }
 }
 
@@ -128,63 +93,12 @@ async function submitComment() {
   try {
     await ticketsService.addComment(id.value, commentText.value.trim())
     commentText.value = ''
-    await refetchComments()
+    await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
     toast.success('Comment added')
   } catch {
     toast.error('Failed to add comment')
   } finally {
     isSubmittingComment.value = false
-  }
-}
-
-// --- Inline edit ---
-const editingTitle = ref(false)
-const editingDesc = ref(false)
-const editTitleValue = ref('')
-const editDescValue = ref('')
-const isSavingEdit = ref(false)
-
-function startEditTitle() {
-  editTitleValue.value = ticket.value?.title ?? ''
-  editingTitle.value = true
-}
-
-function startEditDesc() {
-  editDescValue.value = ticket.value?.description ?? ''
-  editingDesc.value = true
-}
-
-async function saveTitle() {
-  if (!editTitleValue.value.trim() || editTitleValue.value === ticket.value?.title) {
-    editingTitle.value = false; return
-  }
-  isSavingEdit.value = true
-  try {
-    await ticketsService.update(id.value, { title: editTitleValue.value.trim() })
-    await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
-    editingTitle.value = false
-    toast.success('Title updated')
-  } catch {
-    toast.error('Failed to update title')
-  } finally {
-    isSavingEdit.value = false
-  }
-}
-
-async function saveDesc() {
-  if (!editDescValue.value.trim() || editDescValue.value === ticket.value?.description) {
-    editingDesc.value = false; return
-  }
-  isSavingEdit.value = true
-  try {
-    await ticketsService.update(id.value, { description: editDescValue.value.trim() })
-    await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
-    editingDesc.value = false
-    toast.success('Description updated')
-  } catch {
-    toast.error('Failed to update description')
-  } finally {
-    isSavingEdit.value = false
   }
 }
 
@@ -223,16 +137,6 @@ function fromNow(dateStr: string) {
         @click="router.push('/tickets')"
       />
       <div v-if="ticket && !isLoading" class="flex items-center gap-2">
-        <Select
-          v-model="selectedPriority"
-          :options="priorityOptions"
-          option-label="label"
-          option-value="value"
-          placeholder="Priority"
-          class="w-36"
-          :disabled="isChangingPriority"
-          @change="(e: { value: TicketPriority }) => onPriorityChange(e.value)"
-        />
         <Select
           v-model="selectedStatus"
           :options="statusOptions"
@@ -282,31 +186,7 @@ function fromNow(dateStr: string) {
     <template v-else-if="ticket">
       <!-- Main card -->
       <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
-        <!-- Title (inline editable) -->
-        <div class="group flex items-start gap-2 mb-2">
-          <div v-if="!editingTitle" class="flex-1 flex items-center gap-2">
-            <h1 class="text-xl font-semibold text-[var(--text)]">{{ ticket.title }}</h1>
-            <button
-              class="opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--text-muted)] hover:text-[var(--primary)] transition-all"
-              title="Edit title"
-              @click="startEditTitle"
-            >
-              <Pencil class="w-4 h-4" />
-            </button>
-          </div>
-          <div v-else class="flex-1 flex items-center gap-2">
-            <InputText
-              v-model="editTitleValue"
-              class="flex-1 text-xl font-semibold"
-              :disabled="isSavingEdit"
-              autofocus
-              @keydown.enter="saveTitle"
-              @keydown.escape="editingTitle = false"
-            />
-            <Button icon="pi pi-check" severity="success" text rounded size="small" :loading="isSavingEdit" @click="saveTitle" />
-            <Button icon="pi pi-times" severity="secondary" text rounded size="small" @click="editingTitle = false" />
-          </div>
-        </div>
+        <h1 class="text-xl font-semibold text-[var(--text)] mb-2">{{ ticket.title }}</h1>
 
         <p class="text-sm text-[var(--text-muted)] mb-4">
           Created {{ fromNow(ticket.createdAt) }}
@@ -318,32 +198,7 @@ function fromNow(dateStr: string) {
           <Tag :severity="prioritySeverity(ticket.priority)" :value="ticket.priority" />
         </div>
 
-        <!-- Description (inline editable) -->
-        <div class="group">
-          <div v-if="!editingDesc" class="relative">
-            <p class="text-[var(--text)] whitespace-pre-wrap pr-8">{{ ticket.description }}</p>
-            <button
-              class="absolute top-0 right-0 opacity-0 group-hover:opacity-100 p-1 rounded text-[var(--text-muted)] hover:text-[var(--primary)] transition-all"
-              title="Edit description"
-              @click="startEditDesc"
-            >
-              <Pencil class="w-4 h-4" />
-            </button>
-          </div>
-          <div v-else class="flex flex-col gap-2">
-            <Textarea
-              v-model="editDescValue"
-              :rows="5"
-              class="w-full"
-              :disabled="isSavingEdit"
-              autofocus
-            />
-            <div class="flex gap-2 justify-end">
-              <Button label="Cancel" size="small" severity="secondary" outlined @click="editingDesc = false" />
-              <Button label="Save" size="small" :loading="isSavingEdit" @click="saveDesc" />
-            </div>
-          </div>
-        </div>
+        <p class="text-[var(--text)] whitespace-pre-wrap">{{ ticket.description }}</p>
       </div>
 
       <!-- Bottom grid -->
@@ -416,54 +271,14 @@ function fromNow(dateStr: string) {
         </div>
       </div>
 
-      <!-- Comments History -->
       <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
-        <div class="flex items-center gap-2 mb-4">
+        <div class="flex items-center gap-2 mb-2">
           <MessageSquare class="w-4 h-4 text-[var(--text-muted)]" />
-          <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide">
-            Comments
-            <span v-if="comments?.length" class="text-[var(--text-muted)] font-normal normal-case ml-1">({{ comments.length }})</span>
-          </h2>
+          <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide">Comments</h2>
         </div>
-
-        <!-- Loading -->
-        <div v-if="commentsLoading" class="space-y-4">
-          <div v-for="i in 3" :key="i" class="flex gap-3">
-            <Skeleton shape="circle" size="2rem" class="flex-shrink-0" />
-            <div class="flex-1 space-y-2">
-              <Skeleton height="0.75rem" width="30%" />
-              <Skeleton height="1rem" />
-              <Skeleton height="1rem" width="80%" />
-            </div>
-          </div>
-        </div>
-
-        <!-- Empty state -->
-        <div v-else-if="!comments?.length" class="flex flex-col items-center py-8 gap-2 text-center">
-          <MessageSquare class="w-8 h-8 text-[var(--text-placeholder)]" />
-          <p class="text-sm text-[var(--text-muted)]">No comments yet. Be the first to comment.</p>
-        </div>
-
-        <!-- Comment list -->
-        <div v-else class="space-y-4">
-          <div
-            v-for="comment in comments"
-            :key="comment.id"
-            class="flex gap-3 group"
-          >
-            <Avatar :name="comment.userName ?? 'User'" size="sm" class="flex-shrink-0 mt-0.5" />
-            <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-2 mb-1">
-                <span class="text-sm font-medium text-[var(--text)]">{{ comment.userName ?? 'User' }}</span>
-                <span class="flex items-center gap-1 text-xs text-[var(--text-muted)]">
-                  <Clock class="w-3 h-3" />
-                  {{ fromNow(comment.createdAt) }}
-                </span>
-              </div>
-              <p class="text-sm text-[var(--text)] whitespace-pre-wrap bg-[var(--surface-raised)] rounded-lg px-3 py-2">{{ comment.body }}</p>
-            </div>
-          </div>
-        </div>
+        <p class="text-sm text-[var(--text-muted)] mb-4">
+          Comment history requires a GET comments API. You can still add comments below; they are stored on the server.
+        </p>
       </div>
     </template>
   </div>

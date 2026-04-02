@@ -22,7 +22,7 @@ function closeSidebar() {
 </script>
 
 <template>
-  <div class="flex h-screen overflow-hidden bg-[var(--bg)]">
+  <div class="flex h-screen min-h-0 overflow-hidden bg-[var(--bg)]">
     <!-- Mobile sidebar overlay -->
     <Transition
       enter-active-class="transition-opacity duration-200"
@@ -40,7 +40,7 @@ function closeSidebar() {
     <!-- Sidebar (desktop: fixed, mobile: overlay) -->
     <div
       :class="[
-        'fixed inset-y-0 left-0 z-50 transform transition-all duration-200 lg:relative lg:translate-x-0 lg:flex-shrink-0',
+        'fixed inset-y-0 left-0 z-50 min-h-0 transform transition-all duration-200 lg:relative lg:translate-x-0 lg:flex-shrink-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         sidebarCollapsed ? 'w-14' : 'w-[var(--sidebar-width)]'
       ]"
@@ -49,10 +49,10 @@ function closeSidebar() {
     </div>
 
     <!-- Main content -->
-    <div class="flex-1 flex flex-col min-w-0 overflow-hidden">
+    <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <AppHeader @toggle-sidebar="toggleSidebar" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" />
 
-      <main class="flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--bg-subtle)]">
+      <main class="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--bg-subtle)]">
         <RouterView />
       </main>
     </div>

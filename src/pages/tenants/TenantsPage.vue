@@ -216,7 +216,6 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       :rows="pageSize"
       :total-records="totalRecords"
       paginator
-      lazy
       removable-sort
       striped-rows
       class="rounded-xl overflow-hidden"

@@ -12,10 +12,13 @@ export interface User {
   twoFactorEnabled?: boolean
 }
 
+/** Matches RoleResponse from backend */
 export interface Role {
   id: string
   name: string
-  permissions: string[]
+  code?: string
+  description?: string
+  permissions?: string[]
 }
 
 export interface CreateUserRequest {
