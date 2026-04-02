@@ -127,7 +127,7 @@ function handleCancel(license: License) {
     </div>
 
     <!-- Error state -->
-    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+    <div v-if="isError" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
       <span>Failed to load licenses. Check your connection or permissions.</span>
       <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
     </div>
@@ -136,6 +136,8 @@ function handleCancel(license: License) {
 
     <DataTable
       v-else
+      lazy
+      :first="page * pageSize"
       :value="licenses"
       :loading="isLoading"
       :rows="pageSize"

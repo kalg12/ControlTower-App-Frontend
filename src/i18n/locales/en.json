@@ -101,5 +101,21 @@
     "noBoards": "No boards yet. Create one to start tracking work.",
     "labels": "Labels",
     "cardReadOnlyHint": "Editing card fields after creation requires a backend update endpoint (planned)."
+  },
+  "clientsPage": {
+    "title": "Clients",
+    "totalCount": "{count} total clients",
+    "searchPlaceholder": "Search clients…",
+    "newClient": "New client",
+    "loadError": "Could not load clients. Check your connection or permissions.",
+    "noRows": "No clients found",
+    "name": "Name",
+    "legalName": "Legal name",
+    "country": "Country",
+    "status": "Status",
+    "taxId": "Tax ID",
+    "created": "Created",
+    "deleteConfirm": "Delete \"{name}\"? This cannot be undone.",
+    "deleteHeader": "Delete client"
   }
 }

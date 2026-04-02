@@ -8,65 +8,81 @@ import { toast } from 'vue3-toastify'
 const stompClient = ref<StompClient | null>(null)
 export const wsConnected = ref(false)
 
-export function useWebSocket() {
-  const authStore = useAuthStore()
+function subscribeNotifications(client: StompClient) {
   const notifStore = useNotificationsStore()
-
-  function connect() {
-    if (stompClient.value?.connected) return
-    const token = authStore.accessToken
-    if (!token) return
-
-    const wsUrl = `${import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080'}/ws`
-
-    const client = new StompClient({
-      brokerURL: `${wsUrl}?token=${token}`,
-      reconnectDelay: 5000,
-      heartbeatIncoming: 10000,
-      heartbeatOutgoing: 10000,
-      onConnect: (_frame: IFrame) => {
-        wsConnected.value = true
-        client.subscribe('/user/queue/notifications', (message: IMessage) => {
-          try {
-            const notification: Notification = JSON.parse(message.body)
-            // Prepend to store items
-            notifStore.items.unshift(notification)
-            // Show sonner toast
-            const icons: Record<string, string> = {
-              ERROR: '🔴', CRITICAL: '🔴', WARNING: '⚠️', WARN: '⚠️', SUCCESS: '✅', INFO: 'ℹ️'
-            }
-            const s = (notification.severity || notification.type || 'INFO').toUpperCase()
-            const icon = icons[s] ?? 'ℹ️'
-            toast.info(notification.body
-              ? `${icon} ${notification.title} — ${notification.body}`
-              : `${icon} ${notification.title}`, { autoClose: 5000 })
-          } catch (e) {
-            console.warn('[WS] Failed to parse notification', e)
-          }
-        })
-      },
-      onDisconnect: () => {
-        wsConnected.value = false
-        console.log('[WS] Disconnected')
-      },
-      onStompError: (frame: IFrame) => {
-        console.warn('[WS] STOMP error', frame.headers['message'])
-      },
-      onWebSocketError: (event: Event) => {
-        console.warn('[WS] WebSocket error — real-time updates unavailable', event)
+  client.subscribe('/user/queue/notifications', (message: IMessage) => {
+    try {
+      const notification: Notification = JSON.parse(message.body)
+      notifStore.items.unshift(notification)
+      const icons: Record<string, string> = {
+        ERROR: '🔴', CRITICAL: '🔴', WARNING: '⚠️', WARN: '⚠️', SUCCESS: '✅', INFO: 'ℹ️'
       }
-    })
+      const s = (notification.severity || notification.type || 'INFO').toUpperCase()
+      const icon = icons[s] ?? 'ℹ️'
+      toast.info(notification.body
+        ? `${icon} ${notification.title} — ${notification.body}`
+        : `${icon} ${notification.title}`, { autoClose: 5000 })
+    } catch (e) {
+      console.warn('[WS] Failed to parse notification', e)
+    }
+  })
+}
 
-    client.activate()
-    stompClient.value = client
+/** Connect using current Pinia access token (module-level; safe outside setup). */
+export function connectWebSocket() {
+  if (stompClient.value?.connected) return
+  const authStore = useAuthStore()
+  const token = authStore.accessToken
+  if (!token) return
+
+  const wsUrl = `${import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080'}/ws`
+
+  const client = new StompClient({
+    brokerURL: `${wsUrl}?token=${token}`,
+    reconnectDelay: 5000,
+    heartbeatIncoming: 10000,
+    heartbeatOutgoing: 10000,
+    onConnect: (_frame: IFrame) => {
+      wsConnected.value = true
+      subscribeNotifications(client)
+    },
+    onDisconnect: () => {
+      wsConnected.value = false
+      console.log('[WS] Disconnected')
+    },
+    onStompError: (frame: IFrame) => {
+      console.warn('[WS] STOMP error', frame.headers['message'])
+    },
+    onWebSocketError: (event: Event) => {
+      console.warn('[WS] WebSocket error — real-time updates unavailable', event)
+    }
+  })
+
+  client.activate()
+  stompClient.value = client
+}
+
+export function disconnectWebSocket() {
+  if (stompClient.value) {
+    stompClient.value.deactivate()
+    stompClient.value = null
+    wsConnected.value = false
+  }
+}
+
+/** After access token refresh, reconnect so the URL carries the new JWT. */
+export function reconnectWebSocket() {
+  disconnectWebSocket()
+  connectWebSocket()
+}
+
+export function useWebSocket() {
+  function connect() {
+    connectWebSocket()
   }
 
   function disconnect() {
-    if (stompClient.value?.connected) {
-      stompClient.value.deactivate()
-      stompClient.value = null
-      wsConnected.value = false
-    }
+    disconnectWebSocket()
   }
 
   onUnmounted(disconnect)

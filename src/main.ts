@@ -9,6 +9,7 @@ import Tooltip from 'primevue/tooltip'
 import { VueQueryPlugin, QueryClient, keepPreviousData } from '@tanstack/vue-query'
 import router from '@/router'
 import { i18n } from '@/i18n'
+import { startProactiveTokenRefresh } from '@/services/api'
 import App from '@/App.vue'
 import '@/assets/main.css'
 import 'primeicons/primeicons.css'
@@ -62,3 +63,4 @@ if (import.meta.env.DEV) {
 }
 
 app.mount('#app')
+startProactiveTokenRefresh()

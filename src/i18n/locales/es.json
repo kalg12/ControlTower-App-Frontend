@@ -101,5 +101,21 @@
     "noBoards": "Aún no hay tableros. Crea uno para seguir el trabajo.",
     "labels": "Etiquetas",
     "cardReadOnlyHint": "Editar campos de la tarjeta tras crearla requiere un endpoint de actualización en el backend (previsto)."
+  },
+  "clientsPage": {
+    "title": "Clientes",
+    "totalCount": "{count} clientes en total",
+    "searchPlaceholder": "Buscar clientes…",
+    "newClient": "Nuevo cliente",
+    "loadError": "No se pudieron cargar los clientes. Revisa la conexión o los permisos.",
+    "noRows": "No hay clientes",
+    "name": "Nombre",
+    "legalName": "Razón social",
+    "country": "País",
+    "status": "Estado",
+    "taxId": "RFC / ID fiscal",
+    "created": "Creado",
+    "deleteConfirm": "¿Eliminar \"{name}\"? No se puede deshacer.",
+    "deleteHeader": "Eliminar cliente"
   }
 }

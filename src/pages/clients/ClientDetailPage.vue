@@ -60,7 +60,7 @@ const clientSchema = z.object({
   name: z.string().min(2, 'Min 2 characters'),
   legalName: z.string().optional(),
   taxId: z.string().optional(),
-  country: z.string().min(2).default('MX')
+  country: z.string().min(2)
 })
 
 const editForm = useForm({
@@ -111,8 +111,8 @@ const branchSchema = z.object({
   name: z.string().min(2, 'Min 2 characters'),
   address: z.string().optional(),
   city: z.string().optional(),
-  country: z.string().default('MX'),
-  timezone: z.string().default('America/Mexico_City')
+  country: z.string().min(2),
+  timezone: z.string().min(1)
 })
 
 const branchForm = useForm({
@@ -160,7 +160,7 @@ const editBranchSchema = z.object({
   name: z.string().min(2, 'Min 2 characters'),
   address: z.string().optional(),
   city: z.string().optional(),
-  isActive: z.boolean().default(true)
+  isActive: z.boolean()
 })
 
 const editBranchForm = useForm({

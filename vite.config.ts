@@ -16,5 +16,21 @@ export default defineConfig({
     proxy: {
       '/api': { target: 'http://localhost:8080', changeOrigin: true }
     }
+  },
+  build: {
+    chunkSizeWarningLimit: 900,
+    rollupOptions: {
+      output: {
+        manualChunks(id) {
+          if (!id.includes('node_modules')) return
+          if (id.includes('apexcharts') || id.includes('vue3-apexcharts')) return 'apexcharts'
+          if (id.includes('primevue') || id.includes('@primevue')) return 'primevue'
+          if (id.includes('@tanstack')) return 'tanstack-query'
+          if (id.includes('vue-i18n')) return 'vue-i18n'
+          if (id.includes('vue-router')) return 'vue-router'
+          if (id.includes('lucide-vue-next')) return 'lucide'
+        }
+      }
+    }
   }
 })

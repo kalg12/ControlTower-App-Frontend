@@ -19,7 +19,8 @@ export const clientsService = {
   },
 
   async update(id: string, data: UpdateClientRequest): Promise<Client> {
-    const res = await api.patch<Client>(`/clients/${id}`, data)
+    // Backend: PUT /api/v1/clients/{clientId} (not PATCH)
+    const res = await api.put<Client>(`/clients/${id}`, data)
     return res.data
   },
 

@@ -1,6 +1,7 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
 import { toast } from 'vue3-toastify'
 import { i18n } from '@/i18n'
+import { getJwtExpMs } from '@/utils/jwt'
 
 const tt = (key: string) => i18n.global.t(key)
 
@@ -19,6 +20,14 @@ api.interceptors.request.use(config => {
 // Singleton refresh state — only one refresh call in flight at a time
 let isRefreshing = false
 let refreshPromise: Promise<string> | null = null
+
+let proactiveInterval: ReturnType<typeof setInterval> | null = null
+
+function notifyWsReconnect() {
+  void import('@/composables/useWebSocket')
+    .then(m => m.reconnectWebSocket?.())
+    .catch(() => { /* optional WS */ })
+}
 
 // Clears all auth state and redirects to login with a user-visible message
 async function doLogout() {
@@ -44,6 +53,80 @@ async function doLogout() {
   }
 }
 
+function requestHadBearer(originalRequest: InternalAxiosRequestConfig): boolean {
+  const h = originalRequest.headers?.Authorization
+  return typeof h === 'string' && h.startsWith('Bearer ')
+}
+
+/** Coalesced refresh; updates storage + Pinia; reconnects WebSocket. */
+async function refreshAccessToken(staleError: AxiosError): Promise<string> {
+  if (refreshPromise) return refreshPromise
+
+  const storedRefreshToken = localStorage.getItem('refreshToken')
+  if (!storedRefreshToken) {
+    await doLogout()
+    throw staleError
+  }
+
+  isRefreshing = true
+  refreshPromise = (async () => {
+    const { authService } = await import('@/services/auth.service')
+    const tokens = await authService.refreshToken(storedRefreshToken)
+    localStorage.setItem('accessToken', tokens.accessToken)
+    localStorage.setItem('refreshToken', tokens.refreshToken)
+    import('@/stores/auth').then(({ useAuthStore }) => {
+      useAuthStore().accessToken = tokens.accessToken
+    })
+    notifyWsReconnect()
+    return tokens.accessToken
+  })()
+    .catch(async () => {
+      await doLogout()
+      throw staleError
+    })
+    .finally(() => {
+      isRefreshing = false
+      refreshPromise = null
+    })
+
+  return refreshPromise
+}
+
+async function retryWithFreshToken(
+  originalRequest: InternalAxiosRequestConfig & { _retry?: boolean },
+  staleError: AxiosError
+): Promise<unknown> {
+  if (originalRequest._retry) throw staleError
+  originalRequest._retry = true
+
+  const newToken = await refreshAccessToken(staleError)
+  originalRequest.headers = originalRequest.headers ?? {}
+  originalRequest.headers.Authorization = `Bearer ${newToken}`
+  return api(originalRequest)
+}
+
+/** Refresh ~5 minutes before access token expiry (coalesced with interceptor refresh). */
+export function startProactiveTokenRefresh() {
+  if (proactiveInterval) clearInterval(proactiveInterval)
+  const leadMs = 5 * 60 * 1000
+  const tickMs = 60_000
+
+  proactiveInterval = setInterval(() => {
+    const access = localStorage.getItem('accessToken')
+    const rt = localStorage.getItem('refreshToken')
+    if (!access || !rt) return
+    const exp = getJwtExpMs(access)
+    if (!exp) return
+    const now = Date.now()
+    // Skip if expiry is still more than 5 minutes away (includes already-expired access tokens)
+    if (exp - now > leadMs) return
+    if (isRefreshing || refreshPromise) return
+
+    const fakeErr = new Error('proactive refresh') as unknown as AxiosError
+    void refreshAccessToken(fakeErr).catch(() => { /* doLogout already ran */ })
+  }, tickMs)
+}
+
 api.interceptors.response.use(
   res => {
     // Unwrap the ApiResponse envelope { success, message, data, timestamp } automatically
@@ -55,63 +138,38 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     const originalRequest = error.config as InternalAxiosRequestConfig & { _retry?: boolean }
 
-    // ── 401 handler: attempt silent token refresh, then retry ──────────────
-    if (error.response?.status === 401) {
-      // If the failing call IS the refresh endpoint, go straight to logout
+    const status = error.response?.status
+
+    // ── 401 or stale-session 403: refresh + retry once ─────────────────────
+    if (status === 401 || status === 403) {
       if (originalRequest?.url?.includes('/auth/refresh')) {
         await doLogout()
         return Promise.reject(error)
       }
 
-      // Prevent infinite retry on the same request
-      if (originalRequest._retry) {
-        await doLogout()
-        return Promise.reject(error)
-      }
-      originalRequest._retry = true
-
-      const storedRefreshToken = localStorage.getItem('refreshToken')
-      if (!storedRefreshToken) {
+      // Replay still unauthorized after refresh
+      if (status === 401 && originalRequest._retry) {
         await doLogout()
         return Promise.reject(error)
       }
 
-      // Coalesce concurrent 401s into a single refresh call
-      if (!isRefreshing) {
-        isRefreshing = true
-        const { authService } = await import('@/services/auth.service')
-        refreshPromise = authService.refreshToken(storedRefreshToken)
-          .then(tokens => {
-            localStorage.setItem('accessToken', tokens.accessToken)
-            localStorage.setItem('refreshToken', tokens.refreshToken)
-            // Update Pinia store so isAuthenticated stays true
-            import('@/stores/auth').then(({ useAuthStore }) => {
-              useAuthStore().accessToken = tokens.accessToken
-            })
-            return tokens.accessToken
-          })
-          .catch(async () => {
-            await doLogout()
-            return Promise.reject(error)
-          })
-          .finally(() => {
-            isRefreshing = false
-            refreshPromise = null
-          })
-      }
+      const tryRefresh =
+        !originalRequest._retry &&
+        (status === 401 ||
+          (status === 403 &&
+            requestHadBearer(originalRequest) &&
+            !!localStorage.getItem('refreshToken')))
 
-      // Wait for the in-flight refresh, then replay the original request
-      try {
-        const newToken = await refreshPromise!
-        originalRequest.headers.Authorization = `Bearer ${newToken}`
-        return api(originalRequest)
-      } catch {
-        return Promise.reject(error)
+      if (tryRefresh) {
+        try {
+          return await retryWithFreshToken(originalRequest, error)
+        } catch {
+          return Promise.reject(error)
+        }
       }
     }
 
     // ── Other HTTP errors ──────────────────────────────────────────────────
-    // Only show toasts for mutations — page error states handle read failures
     const method = (error.config?.method ?? 'get').toLowerCase()
     const isMutation = method !== 'get'
 

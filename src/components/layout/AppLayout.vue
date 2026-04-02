@@ -1,10 +1,12 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted } from 'vue'
+import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useWebSocket } from '@/composables/useWebSocket'
 
+const route = useRoute()
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
 
@@ -53,7 +55,7 @@ function closeSidebar() {
       <AppHeader @toggle-sidebar="toggleSidebar" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" />
 
       <main class="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--bg-subtle)]">
-        <RouterView />
+        <RouterView :key="route.path" />
       </main>
     </div>
   </div>
