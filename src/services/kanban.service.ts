@@ -5,6 +5,7 @@ import type {
   CardRequest,
   KanbanBoard,
   KanbanCard,
+  KanbanColumn,
   ChecklistItem,
   MoveCardRequest
 } from '@/types/kanban'
@@ -34,10 +35,11 @@ export const kanbanService = {
     await api.delete(`/boards/${id}`)
   },
 
-  async addColumn(boardId: string, name: string, position: number): Promise<void> {
-    await api.post(`/boards/${boardId}/columns`, null, {
+  async addColumn(boardId: string, name: string, position: number): Promise<KanbanColumn> {
+    const res = await api.post<KanbanColumn>(`/boards/${boardId}/columns`, null, {
       params: { name, position }
     })
+    return res.data
   },
 
   async deleteColumn(columnId: string): Promise<void> {

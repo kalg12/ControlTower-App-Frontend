@@ -5,15 +5,16 @@ export type CardPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
 
 export interface ChecklistItem {
   id: string
+  cardId?: string
   text: string
   completed: boolean
   position: number
   createdAt?: string
-  updatedAt?: string
 }
 
 export interface KanbanCard {
   id: string
+  columnId?: string
   title: string
   description?: string | null
   assigneeId?: string | null
@@ -28,10 +29,12 @@ export interface KanbanCard {
 
 export interface KanbanColumn {
   id: string
+  boardId?: string
   name: string
   position: number
   wipLimit?: number | null
   cards?: KanbanCard[]
+  createdAt?: string
 }
 
 export interface KanbanBoard {
@@ -42,6 +45,8 @@ export interface KanbanBoard {
   visibility: BoardVisibility
   createdBy?: string | null
   columns?: KanbanColumn[]
+  createdAt?: string
+  updatedAt?: string
 }
 
 export interface BoardRequest {
