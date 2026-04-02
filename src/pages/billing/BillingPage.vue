@@ -1,63 +1,49 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { ref, computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import Card from '@/components/ui/Card.vue'
-import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import { billingService } from '@/services/billing.service'
-import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
-import type { Invoice, InvoiceStatus } from '@/types/billing'
+import type { BillingEvent } from '@/types/billing'
 
-const toast = useToast()
+const page = ref(0)
+const pageSize = 20
 
-const { data: overview, isLoading, isError, refetch } = useQuery({
-  queryKey: ['billing-overview'],
-  queryFn: () => billingService.getOverview(),
-  staleTime: 60000,
+const { data: result, isLoading, isError, refetch } = useQuery({
+  queryKey: computed(() => ['billing-events', page.value]),
+  queryFn: () => billingService.listEvents(page.value, pageSize),
+  staleTime: 30000,
   retry: 1
 })
 
-const invoices = computed(() => overview.value?.invoices ?? [])
-const subscription = computed(() => overview.value?.subscription)
+const events = computed(() => result.value?.content ?? [])
+const totalRecords = computed(() => result.value?.totalElements ?? 0)
 
-function formatAmount(amount: number, currency: string) {
-  return new Intl.NumberFormat('en-US', { style: 'currency', currency: currency.toUpperCase() }).format(amount / 100)
+function onPage(event: { page: number }) {
+  page.value = event.page
 }
 
-function formatDate(dateStr?: string) {
-  if (!dateStr) return '—'
-  return dayjs(dateStr).format('DD MMM YYYY')
+function formatDate(dateStr: string) {
+  return dayjs(dateStr).format('DD MMM YYYY HH:mm')
 }
 
-function invoiceSeverity(status: InvoiceStatus): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
-  const map: Record<InvoiceStatus, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
-    PAID: 'success',
-    OPEN: 'info',
-    DRAFT: 'secondary',
-    VOID: 'secondary',
-    UNCOLLECTIBLE: 'danger'
-  }
-  return map[status] ?? 'secondary'
+function formatAmount(amount?: number, currency?: string) {
+  if (amount == null) return '—'
+  const curr = (currency ?? 'USD').toUpperCase()
+  return new Intl.NumberFormat('en-US', { style: 'currency', currency: curr }).format(amount)
 }
 
-function subStatusSeverity(status: string): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
-  if (status === 'ACTIVE' || status === 'TRIALING') return 'success'
-  if (status === 'PAST_DUE' || status === 'INCOMPLETE') return 'danger'
-  if (status === 'CANCELED') return 'secondary'
-  return 'warn'
-}
-
-async function openPortal() {
-  try {
-    const { url } = await billingService.createPortalSession()
-    window.open(url, '_blank')
-  } catch {
-    toast.error('Failed to open billing portal')
-  }
+function eventSeverity(eventType: string): 'success' | 'info' | 'warn' | 'danger' | 'secondary' {
+  if (eventType.includes('PAYMENT_SUCCESS') || eventType.includes('PAID')) return 'success'
+  if (eventType.includes('REFUND')) return 'warn'
+  if (eventType.includes('FAIL') || eventType.includes('DISPUTE')) return 'danger'
+  if (eventType.includes('SUBSCRIPTION')) return 'info'
+  return 'secondary'
 }
 </script>
 
@@ -67,119 +53,78 @@ async function openPortal() {
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-lg font-semibold text-[var(--text)]">Billing</h2>
-        <p class="text-sm text-[var(--text-muted)]">Manage your subscription and invoices</p>
+        <p class="text-sm text-[var(--text-muted)]">Stripe billing event history for this tenant</p>
       </div>
-      <Button label="Manage Billing" icon="pi pi-external-link" severity="secondary" outlined @click="openPortal" />
+      <Button icon="pi pi-refresh" severity="secondary" outlined v-tooltip.top="'Refresh'" @click="refetch()" />
     </div>
 
     <!-- Error -->
     <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
-      <span>Failed to load billing data. Check your connection or permissions.</span>
+      <span>Failed to load billing events. Check your connection or permissions.</span>
       <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
     </div>
 
-    <!-- Loading skeletons -->
-    <template v-if="isLoading">
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <SkeletonCard v-for="i in 3" :key="i" />
-      </div>
-    </template>
-
-    <template v-else>
-      <!-- Subscription card -->
-      <Card>
-        <template #header>
-          <h3 class="text-sm font-semibold text-[var(--text)]">Subscription</h3>
-        </template>
-
-        <div v-if="subscription" class="flex items-center justify-between">
-          <div class="space-y-1">
-            <div class="flex items-center gap-3">
-              <p class="font-semibold text-[var(--text)] capitalize">{{ subscription.plan }}</p>
-              <Tag :severity="subStatusSeverity(subscription.status)" :value="subscription.status" />
-            </div>
-            <p class="text-sm text-[var(--text-muted)]">
-              Current period: {{ formatDate(subscription.currentPeriodStart) }} — {{ formatDate(subscription.currentPeriodEnd) }}
-            </p>
-            <p v-if="subscription.cancelAtPeriodEnd" class="text-sm text-amber-500 font-medium">
-              Cancels at end of current period
-            </p>
-          </div>
+    <!-- Billing events table -->
+    <Card>
+      <template #header>
+        <div class="flex items-center justify-between">
+          <h3 class="text-sm font-semibold text-[var(--text)]">Event History</h3>
+          <span class="text-xs text-[var(--text-muted)]">{{ totalRecords }} total events</span>
         </div>
+      </template>
 
-        <div v-else class="text-sm text-[var(--text-muted)]">
-          No active subscription found.
-        </div>
-      </Card>
+      <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="4" />
 
-      <!-- Stats row -->
-      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4">
-        <Card>
-          <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide font-medium">Total Paid</p>
-          <p class="text-2xl font-bold text-[var(--text)] mt-1">
-            {{ overview ? formatAmount(overview.totalPaid, overview.currency) : '—' }}
-          </p>
-        </Card>
-        <Card>
-          <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide font-medium">Total Due</p>
-          <p class="text-2xl font-bold text-amber-500 mt-1">
-            {{ overview ? formatAmount(overview.totalDue, overview.currency) : '—' }}
-          </p>
-        </Card>
-        <Card>
-          <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide font-medium">Invoices</p>
-          <p class="text-2xl font-bold text-[var(--text)] mt-1">{{ invoices.length }}</p>
-        </Card>
-      </div>
-
-      <!-- Invoices table -->
-      <Card>
-        <template #header>
-          <h3 class="text-sm font-semibold text-[var(--text)]">Invoice History</h3>
-        </template>
-
-        <DataTable
-          :value="invoices"
-          :rows="10"
-          paginator
-          striped-rows
-          class="text-sm"
-        >
-          <Column field="createdAt" header="Date" sortable style="width: 130px">
-            <template #body="{ data: row }: { data: Invoice }">
-              <span class="text-[var(--text-muted)] text-sm">{{ formatDate(row.createdAt) }}</span>
-            </template>
-          </Column>
-
-          <Column field="description" header="Description" style="min-width: 180px">
-            <template #body="{ data: row }: { data: Invoice }">
-              <span class="text-[var(--text)]">{{ row.description ?? 'Subscription invoice' }}</span>
-            </template>
-          </Column>
-
-          <Column field="amount" header="Amount" style="width: 130px">
-            <template #body="{ data: row }: { data: Invoice }">
-              <span class="font-semibold text-[var(--text)]">{{ formatAmount(row.amount, row.currency) }}</span>
-            </template>
-          </Column>
-
-          <Column field="status" header="Status" style="width: 120px">
-            <template #body="{ data: row }: { data: Invoice }">
-              <Tag :severity="invoiceSeverity(row.status)" :value="row.status" />
-            </template>
-          </Column>
-
-          <Column field="dueDate" header="Due Date" style="width: 120px">
-            <template #body="{ data: row }: { data: Invoice }">
-              <span class="text-[var(--text-muted)] text-sm">{{ formatDate(row.dueDate) }}</span>
-            </template>
-          </Column>
-
-          <template #empty>
-            <div class="text-center py-6 text-[var(--text-muted)]">No invoices found</div>
+      <DataTable
+        v-else
+        lazy
+        :first="page * pageSize"
+        :value="events"
+        :loading="isLoading"
+        :rows="pageSize"
+        :total-records="totalRecords"
+        paginator
+        striped-rows
+        class="text-sm"
+        @page="onPage"
+      >
+        <Column field="createdAt" header="Date" sortable style="width: 160px">
+          <template #body="{ data: row }: { data: BillingEvent }">
+            <span class="text-[var(--text-muted)] text-sm">{{ formatDate(row.createdAt) }}</span>
           </template>
-        </DataTable>
-      </Card>
-    </template>
+        </Column>
+
+        <Column field="eventType" header="Event" style="min-width: 200px">
+          <template #body="{ data: row }: { data: BillingEvent }">
+            <div class="flex items-center gap-2">
+              <Tag :severity="eventSeverity(row.eventType)" :value="row.eventType" class="text-xs font-mono" />
+            </div>
+          </template>
+        </Column>
+
+        <Column field="amount" header="Amount" style="width: 130px">
+          <template #body="{ data: row }: { data: BillingEvent }">
+            <span class="font-semibold text-[var(--text)]">{{ formatAmount(row.amount, row.currency) }}</span>
+          </template>
+        </Column>
+
+        <Column field="stripeEventId" header="Stripe Event ID" style="min-width: 180px">
+          <template #body="{ data: row }: { data: BillingEvent }">
+            <span class="text-xs text-[var(--text-muted)] font-mono truncate block max-w-[180px]">
+              {{ row.stripeEventId ?? '—' }}
+            </span>
+          </template>
+        </Column>
+
+        <template #empty>
+          <div class="text-center py-8 text-[var(--text-muted)]">No billing events found</div>
+        </template>
+      </DataTable>
+    </Card>
+
+    <!-- Coming soon note -->
+    <div class="rounded-lg border border-[var(--border)] bg-[var(--surface-raised)] px-4 py-3 text-sm text-[var(--text-muted)]">
+      <span class="font-medium text-[var(--text)]">Subscription management</span> — Invoice history, plan management, and Stripe customer portal are coming in a future update.
+    </div>
   </div>
 </template>
