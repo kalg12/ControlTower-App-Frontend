@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
 import { useForm } from 'vee-validate'
@@ -21,6 +22,7 @@ import dayjs from 'dayjs'
 import type { Campaign, CampaignStatus, CampaignType } from '@/types/campaign'
 import { Send, Mail, MessageSquare, Bell, Smartphone } from 'lucide-vue-next'
 
+const { t } = useI18n()
 const queryClient = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
@@ -224,6 +226,9 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
 
 <template>
   <div class="space-y-4">
+    <p class="text-xs text-[var(--text-muted)] rounded-lg border border-[var(--border)] bg-[var(--surface)] px-3 py-2">
+      {{ t('campaignsPage.backendNote') }}
+    </p>
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>

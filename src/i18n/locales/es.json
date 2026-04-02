@@ -117,5 +117,8 @@
     "created": "Creado",
     "deleteConfirm": "¿Eliminar \"{name}\"? No se puede deshacer.",
     "deleteHeader": "Eliminar cliente"
+  },
+  "campaignsPage": {
+    "backendNote": "La API de campañas aún no forma parte de este backend. Esta página fallará hasta que exista /api/v1/campaigns."
   }
 }

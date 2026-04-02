@@ -1,13 +1,28 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { authService } from '@/services/auth.service'
-import type { CurrentUser, LoginRequest } from '@/types/auth'
+import type { CurrentUser, LoginRequest, LoginResponse } from '@/types/auth'
 
 function readStoredUser(): CurrentUser | null {
   try {
     const raw = localStorage.getItem('user')
-    return raw ? JSON.parse(raw) as CurrentUser : null
-  } catch { return null }
+    return raw ? (JSON.parse(raw) as CurrentUser) : null
+  } catch {
+    return null
+  }
+}
+
+function persistSession(response: LoginResponse) {
+  if (!response.accessToken || !response.refreshToken) {
+    throw new Error('Missing tokens in login response')
+  }
+  const currentUser: CurrentUser = {
+    id: response.userId,
+    email: response.email,
+    fullName: response.fullName ?? response.email,
+    tenantId: response.tenantId ?? ''
+  }
+  return { currentUser, accessToken: response.accessToken, refreshToken: response.refreshToken }
 }
 
 export const useAuthStore = defineStore('auth', () => {
@@ -22,21 +37,40 @@ export const useAuthStore = defineStore('auth', () => {
     try {
       const response = await authService.login(req)
 
-      const currentUser: CurrentUser = {
-        id: response.userId,
-        email: response.email,
-        fullName: response.fullName,
-        tenantId: response.tenantId
+      if (response.requiresMfa && response.mfaToken) {
+        return response
       }
 
-      accessToken.value = response.accessToken
+      const { currentUser, accessToken: at, refreshToken: rt } = persistSession(response)
+
+      accessToken.value = at
       user.value = currentUser
-      localStorage.setItem('accessToken', response.accessToken)
-      localStorage.setItem('refreshToken', response.refreshToken)
+      localStorage.setItem('accessToken', at)
+      localStorage.setItem('refreshToken', rt)
       localStorage.setItem('user', JSON.stringify(currentUser))
 
-      // Warm up the notifications store after a successful login.
-      // Import lazily to avoid a circular dependency with the store barrel.
+      import('@/stores/notifications').then(({ useNotificationsStore }) => {
+        useNotificationsStore().fetch()
+      })
+
+      return response
+    } finally {
+      loading.value = false
+    }
+  }
+
+  async function completeMfaLogin(mfaToken: string, code: string) {
+    loading.value = true
+    try {
+      const response = await authService.verify2faLogin(mfaToken, code)
+      const { currentUser, accessToken: at, refreshToken: rt } = persistSession(response)
+
+      accessToken.value = at
+      user.value = currentUser
+      localStorage.setItem('accessToken', at)
+      localStorage.setItem('refreshToken', rt)
+      localStorage.setItem('user', JSON.stringify(currentUser))
+
       import('@/stores/notifications').then(({ useNotificationsStore }) => {
         useNotificationsStore().fetch()
       })
@@ -48,7 +82,11 @@ export const useAuthStore = defineStore('auth', () => {
   }
 
   async function logout() {
-    try { await authService.logout() } catch { /* ignore */ } finally {
+    try {
+      await authService.logout()
+    } catch {
+      /* ignore */
+    } finally {
       accessToken.value = null
       user.value = null
       localStorage.removeItem('accessToken')
@@ -57,5 +95,5 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, accessToken, loading, isAuthenticated, login, logout }
+  return { user, accessToken, loading, isAuthenticated, login, completeMfaLogin, logout }
 })

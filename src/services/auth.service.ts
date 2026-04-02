@@ -9,15 +9,35 @@ const plainAxios = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
+function parseTotpCode(s: string): number {
+  const n = parseInt(s.replace(/\s/g, ''), 10)
+  if (Number.isNaN(n)) throw new Error('Invalid code')
+  return n
+}
+
 export const authService = {
   async login(data: LoginRequest): Promise<LoginResponse> {
-    const res = await api.post<LoginResponse>('/auth/login', data)
+    const res = await api.post<LoginResponse>('/auth/login', {
+      email: data.email,
+      password: data.password
+    })
+    return res.data
+  },
+
+  /** Completes login when `requiresMfa` was true on the first response. */
+  async verify2faLogin(mfaToken: string, code: string): Promise<LoginResponse> {
+    const res = await api.post<LoginResponse>('/auth/2fa/verify', {
+      mfaToken,
+      code: parseTotpCode(code)
+    })
     return res.data
   },
 
   async logout(): Promise<void> {
+    const refreshToken = localStorage.getItem('refreshToken')
+    if (!refreshToken) return
     try {
-      await api.post('/auth/logout')
+      await api.post('/auth/logout', { refreshToken })
     } catch {
       // ignore errors on logout
     }
@@ -31,29 +51,15 @@ export const authService = {
     await api.post('/auth/reset-password', data)
   },
 
-  // Uses plainAxios (no interceptors) to avoid triggering the 401 retry loop
+  // Uses plainAxios (no interceptors) to avoid the 401 retry loop
   async refreshToken(refreshToken: string): Promise<{ accessToken: string; refreshToken: string }> {
     const res = await plainAxios.post('/auth/refresh', { refreshToken })
-    // Unwrap ApiResponse envelope if present
     const body = res.data
-    return (body && typeof body === 'object' && 'data' in body) ? body.data : body
+    return body && typeof body === 'object' && 'data' in body ? body.data : body
   },
 
   async changePassword(currentPassword: string, newPassword: string): Promise<void> {
     await api.post('/auth/change-password', { currentPassword, newPassword })
-  },
-
-  async enableTotp(): Promise<{ qrCode: string; secret: string }> {
-    const res = await api.post('/auth/totp/enable')
-    return res.data
-  },
-
-  async disableTotp(totpCode: string): Promise<void> {
-    await api.post('/auth/totp/disable', { totpCode })
-  },
-
-  async verifyTotp(totpCode: string): Promise<void> {
-    await api.post('/auth/totp/verify', { totpCode })
   },
 
   async setup2FA(): Promise<{ secret: string; qrUrl: string }> {
@@ -61,11 +67,12 @@ export const authService = {
     return res.data
   },
 
+  /** Backend expects `{ "code": number }` (TotpCodeRequest). */
   async enable2FA(totpCode: string): Promise<void> {
-    await api.post('/auth/2fa/enable', { totpCode })
+    await api.post('/auth/2fa/enable', { code: parseTotpCode(totpCode) })
   },
 
   async disable2FA(totpCode: string): Promise<void> {
-    await api.post('/auth/2fa/disable', { totpCode })
+    await api.post('/auth/2fa/disable', { code: parseTotpCode(totpCode) })
   }
 }

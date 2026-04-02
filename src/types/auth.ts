@@ -1,19 +1,18 @@
 export interface LoginRequest {
   email: string
   password: string
-  totpCode?: string
 }
 
-// Matches exactly what the backend returns from /auth/login (after unwrap)
+/** After axios unwrap of ApiResponse — fields vary by step (MFA vs full login). */
 export interface LoginResponse {
-  accessToken: string
-  refreshToken: string
-  tokenType: string
+  accessToken?: string
+  refreshToken?: string
+  tokenType?: string
   userId: string
-  tenantId: string
+  tenantId?: string
   email: string
-  fullName: string
-  requiresMfa: boolean
+  fullName?: string
+  requiresMfa?: boolean
   mfaToken?: string
 }
 

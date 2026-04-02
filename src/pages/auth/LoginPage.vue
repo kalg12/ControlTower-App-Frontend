@@ -26,6 +26,8 @@ const errors = reactive({
 })
 
 const showTotp = ref(false)
+/** Set when backend returns requiresMfa + mfaToken on first login step */
+const pendingMfaToken = ref<string | null>(null)
 const loading = ref(false)
 
 function validate(): boolean {
@@ -53,32 +55,60 @@ function validate(): boolean {
 }
 
 async function handleLogin() {
+  errors.totpCode = ''
+  errors.general = ''
+
+  // Step 2: MFA code + temporary token from step 1
+  if (pendingMfaToken.value) {
+    if (!form.totpCode || form.totpCode.length !== 6) {
+      errors.totpCode = 'Enter the 6-digit code from your authenticator app'
+      return
+    }
+    loading.value = true
+    try {
+      await authStore.completeMfaLogin(pendingMfaToken.value, form.totpCode)
+      pendingMfaToken.value = null
+      toast.success('Welcome back!', `Signed in as ${authStore.user?.fullName}`)
+      const redirect = route.query.redirect as string | undefined
+      router.push(redirect ?? '/dashboard')
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ message?: string }>
+      errors.general =
+        axiosErr.response?.data?.message ?? 'Invalid code or session expired. Try signing in again.'
+    } finally {
+      loading.value = false
+    }
+    return
+  }
+
   if (!validate()) return
 
   loading.value = true
   errors.general = ''
 
   try {
-    await authStore.login({
+    const response = await authStore.login({
       email: form.email,
-      password: form.password,
-      totpCode: showTotp.value ? form.totpCode : undefined
+      password: form.password
     })
+
+    if (response.requiresMfa && response.mfaToken) {
+      pendingMfaToken.value = response.mfaToken
+      showTotp.value = true
+      errors.general = 'Two-factor authentication is required. Enter the code from your app.'
+      return
+    }
+
     toast.success('Welcome back!', `Signed in as ${authStore.user?.fullName}`)
     const redirect = route.query.redirect as string | undefined
     router.push(redirect ?? '/dashboard')
   } catch (err) {
-    const axiosErr = err as AxiosError<{ message: string; status: number }>
+    const axiosErr = err as AxiosError<{ message?: string }>
     const status = axiosErr.response?.status
     const message = axiosErr.response?.data?.message ?? 'Login failed. Please try again.'
 
     if (status === 401) {
-      if (message.toLowerCase().includes('totp') || message.toLowerCase().includes('2fa')) {
-        showTotp.value = true
-        errors.general = 'Enter your two-factor authentication code.'
-      } else {
-        errors.general = 'Invalid email or password.'
-      }
+      errors.general = 'Invalid email or password.'
     } else {
       errors.general = message
     }
@@ -156,7 +186,7 @@ async function handleLogin() {
         full-width
         :loading="loading"
       >
-        {{ loading ? 'Signing in...' : 'Sign in' }}
+        {{ loading ? 'Signing in...' : pendingMfaToken ? 'Verify & sign in' : 'Sign in' }}
       </Button>
     </form>
   </div>
