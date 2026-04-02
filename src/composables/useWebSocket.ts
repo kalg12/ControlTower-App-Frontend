@@ -49,6 +49,9 @@ export function useWebSocket() {
       },
       onStompError: (frame: IFrame) => {
         console.warn('[WS] STOMP error', frame.headers['message'])
+      },
+      onWebSocketError: (event: Event) => {
+        console.warn('[WS] WebSocket error — real-time updates unavailable', event)
       }
     })
 

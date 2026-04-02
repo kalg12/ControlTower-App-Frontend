@@ -26,15 +26,27 @@ api.interceptors.response.use(
   async (error: AxiosError) => {
     if (error.response?.status === 401 && !redirecting) {
       redirecting = true
-      // Clear auth data without a hard page reload
+
+      // Clear localStorage
       localStorage.removeItem('accessToken')
       localStorage.removeItem('refreshToken')
       localStorage.removeItem('user')
-      // Use Vue Router to navigate — no full page reload, no flash of blank
+
+      // CRITICAL: also clear the Pinia auth store's reactive refs so the router
+      // guard sees isAuthenticated=false and doesn't redirect back from /login
+      try {
+        const { useAuthStore } = await import('@/stores/auth')
+        const authStore = useAuthStore()
+        authStore.accessToken = null
+        authStore.user = null
+      } catch { /* ignore if store not available */ }
+
+      // Navigate to login without a full page reload
       const { default: router } = await import('@/router')
       if (router.currentRoute.value.name !== 'login') {
         await router.push({ name: 'login' })
       }
+
       // Allow future 401s to redirect again (e.g. after re-login)
       setTimeout(() => { redirecting = false }, 2000)
     }
