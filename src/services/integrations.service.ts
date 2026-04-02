@@ -1,9 +1,10 @@
 import api from '@/services/api'
 import type { Integration, CreateIntegrationRequest } from '@/types/integration'
+import type { PaginatedResponse } from '@/types/api'
 
 export const integrationsService = {
-  async list(): Promise<Integration[]> {
-    const res = await api.get<Integration[]>('/integrations')
+  async list(page = 0, size = 20): Promise<PaginatedResponse<Integration>> {
+    const res = await api.get<PaginatedResponse<Integration>>('/integrations', { params: { page, size } })
     return res.data
   },
 
@@ -13,20 +14,15 @@ export const integrationsService = {
   },
 
   async activate(id: string): Promise<Integration> {
-    const res = await api.post<Integration>(`/integrations/${id}/activate`)
+    const res = await api.patch<Integration>(`/integrations/${id}/activate`)
     return res.data
   },
 
-  async deactivate(id: string): Promise<Integration> {
-    const res = await api.post<Integration>(`/integrations/${id}/deactivate`)
-    return res.data
+  async deactivate(id: string): Promise<void> {
+    await api.patch(`/integrations/${id}/deactivate`)
   },
 
   async delete(id: string): Promise<void> {
     await api.delete(`/integrations/${id}`)
-  },
-
-  async testWebhook(id: string): Promise<void> {
-    await api.post(`/integrations/${id}/test`)
   }
 }

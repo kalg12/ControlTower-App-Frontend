@@ -8,6 +8,7 @@ import { z } from 'zod'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
@@ -16,8 +17,8 @@ import { integrationsService } from '@/services/integrations.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import type { Integration, IntegrationStatus } from '@/types/integration'
-import { Plug, Webhook, RefreshCw, Zap } from 'lucide-vue-next'
+import type { Integration } from '@/types/integration'
+import { Plug, Clock } from 'lucide-vue-next'
 
 dayjs.extend(relativeTime)
 
@@ -25,24 +26,17 @@ const queryClient = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
 
-const { data: integrations, isLoading, isError, refetch } = useQuery({
+const { data: result, isLoading, isError, refetch } = useQuery({
   queryKey: ['integrations'],
   queryFn: () => integrationsService.list(),
   staleTime: 30000
 })
 
-const list = computed(() => integrations.value ?? [])
+const list = computed(() => result.value?.content ?? [])
 
-function statusSeverity(status: IntegrationStatus): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
-  if (status === 'ACTIVE') return 'success'
-  if (status === 'ERROR') return 'danger'
-  if (status === 'PENDING') return 'warn'
-  return 'secondary'
-}
-
-async function toggleStatus(integration: Integration) {
+async function toggleActive(integration: Integration) {
   try {
-    if (integration.status === 'ACTIVE') {
+    if (integration.active) {
       await integrationsService.deactivate(integration.id)
       toast.success('Integration deactivated')
     } else {
@@ -55,29 +49,20 @@ async function toggleStatus(integration: Integration) {
   }
 }
 
-async function testWebhook(integration: Integration) {
-  try {
-    await integrationsService.testWebhook(integration.id)
-    toast.success('Test event sent', 'Check your webhook endpoint for the test payload.')
-  } catch {
-    toast.error('Test failed', 'Could not deliver test event.')
-  }
-}
-
 function deleteIntegration(integration: Integration) {
   confirm.require({
-    message: `Delete integration "${integration.name}"?`,
-    header: 'Delete Integration',
+    message: `Remove integration endpoint "${integration.pullUrl ?? integration.id}"?`,
+    header: 'Remove Integration',
     icon: 'pi pi-exclamation-triangle',
     rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
-    acceptProps: { label: 'Delete', severity: 'danger' },
+    acceptProps: { label: 'Remove', severity: 'danger' },
     accept: async () => {
       try {
         await integrationsService.delete(integration.id)
         await queryClient.invalidateQueries({ queryKey: ['integrations'] })
-        toast.success('Integration deleted')
+        toast.success('Integration removed')
       } catch {
-        toast.error('Failed to delete integration')
+        toast.error('Failed to remove integration')
       }
     }
   })
@@ -87,31 +72,31 @@ function deleteIntegration(integration: Integration) {
 const showCreateDialog = ref(false)
 const isSubmitting = ref(false)
 
-const integrationTypes = [
-  { label: 'Webhook', value: 'WEBHOOK' },
-  { label: 'Slack', value: 'SLACK' },
-  { label: 'Microsoft Teams', value: 'TEAMS' },
-  { label: 'PagerDuty', value: 'PAGERDUTY' },
-  { label: 'Discord', value: 'DISCORD' },
+const endpointTypes = [
+  { label: 'POS System', value: 'POS' },
   { label: 'Custom', value: 'CUSTOM' }
 ]
 
 const schema = z.object({
-  name: z.string().min(2, 'Min 2 characters').max(100),
-  type: z.string().min(2, 'Required'),
-  webhookUrl: z.string().url('Must be a valid URL'),
-  secret: z.string().optional()
+  type: z.enum(['POS', 'CUSTOM']),
+  pullUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  apiKey: z.string().optional(),
+  heartbeatIntervalSeconds: z.number().int().min(30).max(86400).default(300),
+  contractVersion: z.string().optional(),
+  clientBranchId: z.string().uuid('Must be a valid UUID').optional().or(z.literal(''))
 })
 
 const { handleSubmit, errors, resetForm, defineField } = useForm({
   validationSchema: toTypedSchema(schema),
-  initialValues: { name: '', type: 'WEBHOOK', webhookUrl: '', secret: '' }
+  initialValues: { type: 'POS', pullUrl: '', apiKey: '', heartbeatIntervalSeconds: 300, contractVersion: '', clientBranchId: '' }
 })
 
-const [nameValue, nameAttrs] = defineField('name')
 const [typeValue, typeAttrs] = defineField('type')
-const [webhookUrlValue, webhookUrlAttrs] = defineField('webhookUrl')
-const [secretValue, secretAttrs] = defineField('secret')
+const [pullUrlValue, pullUrlAttrs] = defineField('pullUrl')
+const [apiKeyValue, apiKeyAttrs] = defineField('apiKey')
+const [heartbeatValue, heartbeatAttrs] = defineField('heartbeatIntervalSeconds')
+const [contractValue, contractAttrs] = defineField('contractVersion')
+const [branchIdValue, branchIdAttrs] = defineField('clientBranchId')
 
 function openCreateDialog() {
   resetForm()
@@ -122,25 +107,22 @@ const onSubmit = handleSubmit(async (values) => {
   isSubmitting.value = true
   try {
     await integrationsService.create({
-      name: values.name,
       type: values.type,
-      webhookUrl: values.webhookUrl,
-      secret: values.secret || undefined
+      pullUrl: values.pullUrl || undefined,
+      apiKey: values.apiKey || undefined,
+      heartbeatIntervalSeconds: values.heartbeatIntervalSeconds,
+      contractVersion: values.contractVersion || undefined,
+      clientBranchId: values.clientBranchId || undefined
     })
     await queryClient.invalidateQueries({ queryKey: ['integrations'] })
     showCreateDialog.value = false
-    toast.success('Integration created')
+    toast.success('Integration registered')
   } catch {
-    toast.error('Failed to create integration')
+    toast.error('Failed to register integration')
   } finally {
     isSubmitting.value = false
   }
 })
-
-function formatLastTriggered(dateStr?: string) {
-  if (!dateStr) return 'Never'
-  return dayjs(dateStr).fromNow()
-}
 </script>
 
 <template>
@@ -149,9 +131,9 @@ function formatLastTriggered(dateStr?: string) {
     <div class="flex items-center justify-between">
       <div>
         <h2 class="text-lg font-semibold text-[var(--text)]">Integrations</h2>
-        <p class="text-sm text-[var(--text-muted)]">Connect external services via webhooks</p>
+        <p class="text-sm text-[var(--text-muted)]">Registered POS and external system endpoints</p>
       </div>
-      <Button label="New Integration" icon="pi pi-plus" @click="openCreateDialog" />
+      <Button label="Register Endpoint" icon="pi pi-plus" @click="openCreateDialog" />
     </div>
 
     <!-- Error -->
@@ -162,11 +144,7 @@ function formatLastTriggered(dateStr?: string) {
 
     <!-- Loading skeleton -->
     <div v-if="isLoading" class="space-y-3">
-      <div
-        v-for="i in 3"
-        :key="i"
-        class="h-24 bg-[var(--surface-raised)] animate-pulse rounded-xl"
-      />
+      <div v-for="i in 3" :key="i" class="h-20 bg-[var(--surface-raised)] animate-pulse rounded-xl" />
     </div>
 
     <!-- Empty state -->
@@ -178,10 +156,10 @@ function formatLastTriggered(dateStr?: string) {
         <Plug class="w-7 h-7 text-[var(--text-muted)]" />
       </div>
       <div>
-        <p class="font-semibold text-[var(--text)]">No integrations yet</p>
-        <p class="text-sm text-[var(--text-muted)] mt-0.5">Add a webhook to receive real-time events from Control Tower.</p>
+        <p class="font-semibold text-[var(--text)]">No integrations registered</p>
+        <p class="text-sm text-[var(--text-muted)] mt-0.5">Register a POS or custom system endpoint to start monitoring.</p>
       </div>
-      <Button label="Add Integration" icon="pi pi-plus" @click="openCreateDialog" />
+      <Button label="Register Endpoint" icon="pi pi-plus" @click="openCreateDialog" />
     </div>
 
     <!-- Integration cards -->
@@ -194,30 +172,29 @@ function formatLastTriggered(dateStr?: string) {
         <div class="flex items-start gap-4">
           <!-- Icon -->
           <div class="w-10 h-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center flex-shrink-0">
-            <Webhook class="w-5 h-5 text-[var(--primary)]" />
+            <Plug class="w-5 h-5 text-[var(--primary)]" />
           </div>
 
           <!-- Info -->
           <div class="flex-1 min-w-0">
             <div class="flex items-center gap-2 flex-wrap">
-              <p class="font-semibold text-[var(--text)]">{{ integration.name }}</p>
-              <Tag :severity="statusSeverity(integration.status)" :value="integration.status" class="text-xs" />
               <span class="text-xs text-[var(--text-muted)] font-mono bg-[var(--surface-raised)] px-1.5 py-0.5 rounded">{{ integration.type }}</span>
+              <Tag :severity="integration.active ? 'success' : 'secondary'" :value="integration.active ? 'Active' : 'Inactive'" class="text-xs" />
             </div>
 
-            <p class="text-xs text-[var(--text-muted)] mt-1 truncate font-mono">{{ integration.webhookUrl }}</p>
+            <p v-if="integration.pullUrl" class="text-xs text-[var(--text-muted)] mt-1 truncate font-mono">{{ integration.pullUrl }}</p>
+            <p v-else class="text-xs text-[var(--text-muted)] mt-1 italic">No pull URL configured</p>
 
             <div class="flex items-center gap-4 mt-2 text-xs text-[var(--text-muted)]">
               <span class="flex items-center gap-1">
-                <Zap class="w-3 h-3" />
-                {{ integration.eventsDelivered ?? 0 }} delivered
+                <Clock class="w-3 h-3" />
+                Heartbeat every {{ integration.heartbeatIntervalSeconds }}s
               </span>
-              <span v-if="(integration.eventsFailed ?? 0) > 0" class="text-red-500">
-                {{ integration.eventsFailed }} failed
+              <span v-if="integration.contractVersion" class="font-mono">
+                v{{ integration.contractVersion }}
               </span>
-              <span class="flex items-center gap-1">
-                <RefreshCw class="w-3 h-3" />
-                Last: {{ formatLastTriggered(integration.lastTriggeredAt) }}
+              <span v-if="integration.clientBranchId" class="font-mono truncate max-w-[140px]">
+                Branch: {{ integration.clientBranchId }}
               </span>
             </div>
           </div>
@@ -225,28 +202,19 @@ function formatLastTriggered(dateStr?: string) {
           <!-- Actions -->
           <div class="flex items-center gap-1 flex-shrink-0">
             <Button
-              :icon="integration.status === 'ACTIVE' ? 'pi pi-pause' : 'pi pi-play'"
-              :severity="integration.status === 'ACTIVE' ? 'warn' : 'success'"
+              :icon="integration.active ? 'pi pi-pause' : 'pi pi-play'"
+              :severity="integration.active ? 'warn' : 'success'"
               text
               rounded
-              v-tooltip.top="integration.status === 'ACTIVE' ? 'Deactivate' : 'Activate'"
-              @click="toggleStatus(integration)"
-            />
-            <Button
-              icon="pi pi-send"
-              severity="secondary"
-              text
-              rounded
-              v-tooltip.top="'Send test event'"
-              :disabled="integration.status !== 'ACTIVE'"
-              @click="testWebhook(integration)"
+              v-tooltip.top="integration.active ? 'Deactivate' : 'Activate'"
+              @click="toggleActive(integration)"
             />
             <Button
               icon="pi pi-trash"
               severity="danger"
               text
               rounded
-              v-tooltip.top="'Delete'"
+              v-tooltip.top="'Remove'"
               @click="deleteIntegration(integration)"
             />
           </div>
@@ -255,31 +223,20 @@ function formatLastTriggered(dateStr?: string) {
     </div>
   </div>
 
-  <!-- Create Integration Dialog -->
+  <!-- Register Integration Dialog -->
   <AppDialog
     v-model:visible="showCreateDialog"
-    title="New Integration"
-    subtitle="Add a webhook endpoint to receive Control Tower events."
+    title="Register Integration Endpoint"
+    subtitle="Add a POS or custom system endpoint to start receiving heartbeats and events."
     :loading="isSubmitting"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
-      <FormField label="Name" name="name" :error="errors.name" required>
-        <InputText
-          id="int-name"
-          v-model="nameValue"
-          v-bind="nameAttrs"
-          placeholder="My Webhook"
-          class="w-full"
-          :disabled="isSubmitting"
-        />
-      </FormField>
-
       <FormField label="Type" name="type" :error="errors.type" required>
         <Select
           id="int-type"
           v-model="typeValue"
           v-bind="typeAttrs"
-          :options="integrationTypes"
+          :options="endpointTypes"
           option-label="label"
           option-value="value"
           placeholder="Select type"
@@ -288,24 +245,58 @@ function formatLastTriggered(dateStr?: string) {
         />
       </FormField>
 
-      <FormField label="Webhook URL" name="webhookUrl" :error="errors.webhookUrl" required>
+      <FormField label="Pull URL" name="pullUrl" :error="errors.pullUrl">
         <InputText
           id="int-url"
-          v-model="webhookUrlValue"
-          v-bind="webhookUrlAttrs"
-          placeholder="https://your-service.com/webhook"
+          v-model="pullUrlValue"
+          v-bind="pullUrlAttrs"
+          placeholder="https://pos-system.example.com/api/status"
           class="w-full"
           :disabled="isSubmitting"
         />
       </FormField>
 
-      <FormField label="Secret (optional)" name="secret" :error="errors.secret">
+      <FormField label="API Key (optional)" name="apiKey" :error="errors.apiKey">
         <InputText
-          id="int-secret"
-          v-model="secretValue"
-          v-bind="secretAttrs"
-          placeholder="HMAC signing secret"
+          id="int-apikey"
+          v-model="apiKeyValue"
+          v-bind="apiKeyAttrs"
+          placeholder="Secret key for authentication"
           class="w-full"
+          :disabled="isSubmitting"
+        />
+      </FormField>
+
+      <FormField label="Heartbeat Interval (seconds)" name="heartbeatIntervalSeconds" :error="errors.heartbeatIntervalSeconds">
+        <InputNumber
+          id="int-heartbeat"
+          v-model="heartbeatValue"
+          v-bind="heartbeatAttrs"
+          :min="30"
+          :max="86400"
+          class="w-full"
+          :disabled="isSubmitting"
+        />
+      </FormField>
+
+      <FormField label="Contract Version (optional)" name="contractVersion" :error="errors.contractVersion">
+        <InputText
+          id="int-contract"
+          v-model="contractValue"
+          v-bind="contractAttrs"
+          placeholder="e.g. 1.0"
+          class="w-full"
+          :disabled="isSubmitting"
+        />
+      </FormField>
+
+      <FormField label="Branch ID (optional)" name="clientBranchId" :error="errors.clientBranchId">
+        <InputText
+          id="int-branch"
+          v-model="branchIdValue"
+          v-bind="branchIdAttrs"
+          placeholder="UUID of the associated branch"
+          class="w-full font-mono"
           :disabled="isSubmitting"
         />
       </FormField>
@@ -321,7 +312,7 @@ function formatLastTriggered(dateStr?: string) {
           @click="showCreateDialog = false"
         />
         <Button
-          label="Create Integration"
+          label="Register"
           :loading="isSubmitting"
           @click="onSubmit"
         />

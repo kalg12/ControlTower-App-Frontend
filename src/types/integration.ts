@@ -1,21 +1,22 @@
-export type IntegrationStatus = 'ACTIVE' | 'INACTIVE' | 'ERROR' | 'PENDING'
+export type IntegrationEndpointType = 'POS' | 'CUSTOM'
 
 export interface Integration {
   id: string
   tenantId: string
-  name: string
-  type: string
-  status: IntegrationStatus
-  webhookUrl?: string
-  lastTriggeredAt?: string
-  eventsDelivered?: number
-  eventsFailed?: number
+  clientBranchId?: string
+  type: IntegrationEndpointType
+  pullUrl?: string
+  heartbeatIntervalSeconds: number
+  contractVersion?: string
+  active: boolean
   createdAt: string
 }
 
 export interface CreateIntegrationRequest {
-  name: string
-  type: string
-  webhookUrl: string
-  secret?: string
+  clientBranchId?: string
+  type: IntegrationEndpointType
+  pullUrl?: string
+  apiKey?: string
+  heartbeatIntervalSeconds?: number
+  contractVersion?: string
 }
