@@ -14,7 +14,7 @@ export const licensesService = {
   },
 
   async getByClient(clientId: string): Promise<License[]> {
-    const res = await api.get<License[]>(`/licenses/client/${clientId}`)
+    const res = await api.get<License[]>(`/licenses/clients/${clientId}`)
     return res.data
   },
 
