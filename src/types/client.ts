@@ -24,6 +24,8 @@ export interface ClientBranch {
   address?: string
   city?: string
   state?: string
+  country?: string
+  timezone?: string
   isActive: boolean
 }
 

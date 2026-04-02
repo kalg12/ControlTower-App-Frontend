@@ -29,6 +29,11 @@ const auth = useAuthStore()
 const boardId = computed(() => route.params.id as string)
 
 const { data: board, isLoading, isError, refetch } = useBoard(boardId)
+
+/** Avoid showing another board's columns while the new board is loading. */
+watch(boardId, () => {
+  columns.value = []
+})
 const {
   addColumn,
   deleteColumn,
@@ -82,11 +87,15 @@ const priorityOpts = computed(() => [
   { label: t('kanban.priorityCritical'), value: 'CRITICAL' as const }
 ])
 
+const tenantIdForUsers = computed(
+  () => auth.user?.tenantId ?? board.value?.tenantId ?? ''
+)
+
 const { data: userOptions } = useQuery({
-  queryKey: computed(() => ['users', 'kanban-assign', auth.user?.tenantId ?? '']),
+  queryKey: computed(() => ['users', 'kanban-assign', tenantIdForUsers.value]),
   queryFn: () =>
-    usersService.list({ tenantId: auth.user!.tenantId, page: 0, size: 100 }),
-  enabled: computed(() => !!auth.user?.tenantId && showCardDialog.value)
+    usersService.list({ tenantId: tenantIdForUsers.value, page: 0, size: 100 }),
+  enabled: computed(() => !!tenantIdForUsers.value && showCardDialog.value)
 })
 
 const assigneeSelectOptions = computed(() =>

@@ -47,7 +47,8 @@ function confirmDeleteTicket(ticket: Ticket) {
 }
 
 const page = ref(0)
-const pageSize = 20
+/** Must stay in sync with DataTable paginator (rows per page). */
+const pageSize = ref(20)
 const statusFilter = ref<TicketStatus | null>(null)
 const priorityFilter = ref<TicketPriority | null>(null)
 const globalFilter = ref('')
@@ -61,19 +62,27 @@ const clientOptions = computed(() =>
   clientsData.value?.content.map(c => ({ label: c.name, value: c.id })) ?? []
 )
 
-const { data: result, isLoading, isError, refetch } = useQuery({
-  queryKey: computed(() => ['tickets', page.value, statusFilter.value, priorityFilter.value]),
+const { data: result, isLoading, isError, isFetching, refetch } = useQuery({
+  queryKey: computed(() => ['tickets', page.value, pageSize.value, statusFilter.value, priorityFilter.value]),
   queryFn: () => ticketsService.list({
     page: page.value,
-    size: pageSize,
+    size: pageSize.value,
     status: statusFilter.value ?? undefined,
-    priority: priorityFilter.value ?? undefined,
-    search: globalFilter.value || undefined
+    priority: priorityFilter.value ?? undefined
   }),
   staleTime: 15000
 })
 
-const tickets = computed(() => result.value?.content ?? [])
+const ticketsPage = computed(() => result.value?.content ?? [])
+const tickets = computed(() => {
+  const q = globalFilter.value.trim().toLowerCase()
+  if (!q) return ticketsPage.value
+  return ticketsPage.value.filter(
+    t =>
+      t.title.toLowerCase().includes(q) ||
+      (t.description && t.description.toLowerCase().includes(q))
+  )
+})
 const totalRecords = computed(() => result.value?.totalElements ?? 0)
 
 const statuses: { label: string; value: TicketStatus | null }[] = [
@@ -133,8 +142,11 @@ function formatDate(dateStr: string) {
   return dayjs(dateStr).format('DD MMM YYYY')
 }
 
-function onPage(event: { page: number }) {
+function onPage(event: { page: number; rows?: number }) {
   page.value = event.page
+  if (event.rows != null && event.rows !== pageSize.value) {
+    pageSize.value = event.rows
+  }
 }
 
 function applyFilters() {
@@ -143,9 +155,12 @@ function applyFilters() {
 }
 
 let searchTimeout: ReturnType<typeof setTimeout>
+/** Backend list has no text search; filter the current page in the UI only. */
 function onSearch() {
   clearTimeout(searchTimeout)
-  searchTimeout = setTimeout(() => { page.value = 0; refetch() }, 400)
+  searchTimeout = setTimeout(() => {
+    page.value = 0
+  }, 400)
 }
 
 // --- CSV Export ---
@@ -321,7 +336,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       lazy
       :first="page * pageSize"
       :value="tickets"
-      :loading="isLoading"
+      :loading="isFetching"
       :rows="pageSize"
       :total-records="totalRecords"
       paginator
