@@ -39,11 +39,18 @@ export const clientsService = {
   },
 
   async updateBranch(clientId: string, branchId: string, data: Partial<ClientBranch>): Promise<ClientBranch> {
-    const res = await api.patch<ClientBranch>(`/clients/${clientId}/branches/${branchId}`, data)
+    const res = await api.patch<ClientBranch>(`/clients/${clientId}/branches/${branchId}`, {
+      name: data.name,
+      address: data.address,
+      city: data.city,
+      country: data.country,
+      timezone: data.timezone,
+      active: data.isActive
+    })
     return res.data
   },
 
-  async deleteBranch(clientId: string, branchId: string): Promise<void> {
-    await api.delete(`/clients/${clientId}/branches/${branchId}`)
+  async deleteBranch(_clientId: string, branchId: string): Promise<void> {
+    await api.delete(`/clients/branches/${branchId}`)
   }
 }
