@@ -20,7 +20,7 @@ dayjs.extend(relativeTime)
 const toast = useToast()
 const queryClient = useQueryClient()
 
-const { data: checks, isLoading, refetch } = useQuery({
+const { data: checks, isLoading, isError, refetch } = useQuery({
   queryKey: ['health-clients'],
   queryFn: () => healthService.getClients(),
   staleTime: 15000,
@@ -98,6 +98,12 @@ async function handleResolve(incident: HealthIncident) {
         <p class="text-sm text-[var(--text-muted)]">Real-time status of all branch POS systems</p>
       </div>
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
+    </div>
+
+    <!-- Error -->
+    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+      <span>Failed to load health data. Check your connection or permissions.</span>
+      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
     </div>
 
     <!-- Loading -->

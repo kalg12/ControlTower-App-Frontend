@@ -145,7 +145,9 @@ const queryClient = useQueryClient()
 const { data: savedPrefs } = useQuery({
   queryKey: ['notification-prefs'],
   queryFn: settingsService.getNotificationPreferences,
-  staleTime: 60000
+  staleTime: 60000,
+  retry: false,
+  throwOnError: false
 })
 
 const notifPrefs = reactive({

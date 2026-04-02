@@ -25,7 +25,7 @@ const queryClient = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
 
-const { data: integrations, isLoading } = useQuery({
+const { data: integrations, isLoading, isError, refetch } = useQuery({
   queryKey: ['integrations'],
   queryFn: () => integrationsService.list(),
   staleTime: 30000
@@ -152,6 +152,12 @@ function formatLastTriggered(dateStr?: string) {
         <p class="text-sm text-[var(--text-muted)]">Connect external services via webhooks</p>
       </div>
       <Button label="New Integration" icon="pi pi-plus" @click="openCreateDialog" />
+    </div>
+
+    <!-- Error -->
+    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+      <span>Failed to load integrations. Check your connection or permissions.</span>
+      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
     </div>
 
     <!-- Loading skeleton -->

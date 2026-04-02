@@ -14,7 +14,7 @@ import type { Invoice, InvoiceStatus } from '@/types/billing'
 
 const toast = useToast()
 
-const { data: overview, isLoading } = useQuery({
+const { data: overview, isLoading, isError, refetch } = useQuery({
   queryKey: ['billing-overview'],
   queryFn: () => billingService.getOverview(),
   staleTime: 60000,
@@ -70,6 +70,12 @@ async function openPortal() {
         <p class="text-sm text-[var(--text-muted)]">Manage your subscription and invoices</p>
       </div>
       <Button label="Manage Billing" icon="pi pi-external-link" severity="secondary" outlined @click="openPortal" />
+    </div>
+
+    <!-- Error -->
+    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+      <span>Failed to load billing data. Check your connection or permissions.</span>
+      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
     </div>
 
     <!-- Loading skeletons -->

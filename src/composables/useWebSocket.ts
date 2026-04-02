@@ -3,7 +3,7 @@ import { Client as StompClient, type IFrame, type IMessage } from '@stomp/stompj
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 import type { Notification } from '@/types/notification'
-import { toast } from 'vue-sonner'
+import { toast } from 'vue3-toastify'
 
 const stompClient = ref<StompClient | null>(null)
 export const wsConnected = ref(false)
@@ -37,10 +37,9 @@ export function useWebSocket() {
             }
             const s = (notification.severity || notification.type || 'INFO').toUpperCase()
             const icon = icons[s] ?? 'ℹ️'
-            toast(`${icon} ${notification.title}`, {
-              description: notification.body,
-              duration: 5000
-            })
+            toast.info(notification.body
+              ? `${icon} ${notification.title} — ${notification.body}`
+              : `${icon} ${notification.title}`, { autoClose: 5000 })
           } catch (e) {
             console.warn('[WS] Failed to parse notification', e)
           }

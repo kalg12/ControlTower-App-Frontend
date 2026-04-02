@@ -31,7 +31,7 @@ const filterOptions = [
 
 const pageSize = ref(20)
 
-const { data: notifPage, isLoading, isFetching } = useQuery({
+const { data: notifPage, isLoading, isError, isFetching, refetch } = useQuery({
   queryKey: computed(() => ['notifications', pageSize.value]),
   queryFn: () => notificationsService.list({ page: 0, size: pageSize.value }),
   staleTime: 10000,
@@ -165,6 +165,12 @@ const grouped = computed(() => {
           Clear all
         </Button>
       </div>
+    </div>
+
+    <!-- Error -->
+    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+      <span>Failed to load notifications. Check your connection or permissions.</span>
+      <Button variant="outline" size="sm" @click="refetch()">Retry</Button>
     </div>
 
     <!-- Loading -->

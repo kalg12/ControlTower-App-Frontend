@@ -11,7 +11,8 @@ import router from '@/router'
 import App from '@/App.vue'
 import '@/assets/main.css'
 import 'primeicons/primeicons.css'
-import { Toaster } from 'vue-sonner'
+import Vue3Toastify from 'vue3-toastify'
+import 'vue3-toastify/dist/index.css'
 import VueApexCharts from 'vue3-apexcharts'
 
 const queryClient = new QueryClient({
@@ -42,7 +43,13 @@ app.use(PrimeVue, {
 app.use(ToastService)
 app.use(ConfirmationService)
 app.use(VueQueryPlugin, { queryClient })
+app.use(Vue3Toastify, {
+  autoClose: 4000,
+  position: 'top-right',
+  theme: 'auto',
+  clearOnUrlChange: false,
+  pauseOnHover: true
+})
 app.directive('tooltip', Tooltip)
-app.component('Toaster', Toaster)
 app.component('VueApexCharts', VueApexCharts)
 app.mount('#app')

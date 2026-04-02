@@ -1,5 +1,5 @@
 import axios, { type AxiosInstance, type AxiosError, type InternalAxiosRequestConfig } from 'axios'
-import { toast } from 'vue-sonner'
+import { toast } from 'vue3-toastify'
 
 const api: AxiosInstance = axios.create({
   baseURL: '/api/v1',

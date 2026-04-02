@@ -8,9 +8,21 @@ export interface NotificationPreferences {
   weeklyDigest: boolean
 }
 
+const defaultPrefs: NotificationPreferences = {
+  emailAlerts: true,
+  ticketUpdates: true,
+  healthAlerts: true,
+  licenseAlerts: true,
+  weeklyDigest: false
+}
+
 export const settingsService = {
   async getNotificationPreferences(): Promise<NotificationPreferences> {
-    const res = await api.get<NotificationPreferences>('/settings/notifications')
+    // validateStatus prevents 403/404 from throwing — endpoint may not exist yet
+    const res = await api.get<NotificationPreferences>('/settings/notifications', {
+      validateStatus: s => s < 500
+    })
+    if (!res.data || res.status !== 200) return { ...defaultPrefs }
     return res.data
   },
 
