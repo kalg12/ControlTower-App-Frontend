@@ -140,43 +140,32 @@ api.interceptors.response.use(
 
     const status = error.response?.status
 
-    // ── 401 or stale-session 403: refresh + retry once ─────────────────────
-    if (status === 401 || status === 403) {
+    // ── 401 only: token expired → refresh + retry once ────────────────────
+    // 403 is a permission error — refreshing the token will never fix it.
+    if (status === 401) {
       if (originalRequest?.url?.includes('/auth/refresh')) {
         await doLogout()
         return Promise.reject(error)
       }
 
-      // Replay still unauthorized after refresh
-      if (status === 401 && originalRequest._retry) {
+      if (originalRequest._retry) {
         await doLogout()
         return Promise.reject(error)
       }
 
-      const tryRefresh =
-        !originalRequest._retry &&
-        (status === 401 ||
-          (status === 403 &&
-            requestHadBearer(originalRequest) &&
-            !!localStorage.getItem('refreshToken')))
-
-      if (tryRefresh) {
-        try {
-          return await retryWithFreshToken(originalRequest, error)
-        } catch {
-          return Promise.reject(error)
-        }
+      try {
+        return await retryWithFreshToken(originalRequest, error)
+      } catch {
+        return Promise.reject(error)
       }
     }
 
     // ── Other HTTP errors ──────────────────────────────────────────────────
-    const method = (error.config?.method ?? 'get').toLowerCase()
-    const isMutation = method !== 'get'
-
-    if (error.response?.status === 403) {
-      if (isMutation) toast.warning(tt('errors.forbidden'))
-    } else if (error.response?.status === 500 || error.response?.status === 503) {
-      if (isMutation) toast.error(tt('errors.server'))
+    if (status === 403) {
+      // Always show forbidden toast — both reads and mutations need feedback
+      toast.warning(tt('errors.forbidden'))
+    } else if (status === 500 || status === 503) {
+      toast.error(tt('errors.server'))
     } else if (error.code === 'ECONNABORTED') {
       toast.error(tt('errors.timeout'))
     }
