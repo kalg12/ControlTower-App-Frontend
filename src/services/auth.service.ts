@@ -2,10 +2,15 @@ import axios from 'axios'
 import api from '@/services/api'
 import type { LoginRequest, LoginResponse, ForgotPasswordRequest, ResetPasswordRequest } from '@/types/auth'
 
+const apiRoot =
+  import.meta.env.VITE_API_BASE_URL != null && String(import.meta.env.VITE_API_BASE_URL).trim() !== ''
+    ? `${String(import.meta.env.VITE_API_BASE_URL).replace(/\/$/, '')}/api/v1`
+    : '/api/v1'
+
 // Bare axios instance with NO interceptors — used exclusively for token refresh
 // to avoid the infinite-loop where the interceptor catches the refresh 401
 const plainAxios = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiRoot,
   headers: { 'Content-Type': 'application/json' }
 })
 

@@ -5,8 +5,14 @@ import { getJwtExpMs } from '@/utils/jwt'
 
 const tt = (key: string) => i18n.global.t(key)
 
+/** Dev: Vite proxies `/api` → backend. Production: set VITE_API_BASE_URL (e.g. https://api.example.com). */
+const apiRoot =
+  import.meta.env.VITE_API_BASE_URL != null && String(import.meta.env.VITE_API_BASE_URL).trim() !== ''
+    ? `${String(import.meta.env.VITE_API_BASE_URL).replace(/\/$/, '')}/api/v1`
+    : '/api/v1'
+
 const api: AxiosInstance = axios.create({
-  baseURL: '/api/v1',
+  baseURL: apiRoot,
   timeout: 15000,
   headers: { 'Content-Type': 'application/json' }
 })
