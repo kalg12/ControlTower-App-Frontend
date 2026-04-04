@@ -11,6 +11,7 @@ import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
+import MultiSelect from 'primevue/multiselect'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
@@ -18,7 +19,7 @@ import { usersService, rolesService } from '@/services/users.service'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
-import type { User } from '@/types/user'
+import type { User, UserStatus } from '@/types/user'
 import { Shield, ShieldOff } from 'lucide-vue-next'
 
 const queryClient = useQueryClient()
@@ -62,11 +63,11 @@ const roleOptions = computed(() =>
   (rolesData.value?.content ?? []).map((r) => ({ label: r.name, value: r.id }))
 )
 
-function statusSeverity(status: User['status']): 'success' | 'secondary' | 'danger' {
-  const map: Record<string, 'success' | 'secondary' | 'danger'> = {
+function statusSeverity(status: UserStatus): 'success' | 'secondary' | 'danger' | 'warn' {
+  const map: Record<UserStatus, 'success' | 'secondary' | 'danger' | 'warn'> = {
     ACTIVE: 'success',
-    INACTIVE: 'secondary',
-    SUSPENDED: 'danger'
+    SUSPENDED: 'danger',
+    PENDING_VERIFICATION: 'warn'
   }
   return map[status] ?? 'secondary'
 }
@@ -148,6 +149,88 @@ const onSubmit = handleSubmit(async (values) => {
     toast.error('Failed to create user')
   } finally {
     isInviting.value = false
+  }
+})
+
+// --- Edit user ---
+const showEditDialog = ref(false)
+const editingUser = ref<User | null>(null)
+const isSavingEdit = ref(false)
+
+const userStatusOptions = [
+  { label: 'Active', value: 'ACTIVE' as const },
+  { label: 'Suspended', value: 'SUSPENDED' as const },
+  { label: 'Pending verification', value: 'PENDING_VERIFICATION' as const }
+]
+
+const editSchema = z.object({
+  fullName: z.string().min(2, 'Min 2 characters'),
+  email: z.string().email('Valid email required'),
+  status: z.enum(['ACTIVE', 'SUSPENDED', 'PENDING_VERIFICATION']),
+  roleIds: z.array(z.string()),
+  password: z
+    .string()
+    .optional()
+    .refine((v) => !v || v.length >= 8, { message: 'Min 8 characters if set' })
+})
+
+const editForm = useForm({
+  validationSchema: toTypedSchema(editSchema),
+  initialValues: {
+    fullName: '',
+    email: '',
+    status: 'ACTIVE' as const,
+    roleIds: [] as string[],
+    password: ''
+  }
+})
+
+const [editFullName, editFullNameAttrs] = editForm.defineField('fullName')
+const [editEmail, editEmailAttrs] = editForm.defineField('email')
+const [editStatus, editStatusAttrs] = editForm.defineField('status')
+const [editRoleIds, editRoleIdsAttrs] = editForm.defineField('roleIds')
+const [editPassword, editPasswordAttrs] = editForm.defineField('password')
+
+function roleIdsForUser(user: User): string[] {
+  const codes = new Set(user.roles ?? [])
+  return (rolesData.value?.content ?? []).filter((r) => codes.has(r.code ?? r.name)).map((r) => r.id)
+}
+
+function openEditDialog(user: User) {
+  editingUser.value = user
+  editForm.resetForm({
+    values: {
+      fullName: user.fullName,
+      email: user.email,
+      status: user.status,
+      roleIds: roleIdsForUser(user),
+      password: ''
+    }
+  })
+  showEditDialog.value = true
+}
+
+const onEditSubmit = editForm.handleSubmit(async (values) => {
+  if (!editingUser.value) return
+  isSavingEdit.value = true
+  try {
+    const payload: Parameters<typeof usersService.update>[1] = {
+      fullName: values.fullName,
+      email: values.email,
+      status: values.status,
+      roleIds: values.roleIds
+    }
+    const pwd = values.password?.trim()
+    if (pwd) payload.password = pwd
+    await usersService.update(editingUser.value.id, payload)
+    await queryClient.invalidateQueries({ queryKey: ['users'] })
+    showEditDialog.value = false
+    editingUser.value = null
+    toast.success('User updated')
+  } catch {
+    toast.error('Failed to update user')
+  } finally {
+    isSavingEdit.value = false
   }
 })
 </script>
@@ -246,9 +329,17 @@ const onSubmit = handleSubmit(async (values) => {
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 140px">
+      <Column header="Actions" style="width: 180px">
         <template #body="{ data: row }: { data: User }">
           <div class="flex items-center gap-1">
+            <Button
+              icon="pi pi-pencil"
+              severity="secondary"
+              text
+              rounded
+              v-tooltip.top="'Edit'"
+              @click="openEditDialog(row)"
+            />
             <Button
               icon="pi pi-trash"
               severity="danger"
@@ -339,6 +430,93 @@ const onSubmit = handleSubmit(async (values) => {
           :loading="isInviting"
           @click="onSubmit"
         />
+      </div>
+    </template>
+  </AppDialog>
+
+  <!-- Edit User Dialog -->
+  <AppDialog
+    v-model:visible="showEditDialog"
+    title="Edit User"
+    subtitle="Update profile, status, roles, or set a new password (optional)."
+    :loading="isSavingEdit"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
+      <FormField label="Full Name" name="edit-fullName" :error="editForm.errors.value.fullName" required>
+        <InputText
+          id="edit-fullName"
+          v-model="editFullName"
+          v-bind="editFullNameAttrs"
+          class="w-full"
+          :disabled="isSavingEdit"
+        />
+      </FormField>
+
+      <FormField label="Email" name="edit-email" :error="editForm.errors.value.email" required>
+        <InputText
+          id="edit-email"
+          v-model="editEmail"
+          v-bind="editEmailAttrs"
+          type="email"
+          class="w-full"
+          :disabled="isSavingEdit"
+        />
+      </FormField>
+
+      <FormField label="Status" name="edit-status" :error="editForm.errors.value.status" required>
+        <Select
+          id="edit-status"
+          v-model="editStatus"
+          v-bind="editStatusAttrs"
+          :options="userStatusOptions"
+          option-label="label"
+          option-value="value"
+          class="w-full"
+          :disabled="isSavingEdit"
+        />
+      </FormField>
+
+      <FormField label="Roles" name="edit-roles" :error="editForm.errors.value.roleIds">
+        <MultiSelect
+          id="edit-roles"
+          v-model="editRoleIds"
+          v-bind="editRoleIdsAttrs"
+          :options="roleOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="Select roles"
+          display="chip"
+          filter
+          class="w-full"
+          :disabled="isSavingEdit"
+        />
+      </FormField>
+
+      <FormField label="New password" name="edit-password" :error="editForm.errors.value.password">
+        <InputText
+          id="edit-password"
+          v-model="editPassword"
+          v-bind="editPasswordAttrs"
+          type="password"
+          autocomplete="new-password"
+          placeholder="Optional — min 8 characters"
+          class="w-full"
+          :disabled="isSavingEdit"
+        />
+        <p class="text-xs text-[var(--text-muted)] mt-1">Leave blank to keep the current password.</p>
+      </FormField>
+    </form>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button
+          label="Cancel"
+          severity="secondary"
+          outlined
+          :disabled="isSavingEdit"
+          @click="showEditDialog = false"
+        />
+        <Button label="Save" :loading="isSavingEdit" @click="onEditSubmit" />
       </div>
     </template>
   </AppDialog>

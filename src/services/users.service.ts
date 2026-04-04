@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { User, Role, CreateUserRequest } from '@/types/user'
+import type { User, Role, CreateUserRequest, UpdateUserRequest } from '@/types/user'
 import type { PaginatedResponse } from '@/types/api'
 
 /** Aligned with GET /api/v1/users?tenantId&page&size */
@@ -29,6 +29,11 @@ export const usersService = {
       roleIds: data.roleIds?.length ? data.roleIds : undefined
     }
     const res = await api.post<User>('/users', body, { params: { tenantId } })
+    return res.data
+  },
+
+  async update(id: string, data: UpdateUserRequest): Promise<User> {
+    const res = await api.put<User>(`/users/${id}`, data)
     return res.data
   },
 

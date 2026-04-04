@@ -1,9 +1,11 @@
+export type UserStatus = 'ACTIVE' | 'SUSPENDED' | 'PENDING_VERIFICATION'
+
 export interface User {
   id: string
   tenantId: string
   email: string
   fullName: string
-  status: 'ACTIVE' | 'INACTIVE' | 'SUSPENDED'
+  status: UserStatus
   superAdmin?: boolean
   roles: string[]
   permissions: string[]
@@ -30,13 +32,16 @@ export interface CreateUserRequest {
 
 export interface UpdateUserRequest {
   fullName?: string
-  status?: User['status']
+  email?: string
+  status?: UserStatus
+  /** Replace all roles; omit to leave unchanged (backend); send [] to clear */
   roleIds?: string[]
+  password?: string
 }
 
 export interface UserFilters {
   search?: string
-  status?: User['status']
+  status?: UserStatus
   page?: number
   size?: number
 }
