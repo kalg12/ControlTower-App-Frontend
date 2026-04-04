@@ -3,6 +3,7 @@ import type {
   BoardListResponse,
   BoardRequest,
   CardRequest,
+  CardUpdateRequest,
   KanbanBoard,
   KanbanCard,
   KanbanColumn,
@@ -53,6 +54,11 @@ export const kanbanService = {
 
   async moveCard(cardId: string, body: MoveCardRequest): Promise<KanbanCard> {
     const res = await api.patch<KanbanCard>(`/boards/cards/${cardId}/move`, body)
+    return res.data
+  },
+
+  async updateCard(cardId: string, body: CardUpdateRequest): Promise<KanbanCard> {
+    const res = await api.patch<KanbanCard>(`/boards/cards/${cardId}`, body)
     return res.data
   },
 

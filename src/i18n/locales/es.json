@@ -70,6 +70,8 @@
     "subtitle": "Flujos de trabajo para tu equipo",
     "boardDetail": "Tablero",
     "createBoard": "Nuevo tablero",
+    "editBoard": "Editar tablero",
+    "editCard": "Tarjeta",
     "boardName": "Nombre del tablero",
     "description": "Descripción",
     "visibility": "Visibilidad",
@@ -99,8 +101,7 @@
     "moveCardFailed": "No se pudo mover la tarjeta",
     "emptyBoard": "Aún no hay columnas. Añade una para empezar.",
     "noBoards": "Aún no hay tableros. Crea uno para seguir el trabajo.",
-    "labels": "Etiquetas",
-    "cardReadOnlyHint": "Editar campos de la tarjeta tras crearla requiere un endpoint de actualización en el backend (previsto)."
+    "labels": "Etiquetas"
   },
   "clientsPage": {
     "title": "Clientes",

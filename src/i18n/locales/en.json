@@ -70,6 +70,8 @@
     "subtitle": "Workflows for your team",
     "boardDetail": "Board",
     "createBoard": "New board",
+    "editBoard": "Edit board",
+    "editCard": "Card",
     "boardName": "Board name",
     "description": "Description",
     "visibility": "Visibility",
@@ -99,8 +101,7 @@
     "moveCardFailed": "Could not move card",
     "emptyBoard": "No columns yet. Add a column to get started.",
     "noBoards": "No boards yet. Create one to start tracking work.",
-    "labels": "Labels",
-    "cardReadOnlyHint": "Editing card fields after creation requires a backend update endpoint (planned)."
+    "labels": "Labels"
   },
   "clientsPage": {
     "title": "Clients",

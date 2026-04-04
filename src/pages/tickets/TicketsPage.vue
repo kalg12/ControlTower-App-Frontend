@@ -237,7 +237,7 @@ const editingTicket = ref<Ticket | null>(null)
 const isEditSubmitting = ref(false)
 
 const editSchema = z.object({
-  status: z.enum(['OPEN', 'IN_PROGRESS', 'PENDING_CUSTOMER', 'RESOLVED', 'CLOSED'])
+  status: z.enum(['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED'])
 })
 
 const editForm = useForm({

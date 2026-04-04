@@ -12,7 +12,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from '@/composables/useToast'
 import { useBoardsList, useKanbanMutations } from '@/queries/kanban'
 import type { BoardVisibility } from '@/types/kanban'
-import { LayoutGrid, Trash2 } from 'lucide-vue-next'
+import { LayoutGrid, Pencil, Trash2 } from 'lucide-vue-next'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 
@@ -23,7 +23,7 @@ const confirm = useConfirm()
 
 const page = ref(0)
 const { data, isLoading, isError, refetch } = useBoardsList(page, 20)
-const { createBoard, deleteBoard } = useKanbanMutations()
+const { createBoard, updateBoard, deleteBoard } = useKanbanMutations()
 
 const boards = computed(() => data.value?.content ?? [])
 
@@ -32,6 +32,13 @@ const creating = ref(false)
 const formName = ref('')
 const formDesc = ref('')
 const formVis = ref<BoardVisibility>('TEAM')
+
+const showEdit = ref(false)
+const editingId = ref<string | null>(null)
+const savingEdit = ref(false)
+const editName = ref('')
+const editDesc = ref('')
+const editVis = ref<BoardVisibility>('TEAM')
 
 const visOptions = computed(() => [
   { label: t('kanban.visibilityTeam'), value: 'TEAM' as const },
@@ -61,6 +68,39 @@ async function submitCreate() {
     toast.error(t('errors.loadFailed'))
   } finally {
     creating.value = false
+  }
+}
+
+function openEdit(b: { id: string; name: string; description?: string | null; visibility: BoardVisibility }) {
+  editingId.value = b.id
+  editName.value = b.name
+  editDesc.value = b.description ?? ''
+  editVis.value = b.visibility
+  showEdit.value = true
+}
+
+async function submitEdit() {
+  const id = editingId.value
+  const name = editName.value.trim()
+  if (!id || !name) return
+  savingEdit.value = true
+  try {
+    await updateBoard.mutateAsync({
+      id,
+      body: {
+        name,
+        description: editDesc.value.trim() || undefined,
+        visibility: editVis.value
+      }
+    })
+    showEdit.value = false
+    editingId.value = null
+    toast.success(t('common.save'))
+    refetch()
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  } finally {
+    savingEdit.value = false
   }
 }
 
@@ -139,6 +179,13 @@ function confirmDeleteBoard(id: string) {
             @click="router.push({ name: 'kanban-board', params: { id: b.id } })"
           />
           <Button
+            outlined
+            :aria-label="t('kanban.editBoard')"
+            @click="openEdit(b)"
+          >
+            <Pencil class="w-4 h-4" />
+          </Button>
+          <Button
             severity="danger"
             outlined
             :aria-label="t('kanban.deleteBoard')"
@@ -149,6 +196,27 @@ function confirmDeleteBoard(id: string) {
         </div>
       </div>
     </div>
+
+    <Dialog v-model:visible="showEdit" :header="t('kanban.editBoard')" modal class="w-full max-w-md" :dismissable-mask="true" @hide="editingId = null">
+      <div class="flex flex-col gap-4 pt-2">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--text)]">{{ t('kanban.boardName') }}</label>
+          <InputText v-model="editName" class="w-full" :placeholder="t('kanban.boardName')" autofocus />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--text)]">{{ t('kanban.description') }}</label>
+          <Textarea v-model="editDesc" rows="3" class="w-full" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--text)]">{{ t('kanban.visibility') }}</label>
+          <Select v-model="editVis" :options="visOptions" option-label="label" option-value="value" class="w-full" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined @click="showEdit = false" />
+          <Button :label="t('common.save')" icon="pi pi-check" :loading="savingEdit" :disabled="!editName.trim()" @click="submitEdit" />
+        </div>
+      </div>
+    </Dialog>
 
     <Dialog v-model:visible="showCreate" :header="t('kanban.createBoard')" modal class="w-full max-w-md" :dismissable-mask="true">
       <div class="flex flex-col gap-4 pt-2">

@@ -16,7 +16,7 @@ import { useToast } from '@/composables/useToast'
 import { useBoard, useKanbanMutations } from '@/queries/kanban'
 import { useAuthStore } from '@/stores/auth'
 import { usersService } from '@/services/users.service'
-import type { KanbanCard, KanbanColumn, CardPriority } from '@/types/kanban'
+import type { BoardVisibility, KanbanCard, KanbanColumn, CardPriority } from '@/types/kanban'
 import { AlertTriangle } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 
@@ -39,6 +39,8 @@ const {
   deleteColumn,
   createCard,
   moveCard,
+  updateBoard,
+  updateCard,
   deleteCard,
   addChecklistItem,
   toggleChecklist
@@ -79,6 +81,23 @@ const savingCard = ref(false)
 
 const selectedCard = ref<KanbanCard | null>(null)
 const showCardDetail = ref(false)
+const detailTitle = ref('')
+const detailDesc = ref('')
+const detailDue = ref('')
+const detailPriority = ref<CardPriority>('MEDIUM')
+const detailAssignee = ref<string | null>(null)
+const savingCardDetail = ref(false)
+
+const showBoardEdit = ref(false)
+const boardEditName = ref('')
+const boardEditDesc = ref('')
+const boardEditVis = ref<BoardVisibility>('TEAM')
+const savingBoardEdit = ref(false)
+
+const boardVisOptions = computed(() => [
+  { label: t('kanban.visibilityTeam'), value: 'TEAM' as const },
+  { label: t('kanban.visibilityPrivate'), value: 'PRIVATE' as const }
+])
 
 const priorityOpts = computed(() => [
   { label: t('kanban.priorityLow'), value: 'LOW' as const },
@@ -95,7 +114,9 @@ const { data: userOptions } = useQuery({
   queryKey: computed(() => ['users', 'kanban-assign', tenantIdForUsers.value]),
   queryFn: () =>
     usersService.list({ tenantId: tenantIdForUsers.value, page: 0, size: 100 }),
-  enabled: computed(() => !!tenantIdForUsers.value && showCardDialog.value)
+  enabled: computed(
+    () => !!tenantIdForUsers.value && (showCardDialog.value || showCardDetail.value)
+  )
 })
 
 const assigneeSelectOptions = computed(() =>
@@ -209,7 +230,71 @@ function wipExceeded(column: KanbanColumn): boolean {
 
 function openCard(c: KanbanCard) {
   selectedCard.value = c
+  detailTitle.value = c.title
+  detailDesc.value = c.description ?? ''
+  detailDue.value = c.dueDate ? formatDue(c.dueDate) : ''
+  detailPriority.value = c.priority
+  detailAssignee.value = c.assigneeId ?? null
   showCardDetail.value = true
+}
+
+function openBoardEdit() {
+  if (!board.value) return
+  boardEditName.value = board.value.name
+  boardEditDesc.value = board.value.description ?? ''
+  boardEditVis.value = board.value.visibility
+  showBoardEdit.value = true
+}
+
+async function submitBoardEdit() {
+  if (!board.value) return
+  const name = boardEditName.value.trim()
+  if (!name) return
+  savingBoardEdit.value = true
+  try {
+    await updateBoard.mutateAsync({
+      id: board.value.id,
+      body: {
+        name,
+        description: boardEditDesc.value.trim() || undefined,
+        visibility: boardEditVis.value
+      }
+    })
+    showBoardEdit.value = false
+    toast.success(t('common.save'))
+    refetch()
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  } finally {
+    savingBoardEdit.value = false
+  }
+}
+
+async function submitCardDetail() {
+  if (!selectedCard.value || !board.value) return
+  const title = detailTitle.value.trim()
+  if (!title) return
+  savingCardDetail.value = true
+  try {
+    const updated = await updateCard.mutateAsync({
+      cardId: selectedCard.value.id,
+      boardId: board.value.id,
+      body: {
+        title,
+        description: detailDesc.value.trim() || undefined,
+        dueDate: detailDue.value.trim() ? detailDue.value : null,
+        priority: detailPriority.value,
+        assigneeId: detailAssignee.value ?? null
+      }
+    })
+    selectedCard.value = updated
+    toast.success(t('common.save'))
+    refetch()
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  } finally {
+    savingCardDetail.value = false
+  }
 }
 
 async function onToggleChecklist(itemId: string) {
@@ -284,6 +369,14 @@ function formatDue(d: string | null | undefined): string {
         <h1 class="text-xl font-semibold text-[var(--text)] truncate">{{ board.name }}</h1>
         <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-1">{{ board.description }}</p>
       </div>
+      <Button
+        v-if="board"
+        v-tooltip.top="t('kanban.editBoard')"
+        icon="pi pi-pencil"
+        outlined
+        :aria-label="t('kanban.editBoard')"
+        @click="openBoardEdit"
+      />
       <Button :label="t('kanban.addColumn')" icon="pi pi-plus" outlined @click="openAddColumn" />
     </div>
 
@@ -430,20 +523,82 @@ function formatDue(d: string | null | undefined): string {
       </div>
     </Dialog>
 
+    <!-- Board settings -->
+    <Dialog v-model:visible="showBoardEdit" :header="t('kanban.editBoard')" modal class="w-full max-w-md" :dismissable-mask="true">
+      <div class="flex flex-col gap-4 pt-2">
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium">{{ t('kanban.boardName') }}</label>
+          <InputText v-model="boardEditName" class="w-full" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium">{{ t('kanban.description') }}</label>
+          <Textarea v-model="boardEditDesc" rows="3" class="w-full" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium">{{ t('kanban.visibility') }}</label>
+          <Select v-model="boardEditVis" :options="boardVisOptions" option-label="label" option-value="value" class="w-full" />
+        </div>
+        <div class="flex justify-end gap-2 pt-2">
+          <Button :label="t('common.cancel')" severity="secondary" outlined @click="showBoardEdit = false" />
+          <Button
+            :label="t('common.save')"
+            icon="pi pi-check"
+            :loading="savingBoardEdit"
+            :disabled="!boardEditName.trim()"
+            @click="submitBoardEdit"
+          />
+        </div>
+      </div>
+    </Dialog>
+
     <!-- Card detail -->
     <Dialog
       v-model:visible="showCardDetail"
-      :header="selectedCard?.title ?? ''"
+      :header="t('kanban.editCard')"
       modal
       class="w-full max-w-lg"
       @hide="selectedCard = null"
     >
       <div v-if="selectedCard" class="flex flex-col gap-4 pt-2">
-        <p class="text-xs text-[var(--text-muted)]">{{ t('kanban.cardReadOnlyHint') }}</p>
-        <div v-if="selectedCard.description" class="text-sm text-[var(--text)] whitespace-pre-wrap">{{ selectedCard.description }}</div>
-        <div class="flex flex-wrap gap-2">
-          <Tag :value="priorityLabel(selectedCard.priority)" />
-          <Tag v-if="selectedCard.dueDate" :value="formatDue(selectedCard.dueDate)" severity="info" />
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">{{ t('kanban.cardTitle') }}</label>
+          <InputText v-model="detailTitle" class="w-full" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">{{ t('kanban.cardDescription') }}</label>
+          <Textarea v-model="detailDesc" rows="3" class="w-full" />
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium">{{ t('kanban.dueDate') }}</label>
+            <InputText v-model="detailDue" type="date" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium">{{ t('kanban.priority') }}</label>
+            <Select v-model="detailPriority" :options="priorityOpts" option-label="label" option-value="value" class="w-full" />
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">{{ t('kanban.assignee') }}</label>
+          <Select
+            v-model="detailAssignee"
+            :options="assigneeSelectOptions"
+            option-label="label"
+            option-value="value"
+            :placeholder="t('kanban.unassigned')"
+            show-clear
+            class="w-full"
+            filter
+          />
+        </div>
+        <div class="flex justify-end gap-2">
+          <Button
+            :label="t('common.save')"
+            icon="pi pi-check"
+            :loading="savingCardDetail"
+            :disabled="!detailTitle.trim()"
+            @click="submitCardDetail"
+          />
         </div>
 
         <div class="border-t border-[var(--border)] pt-4">

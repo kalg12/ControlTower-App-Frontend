@@ -70,4 +70,13 @@ export interface MoveCardRequest {
   position: number
 }
 
+/** PATCH /boards/cards/{id} — column changes use moveCard */
+export interface CardUpdateRequest {
+  title: string
+  description?: string
+  assigneeId?: string | null
+  dueDate?: string | null
+  priority: CardPriority
+}
+
 export type BoardListResponse = PaginatedResponse<KanbanBoard>

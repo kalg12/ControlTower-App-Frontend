@@ -1,7 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 import { kanbanService } from '@/services/kanban.service'
-import type { BoardRequest, CardRequest, MoveCardRequest } from '@/types/kanban'
+import type { BoardRequest, CardRequest, CardUpdateRequest, MoveCardRequest } from '@/types/kanban'
 import { qk } from '@/queries/keys'
 
 export function useBoardsList(page: MaybeRefOrGetter<number> = 0, size: MaybeRefOrGetter<number> = 20) {
@@ -74,6 +74,12 @@ export function useKanbanMutations() {
     onSuccess: (_d, { boardId }) => qc.invalidateQueries({ queryKey: qk.board(boardId) })
   })
 
+  const updateCard = useMutation({
+    mutationFn: (vars: { cardId: string; body: CardUpdateRequest; boardId: string }) =>
+      kanbanService.updateCard(vars.cardId, vars.body),
+    onSuccess: (_d, vars) => qc.invalidateQueries({ queryKey: qk.board(vars.boardId) })
+  })
+
   const deleteCard = useMutation({
     mutationFn: ({ cardId }: { cardId: string; boardId: string }) =>
       kanbanService.deleteCard(cardId),
@@ -100,6 +106,7 @@ export function useKanbanMutations() {
     deleteColumn,
     createCard,
     moveCard,
+    updateCard,
     deleteCard,
     addChecklistItem,
     toggleChecklist,

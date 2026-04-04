@@ -36,7 +36,7 @@ const { data: ticket, isLoading, isError } = useQuery({
 const statusOptions: { label: string; value: TicketStatus }[] = [
   { label: 'Open', value: 'OPEN' },
   { label: 'In Progress', value: 'IN_PROGRESS' },
-  { label: 'Pending Customer', value: 'PENDING_CUSTOMER' },
+  { label: 'Waiting', value: 'WAITING' },
   { label: 'Resolved', value: 'RESOLVED' },
   { label: 'Closed', value: 'CLOSED' }
 ]
@@ -104,7 +104,11 @@ async function submitComment() {
 
 function statusSeverity(status: TicketStatus): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
   const map: Record<TicketStatus, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
-    OPEN: 'info', IN_PROGRESS: 'warn', PENDING_CUSTOMER: 'warn', RESOLVED: 'success', CLOSED: 'secondary'
+    OPEN: 'info',
+    IN_PROGRESS: 'warn',
+    WAITING: 'warn',
+    RESOLVED: 'success',
+    CLOSED: 'secondary'
   }
   return map[status] ?? 'secondary'
 }
@@ -237,11 +241,11 @@ function fromNow(dateStr: string) {
             <span class="text-[var(--text)]">{{ formatDate(ticket.slaDeadline) }}</span>
           </div>
 
-          <div v-if="ticket.tags && ticket.tags.length" class="flex flex-col gap-1 pt-1">
-            <span class="text-[var(--text-muted)] text-sm">Tags</span>
+          <div v-if="ticket.labels && ticket.labels.length" class="flex flex-col gap-1 pt-1">
+            <span class="text-[var(--text-muted)] text-sm">Labels</span>
             <div class="flex flex-wrap gap-1">
               <span
-                v-for="tag in ticket.tags"
+                v-for="tag in ticket.labels"
                 :key="tag"
                 class="text-xs bg-[var(--surface-raised)] text-[var(--text)] px-2 py-0.5 rounded-full"
               >{{ tag }}</span>

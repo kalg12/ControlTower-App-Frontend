@@ -59,11 +59,6 @@ async function doLogout() {
   }
 }
 
-function requestHadBearer(originalRequest: InternalAxiosRequestConfig): boolean {
-  const h = originalRequest.headers?.Authorization
-  return typeof h === 'string' && h.startsWith('Bearer ')
-}
-
 /** Coalesced refresh; updates storage + Pinia; reconnects WebSocket. */
 async function refreshAccessToken(staleError: AxiosError): Promise<string> {
   if (refreshPromise) return refreshPromise
