@@ -49,8 +49,13 @@ export const rolesService = {
     return res.data
   },
 
-  async listPermissions(): Promise<{ id: string; code: string; description?: string }[]> {
-    const res = await api.get<{ id: string; code: string; description?: string }[]>('/permissions')
+  async listPermissions(): Promise<{ id: string; code: string; description?: string; module?: string }[]> {
+    const res = await api.get<{ id: string; code: string; description?: string; module?: string }[]>('/permissions')
+    return res.data
+  },
+
+  async replaceRolePermissions(roleId: string, permissionIds: string[]): Promise<Role> {
+    const res = await api.put<Role>(`/roles/${roleId}/permissions`, { permissionIds })
     return res.data
   },
 

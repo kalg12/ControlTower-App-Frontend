@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, type Component } from 'vue'
 import { useRoute } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import {
@@ -17,9 +17,18 @@ import {
   ClipboardList,
   Plug,
   Megaphone,
-  LayoutGrid
+  LayoutGrid,
+  Shield
 } from 'lucide-vue-next'
 import { useNotificationsStore } from '@/stores/notifications'
+import { useAuthStore } from '@/stores/auth'
+
+type NavItem = {
+  to: string
+  label: string
+  icon: Component
+  permission?: string
+}
 
 interface Props {
   collapsed?: boolean
@@ -30,30 +39,43 @@ const emit = defineEmits<{ close: [] }>()
 
 const route = useRoute()
 const notifStore = useNotificationsStore()
+const auth = useAuthStore()
 const { t } = useI18n()
 
-const mainItems = computed(() => [
-  { to: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
-  { to: '/tickets', label: t('nav.tickets'), icon: MessageSquare },
-  { to: '/clients', label: t('nav.clients'), icon: Building2 },
-  { to: '/kanban', label: t('nav.kanban'), icon: LayoutGrid },
-  { to: '/health', label: t('nav.health'), icon: Activity },
-  { to: '/licenses', label: t('nav.licenses'), icon: CreditCard },
-  { to: '/billing', label: t('nav.billing'), icon: Receipt },
-  { to: '/integrations', label: t('nav.integrations'), icon: Plug },
-  { to: '/campaigns', label: t('nav.campaigns'), icon: Megaphone }
-])
+function visible(items: NavItem[]) {
+  return items.filter((i) => !i.permission || auth.hasPermission(i.permission))
+}
 
-const adminItems = computed(() => [
-  { to: '/tenants', label: t('nav.tenants'), icon: Building },
-  { to: '/users', label: t('nav.users'), icon: Users },
-  { to: '/audit', label: t('nav.audit'), icon: ClipboardList }
-])
+const mainItems = computed(() =>
+  visible([
+    { to: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
+    { to: '/tickets', label: t('nav.tickets'), icon: MessageSquare, permission: 'ticket:read' },
+    { to: '/clients', label: t('nav.clients'), icon: Building2, permission: 'client:read' },
+    { to: '/kanban', label: t('nav.kanban'), icon: LayoutGrid, permission: 'kanban:read' },
+    { to: '/kanban/work', label: t('nav.kanbanWork'), icon: ClipboardList, permission: 'kanban:read' },
+    { to: '/health', label: t('nav.health'), icon: Activity, permission: 'health:read' },
+    { to: '/licenses', label: t('nav.licenses'), icon: CreditCard, permission: 'license:read' },
+    { to: '/billing', label: t('nav.billing'), icon: Receipt, permission: 'billing:read' },
+    { to: '/integrations', label: t('nav.integrations'), icon: Plug, permission: 'integration:read' },
+    { to: '/campaigns', label: t('nav.campaigns'), icon: Megaphone, permission: 'campaign:read' }
+  ])
+)
 
-const accountItems = computed(() => [
-  { to: '/notifications', label: t('nav.notifications'), icon: Bell },
-  { to: '/settings', label: t('nav.settings'), icon: Settings }
-])
+const adminItems = computed(() =>
+  visible([
+    { to: '/tenants', label: t('nav.tenants'), icon: Building, permission: 'tenant:read' },
+    { to: '/users', label: t('nav.users'), icon: Users, permission: 'user:read' },
+    { to: '/roles', label: t('nav.roles'), icon: Shield, permission: 'user:read' },
+    { to: '/audit', label: t('nav.audit'), icon: ClipboardList, permission: 'audit:read' }
+  ])
+)
+
+const accountItems = computed(() =>
+  visible([
+    { to: '/notifications', label: t('nav.notifications'), icon: Bell, permission: 'notification:read' },
+    { to: '/settings', label: t('nav.settings'), icon: Settings }
+  ])
+)
 
 const unreadCount = computed(() => notifStore.unreadCount)
 
@@ -112,7 +134,7 @@ function badge(to: string): number | null {
       </div>
 
       <!-- Admin section -->
-      <div>
+      <div v-if="adminItems.length">
         <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">{{ t('nav.admin') }}</p>
         <div class="space-y-0.5">
           <RouterLink

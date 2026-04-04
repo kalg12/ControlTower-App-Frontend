@@ -6,7 +6,17 @@ import type { CurrentUser, LoginRequest, LoginResponse } from '@/types/auth'
 function readStoredUser(): CurrentUser | null {
   try {
     const raw = localStorage.getItem('user')
-    return raw ? (JSON.parse(raw) as CurrentUser) : null
+    if (!raw) return null
+    const u = JSON.parse(raw) as Partial<CurrentUser>
+    return {
+      id: u.id!,
+      email: u.email!,
+      fullName: u.fullName!,
+      tenantId: u.tenantId ?? '',
+      permissions: u.permissions ?? [],
+      roles: u.roles ?? [],
+      superAdmin: u.superAdmin ?? false
+    }
   } catch {
     return null
   }
@@ -20,7 +30,10 @@ function persistSession(response: LoginResponse) {
     id: response.userId,
     email: response.email,
     fullName: response.fullName ?? response.email,
-    tenantId: response.tenantId ?? ''
+    tenantId: response.tenantId ?? '',
+    permissions: response.permissions ?? [],
+    roles: response.roles ?? [],
+    superAdmin: response.superAdmin ?? false
   }
   return { currentUser, accessToken: response.accessToken, refreshToken: response.refreshToken }
 }
@@ -95,5 +108,13 @@ export const useAuthStore = defineStore('auth', () => {
     }
   }
 
-  return { user, accessToken, loading, isAuthenticated, login, completeMfaLogin, logout }
+  function hasPermission(code: string): boolean {
+    if (!user.value) return false
+    if (user.value.superAdmin) return true
+    const p = user.value.permissions
+    if (!p.length) return true
+    return p.includes(code)
+  }
+
+  return { user, accessToken, loading, isAuthenticated, hasPermission, login, completeMfaLogin, logout }
 })

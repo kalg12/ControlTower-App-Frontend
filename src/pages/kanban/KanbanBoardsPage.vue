@@ -15,11 +15,14 @@ import type { BoardVisibility } from '@/types/kanban'
 import { LayoutGrid, Pencil, Trash2 } from 'lucide-vue-next'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
 const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
+const auth = useAuthStore()
+const canWriteKanban = computed(() => auth.hasPermission('kanban:write'))
 
 const page = ref(0)
 const { data, isLoading, isError, refetch } = useBoardsList(page, 20)
@@ -134,7 +137,12 @@ function confirmDeleteBoard(id: string) {
         </h1>
         <p class="text-sm text-[var(--text-muted)] mt-1">{{ t('kanban.subtitle') }}</p>
       </div>
-      <Button :label="t('kanban.createBoard')" icon="pi pi-plus" @click="openCreate" />
+      <Button
+        v-if="canWriteKanban"
+        :label="t('kanban.createBoard')"
+        icon="pi pi-plus"
+        @click="openCreate"
+      />
     </div>
 
     <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -149,7 +157,7 @@ function confirmDeleteBoard(id: string) {
     <EmptyState
       v-else-if="!boards.length"
       :title="t('kanban.noBoards')"
-      :action-label="t('kanban.createBoard')"
+      :action-label="canWriteKanban ? t('kanban.createBoard') : undefined"
       @action="openCreate"
     >
       <template #icon>
@@ -179,6 +187,7 @@ function confirmDeleteBoard(id: string) {
             @click="router.push({ name: 'kanban-board', params: { id: b.id } })"
           />
           <Button
+            v-if="canWriteKanban"
             outlined
             :aria-label="t('kanban.editBoard')"
             @click="openEdit(b)"
@@ -186,6 +195,7 @@ function confirmDeleteBoard(id: string) {
             <Pencil class="w-4 h-4" />
           </Button>
           <Button
+            v-if="canWriteKanban"
             severity="danger"
             outlined
             :aria-label="t('kanban.deleteBoard')"

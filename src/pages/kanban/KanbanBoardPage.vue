@@ -27,6 +27,7 @@ const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 const auth = useAuthStore()
+const canWriteKanban = computed(() => auth.hasPermission('kanban:write'))
 
 const boardId = computed(() => route.params.id as string)
 
@@ -394,14 +395,20 @@ function formatDue(d: string | null | undefined): string {
         <p v-if="board.description" class="text-sm text-[var(--text-muted)] line-clamp-1">{{ board.description }}</p>
       </div>
       <Button
-        v-if="board"
+        v-if="board && canWriteKanban"
         v-tooltip.top="t('kanban.editBoard')"
         icon="pi pi-pencil"
         outlined
         :aria-label="t('kanban.editBoard')"
         @click="openBoardEdit"
       />
-      <Button :label="t('kanban.addColumn')" icon="pi pi-plus" outlined @click="openAddColumn" />
+      <Button
+        v-if="canWriteKanban"
+        :label="t('kanban.addColumn')"
+        icon="pi pi-plus"
+        outlined
+        @click="openAddColumn"
+      />
     </div>
 
     <div v-if="isLoading" class="flex gap-4 overflow-x-auto pb-2">
@@ -419,7 +426,12 @@ function formatDue(d: string | null | undefined): string {
 
     <div v-else-if="!columns.length" class="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] p-12 text-center">
       <p class="text-[var(--text-muted)] mb-4">{{ t('kanban.emptyBoard') }}</p>
-      <Button :label="t('kanban.addColumn')" icon="pi pi-plus" @click="openAddColumn" />
+      <Button
+        v-if="canWriteKanban"
+        :label="t('kanban.addColumn')"
+        icon="pi pi-plus"
+        @click="openAddColumn"
+      />
     </div>
 
     <div v-else class="flex gap-4 overflow-x-auto pb-4 items-start">
@@ -448,7 +460,7 @@ function formatDue(d: string | null | undefined): string {
               </template>
             </div>
           </div>
-          <div class="flex gap-1 shrink-0">
+          <div v-if="canWriteKanban" class="flex gap-1 shrink-0">
             <Button
               v-tooltip.top="t('kanban.addCard')"
               icon="pi pi-plus"
@@ -475,6 +487,7 @@ function formatDue(d: string | null | undefined): string {
           item-key="id"
           class="flex-1 overflow-y-auto p-2 space-y-2 min-h-[120px]"
           ghost-class="opacity-50"
+          :disabled="!canWriteKanban"
           @change="(e: { added?: unknown; moved?: unknown }) => onDragChange(e as { added?: { element: KanbanCard; newIndex: number }; moved?: { element: KanbanCard; newIndex: number } }, col.id)"
         >
           <template #item="{ element: card }">
@@ -586,20 +599,27 @@ function formatDue(d: string | null | undefined): string {
       <div v-if="selectedCard" class="flex flex-col gap-4 pt-2">
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">{{ t('kanban.cardTitle') }}</label>
-          <InputText v-model="detailTitle" class="w-full" />
+          <InputText v-model="detailTitle" class="w-full" :readonly="!canWriteKanban" />
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">{{ t('kanban.cardDescription') }}</label>
-          <Textarea v-model="detailDesc" rows="3" class="w-full" />
+          <Textarea v-model="detailDesc" rows="3" class="w-full" :readonly="!canWriteKanban" />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium">{{ t('kanban.dueDate') }}</label>
-            <InputText v-model="detailDue" type="date" class="w-full" />
+            <InputText v-model="detailDue" type="date" class="w-full" :readonly="!canWriteKanban" />
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium">{{ t('kanban.priority') }}</label>
-            <Select v-model="detailPriority" :options="priorityOpts" option-label="label" option-value="value" class="w-full" />
+            <Select
+              v-model="detailPriority"
+              :options="priorityOpts"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+              :disabled="!canWriteKanban"
+            />
           </div>
         </div>
         <div class="flex flex-col gap-1">
@@ -613,9 +633,10 @@ function formatDue(d: string | null | undefined): string {
             show-clear
             class="w-full"
             filter
+            :disabled="!canWriteKanban"
           />
         </div>
-        <div class="flex justify-end gap-2">
+        <div v-if="canWriteKanban" class="flex justify-end gap-2">
           <Button
             :label="t('common.save')"
             icon="pi pi-check"
@@ -625,7 +646,7 @@ function formatDue(d: string | null | undefined): string {
           />
         </div>
 
-        <div class="border-t border-[var(--border)] pt-4">
+        <div v-if="(selectedCard.checklist?.length ?? 0) > 0 || canWriteKanban" class="border-t border-[var(--border)] pt-4">
           <h3 class="text-sm font-semibold mb-2">{{ t('kanban.checklist') }}</h3>
           <ul class="space-y-2 mb-3">
             <li
@@ -636,18 +657,19 @@ function formatDue(d: string | null | undefined): string {
               <Checkbox
                 :model-value="item.completed"
                 binary
+                :disabled="!canWriteKanban"
                 @update:model-value="() => onToggleChecklist(item.id)"
               />
               <span :class="item.completed ? 'line-through text-[var(--text-muted)]' : ''">{{ item.text }}</span>
             </li>
           </ul>
-          <div class="flex gap-2">
+          <div v-if="canWriteKanban" class="flex gap-2">
             <InputText v-model="newChecklistText" class="flex-1" :placeholder="t('kanban.addChecklistItem')" @keydown.enter="submitChecklistItem" />
             <Button icon="pi pi-plus" @click="submitChecklistItem" />
           </div>
         </div>
 
-        <div class="flex justify-end gap-2 pt-2">
+        <div v-if="canWriteKanban" class="flex justify-end gap-2 pt-2">
           <Button :label="t('common.delete')" severity="danger" outlined @click="confirmRemoveCard" />
         </div>
       </div>

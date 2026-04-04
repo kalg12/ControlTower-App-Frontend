@@ -14,6 +14,11 @@ export interface LoginResponse {
   fullName?: string
   requiresMfa?: boolean
   mfaToken?: string
+  totpEnabled?: boolean
+  /** Effective permission codes (sidebar + UI gates). */
+  permissions?: string[]
+  roles?: string[]
+  superAdmin?: boolean
 }
 
 // What we store in the Pinia store
@@ -22,6 +27,9 @@ export interface CurrentUser {
   email: string
   fullName: string
   tenantId: string
+  permissions: string[]
+  roles: string[]
+  superAdmin: boolean
 }
 
 export interface ForgotPasswordRequest { email: string }

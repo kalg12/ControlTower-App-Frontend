@@ -1,7 +1,13 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { computed, type MaybeRefOrGetter, toValue } from 'vue'
 import { kanbanService } from '@/services/kanban.service'
-import type { BoardRequest, CardRequest, CardUpdateRequest, MoveCardRequest } from '@/types/kanban'
+import type {
+  BoardRequest,
+  CardRequest,
+  CardUpdateRequest,
+  KanbanColumnKind,
+  MoveCardRequest
+} from '@/types/kanban'
 import { qk } from '@/queries/keys'
 
 export function useBoardsList(page: MaybeRefOrGetter<number> = 0, size: MaybeRefOrGetter<number> = 20) {
@@ -9,6 +15,26 @@ export function useBoardsList(page: MaybeRefOrGetter<number> = 0, size: MaybeRef
     queryKey: computed(() => [...qk.boards(), toValue(page), toValue(size)] as const),
     queryFn: () => kanbanService.listBoards(toValue(page), toValue(size)),
     staleTime: 30_000
+  })
+}
+
+export function useKanbanWorkItems(
+  assigneeId: MaybeRefOrGetter<string | undefined>,
+  columnKind: MaybeRefOrGetter<KanbanColumnKind | '' | undefined>
+) {
+  return useQuery({
+    queryKey: computed(() => [
+      'kanban',
+      'work-items',
+      toValue(assigneeId) ?? '',
+      toValue(columnKind) ?? ''
+    ] as const),
+    queryFn: () =>
+      kanbanService.listWorkItems({
+        assigneeId: toValue(assigneeId),
+        columnKind: (toValue(columnKind) || undefined) as KanbanColumnKind | undefined
+      }),
+    staleTime: 15_000
   })
 }
 

@@ -16,6 +16,8 @@
     "integrations": "Integraciones",
     "campaigns": "Campañas",
     "kanban": "Kanban",
+    "kanbanWork": "Centro de trabajo",
+    "roles": "Roles y permisos",
     "tenants": "Inquilinos",
     "users": "Usuarios",
     "audit": "Registro de auditoría",
@@ -105,7 +107,27 @@
     "moveCardFailed": "No se pudo mover la tarjeta",
     "emptyBoard": "Aún no hay columnas. Añade una para empezar.",
     "noBoards": "Aún no hay tableros. Crea uno para seguir el trabajo.",
-    "labels": "Etiquetas"
+    "labels": "Etiquetas",
+    "workHubTitle": "Trabajo entre tableros",
+    "workHubSubtitle": "Filtra tarjetas por responsable y tipo de columna (Por hacer, En curso, Hecho, Historial) en todos los tableros.",
+    "workAllUsers": "Todos los usuarios",
+    "workAllColumns": "Todos los tipos de columna",
+    "workColumnKind": "Tipo de columna",
+    "workEmpty": "No hay tarjetas que coincidan con estos filtros.",
+    "colTodo": "Por hacer",
+    "colInProgress": "En curso",
+    "colDone": "Hecho",
+    "colHistory": "Historial"
+  },
+  "rolesPage": {
+    "title": "Roles y permisos",
+    "subtitle": "Asigna códigos de permiso a cada rol. Los usuarios heredan permisos de sus roles.",
+    "role": "Rol",
+    "code": "Código",
+    "edit": "Editar permisos",
+    "matrixHint": "Los permisos marcados aplican a todos los usuarios con este rol.",
+    "saved": "Permisos del rol actualizados",
+    "readOnlyHint": "Puedes ver los roles, pero necesitas user:write para cambiar permisos."
   },
   "clientsPage": {
     "title": "Clientes",

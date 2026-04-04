@@ -16,6 +16,8 @@
     "integrations": "Integrations",
     "campaigns": "Campaigns",
     "kanban": "Kanban",
+    "kanbanWork": "Work hub",
+    "roles": "Roles & permissions",
     "tenants": "Tenants",
     "users": "Users",
     "audit": "Audit Log",
@@ -105,7 +107,27 @@
     "moveCardFailed": "Could not move card",
     "emptyBoard": "No columns yet. Add a column to get started.",
     "noBoards": "No boards yet. Create one to start tracking work.",
-    "labels": "Labels"
+    "labels": "Labels",
+    "workHubTitle": "Work across boards",
+    "workHubSubtitle": "Filter cards by assignee and column type (To Do, In Progress, Done, History) across all boards.",
+    "workAllUsers": "All users",
+    "workAllColumns": "All column types",
+    "workColumnKind": "Column type",
+    "workEmpty": "No cards match these filters.",
+    "colTodo": "To Do",
+    "colInProgress": "In Progress",
+    "colDone": "Done",
+    "colHistory": "History"
+  },
+  "rolesPage": {
+    "title": "Roles & permissions",
+    "subtitle": "Assign permission codes to each role. Users inherit permissions from their roles.",
+    "role": "Role",
+    "code": "Code",
+    "edit": "Edit permissions",
+    "matrixHint": "Checked permissions apply to every user with this role.",
+    "saved": "Role permissions updated",
+    "readOnlyHint": "You can view roles but need user:write to change permissions."
   },
   "clientsPage": {
     "title": "Clients",

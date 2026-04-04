@@ -27,10 +27,14 @@ export interface KanbanCard {
   updatedAt?: string
 }
 
+export type KanbanColumnKind = 'TODO' | 'IN_PROGRESS' | 'DONE' | 'HISTORY'
+
 export interface KanbanColumn {
   id: string
   boardId?: string
   name: string
+  /** Default workflow stage when set (cross-board filters). */
+  columnKind?: KanbanColumnKind | null
   position: number
   wipLimit?: number | null
   cards?: KanbanCard[]
@@ -80,3 +84,12 @@ export interface CardUpdateRequest {
 }
 
 export type BoardListResponse = PaginatedResponse<KanbanBoard>
+
+export interface KanbanWorkItem {
+  card: KanbanCard
+  boardId: string
+  boardName: string
+  columnId: string
+  columnName: string
+  columnKind?: string | null
+}

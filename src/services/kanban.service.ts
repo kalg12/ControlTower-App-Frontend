@@ -7,6 +7,8 @@ import type {
   KanbanBoard,
   KanbanCard,
   KanbanColumn,
+  KanbanColumnKind,
+  KanbanWorkItem,
   ChecklistItem,
   MoveCardRequest
 } from '@/types/kanban'
@@ -14,6 +16,19 @@ import type {
 export const kanbanService = {
   async listBoards(page = 0, size = 20): Promise<BoardListResponse> {
     const res = await api.get<BoardListResponse>('/boards', { params: { page, size } })
+    return res.data
+  },
+
+  async listWorkItems(params?: {
+    assigneeId?: string
+    columnKind?: KanbanColumnKind | ''
+  }): Promise<KanbanWorkItem[]> {
+    const res = await api.get<KanbanWorkItem[]>('/boards/work-items', {
+      params: {
+        assigneeId: params?.assigneeId || undefined,
+        columnKind: params?.columnKind || undefined
+      }
+    })
     return res.data
   },
 
