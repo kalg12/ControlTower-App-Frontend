@@ -34,19 +34,32 @@ const { data: result, isLoading, isError, refetch } = useQuery({
 
 const list = computed(() => result.value?.content ?? [])
 
-async function toggleActive(integration: Integration) {
-  try {
-    if (integration.active) {
-      await integrationsService.deactivate(integration.id)
-      toast.success('Integration deactivated')
-    } else {
-      await integrationsService.activate(integration.id)
-      toast.success('Integration activated')
+function confirmToggleActive(integration: Integration) {
+  const activating = !integration.active
+  const label = integration.pullUrl ?? integration.id
+  confirm.require({
+    message: activating
+      ? `Activate integration "${label}"?`
+      : `Deactivate integration "${label}"? Sync and heartbeats may stop until you activate it again.`,
+    header: activating ? 'Activate Integration' : 'Deactivate Integration',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: activating ? 'Activate' : 'Deactivate', severity: activating ? 'success' : 'warn' },
+    accept: async () => {
+      try {
+        if (integration.active) {
+          await integrationsService.deactivate(integration.id)
+          toast.success('Integration deactivated')
+        } else {
+          await integrationsService.activate(integration.id)
+          toast.success('Integration activated')
+        }
+        await queryClient.invalidateQueries({ queryKey: ['integrations'] })
+      } catch {
+        toast.error('Failed to update integration status')
+      }
     }
-    await queryClient.invalidateQueries({ queryKey: ['integrations'] })
-  } catch {
-    toast.error('Failed to update integration status')
-  }
+  })
 }
 
 function deleteIntegration(integration: Integration) {
@@ -207,7 +220,7 @@ const onSubmit = handleSubmit(async (values) => {
               text
               rounded
               v-tooltip.top="integration.active ? 'Deactivate' : 'Activate'"
-              @click="toggleActive(integration)"
+              @click="confirmToggleActive(integration)"
             />
             <Button
               icon="pi pi-trash"

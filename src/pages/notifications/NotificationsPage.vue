@@ -65,13 +65,28 @@ async function handleMarkRead(id: string) {
   } catch { /* ignore */ }
 }
 
-async function handleDelete(id: string) {
-  try {
-    await notificationsService.remove(id)
-    queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false })
-  } catch {
-    toast.error('Failed to delete notification')
-  }
+function confirmDeleteNotification(n: Notification) {
+  const text = `${n.title ?? ''} ${n.body ?? ''}`.trim()
+  const preview = text.slice(0, 120)
+  const truncated = text.length > 120
+  confirm.require({
+    message: preview
+      ? `Delete this notification?\n\n"${preview}${truncated ? '…' : ''}"`
+      : 'Delete this notification? This cannot be undone.',
+    header: 'Delete Notification',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Delete', severity: 'danger' },
+    accept: async () => {
+      try {
+        await notificationsService.remove(n.id)
+        queryClient.invalidateQueries({ queryKey: ['notifications'], exact: false })
+        toast.success('Notification deleted')
+      } catch {
+        toast.error('Failed to delete notification')
+      }
+    }
+  })
 }
 
 function handleClearAll() {
@@ -264,7 +279,7 @@ const grouped = computed(() => {
                   <button
                     class="p-1 rounded-md text-[var(--text-placeholder)] hover:text-[var(--danger)] hover:bg-[var(--surface-raised)] transition-all opacity-0 group-hover:opacity-100"
                     title="Delete"
-                    @click.stop="handleDelete(n.id)"
+                    @click.stop="confirmDeleteNotification(n)"
                   >
                     <Trash2 class="w-3.5 h-3.5" />
                   </button>

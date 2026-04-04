@@ -9,6 +9,7 @@ import Card from '@/components/ui/Card.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import { CheckCircle, AlertTriangle, XCircle } from 'lucide-vue-next'
+import { useConfirm } from 'primevue/useconfirm'
 import { healthService } from '@/services/health.service'
 import { useToast } from '@/composables/useToast'
 import type { HealthCheck, HealthIncident, HealthStatus } from '@/types/health'
@@ -18,6 +19,7 @@ import relativeTime from 'dayjs/plugin/relativeTime'
 dayjs.extend(relativeTime)
 
 const toast = useToast()
+const confirm = useConfirm()
 const queryClient = useQueryClient()
 
 const { data: checks, isLoading, isError, refetch } = useQuery({
@@ -77,16 +79,26 @@ function latencyClass(ms?: number) {
   return 'text-green-500 font-medium'
 }
 
-async function handleResolve(incident: HealthIncident) {
+function confirmResolveIncident(incident: HealthIncident) {
   if (!incident.id) return
-  try {
-    await healthService.resolveIncident(incident.id)
-    queryClient.invalidateQueries({ queryKey: ['health-incidents'] })
-    queryClient.invalidateQueries({ queryKey: ['health-clients'] })
-    toast.success('Incident resolved successfully')
-  } catch {
-    toast.error('Failed to resolve incident')
-  }
+  const where = incident.branchName ?? incident.branchId
+  confirm.require({
+    message: `Mark this incident as resolved for ${where}?`,
+    header: 'Resolve Incident',
+    icon: 'pi pi-check-circle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Resolve', severity: 'success' },
+    accept: async () => {
+      try {
+        await healthService.resolveIncident(incident.id!)
+        queryClient.invalidateQueries({ queryKey: ['health-incidents'] })
+        queryClient.invalidateQueries({ queryKey: ['health-clients'] })
+        toast.success('Incident resolved successfully')
+      } catch {
+        toast.error('Failed to resolve incident')
+      }
+    }
+  })
 }
 </script>
 
@@ -269,7 +281,7 @@ async function handleResolve(incident: HealthIncident) {
                 size="small"
                 severity="secondary"
                 outlined
-                @click="handleResolve(row)"
+                @click="confirmResolveIncident(row)"
               />
             </template>
           </Column>

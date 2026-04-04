@@ -12,6 +12,7 @@ import Select from 'primevue/select'
 import Tag from 'primevue/tag'
 import Checkbox from 'primevue/checkbox'
 import Skeleton from 'primevue/skeleton'
+import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from '@/composables/useToast'
 import { useBoard, useKanbanMutations } from '@/queries/kanban'
 import { useAuthStore } from '@/stores/auth'
@@ -24,6 +25,7 @@ const { t } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const toast = useToast()
+const confirm = useConfirm()
 const auth = useAuthStore()
 
 const boardId = computed(() => route.params.id as string)
@@ -323,26 +325,48 @@ async function submitChecklistItem() {
   }
 }
 
-async function removeCard() {
-  if (!selectedCard.value || !board.value) return
-  try {
-    await deleteCard.mutateAsync({ cardId: selectedCard.value.id, boardId: board.value.id })
-    showCardDetail.value = false
-    selectedCard.value = null
-    refetch()
-  } catch {
-    toast.error(t('errors.loadFailed'))
-  }
+function confirmRemoveCard() {
+  const c = selectedCard.value
+  const b = board.value
+  if (!c || !b) return
+  confirm.require({
+    message: t('kanban.deleteCardConfirm', { title: c.title }),
+    header: t('kanban.deleteCard'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: async () => {
+      try {
+        await deleteCard.mutateAsync({ cardId: c.id, boardId: b.id })
+        showCardDetail.value = false
+        selectedCard.value = null
+        refetch()
+        toast.success(t('common.delete'))
+      } catch {
+        toast.error(t('errors.loadFailed'))
+      }
+    }
+  })
 }
 
-async function removeColumn(columnId: string) {
+function confirmRemoveColumn(columnId: string, columnName: string) {
   if (!board.value) return
-  try {
-    await deleteColumn.mutateAsync({ columnId, boardId: board.value.id })
-    refetch()
-  } catch {
-    toast.error(t('errors.loadFailed'))
-  }
+  confirm.require({
+    message: t('kanban.deleteColumnConfirm', { name: columnName }),
+    header: t('kanban.deleteColumn'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: async () => {
+      try {
+        await deleteColumn.mutateAsync({ columnId, boardId: board.value!.id })
+        refetch()
+        toast.success(t('common.delete'))
+      } catch {
+        toast.error(t('errors.loadFailed'))
+      }
+    }
+  })
 }
 
 function priorityLabel(p: string): string {
@@ -440,7 +464,7 @@ function formatDue(d: string | null | undefined): string {
               text
               severity="danger"
               size="small"
-              @click="removeColumn(col.id)"
+              @click="confirmRemoveColumn(col.id, col.name)"
             />
           </div>
         </div>
@@ -624,7 +648,7 @@ function formatDue(d: string | null | undefined): string {
         </div>
 
         <div class="flex justify-end gap-2 pt-2">
-          <Button :label="t('common.delete')" severity="danger" outlined @click="removeCard" />
+          <Button :label="t('common.delete')" severity="danger" outlined @click="confirmRemoveCard" />
         </div>
       </div>
     </Dialog>
