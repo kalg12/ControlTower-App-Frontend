@@ -137,12 +137,21 @@ function confirmDeleteBoard(id: string) {
         </h1>
         <p class="text-sm text-[var(--text-muted)] mt-1">{{ t('kanban.subtitle') }}</p>
       </div>
-      <Button
-        v-if="canWriteKanban"
-        :label="t('kanban.createBoard')"
-        icon="pi pi-plus"
-        @click="openCreate"
-      />
+      <div class="flex flex-wrap gap-2">
+        <Button
+          :label="t('kanban.openWorkHub')"
+          icon="pi pi-th-large"
+          severity="secondary"
+          outlined
+          @click="router.push({ name: 'kanban-work' })"
+        />
+        <Button
+          v-if="canWriteKanban"
+          :label="t('kanban.createBoard')"
+          icon="pi pi-plus"
+          @click="openCreate"
+        />
+      </div>
     </div>
 
     <div v-if="isLoading" class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
@@ -242,6 +251,11 @@ function confirmDeleteBoard(id: string) {
           <label class="text-sm font-medium text-[var(--text)]">{{ t('kanban.visibility') }}</label>
           <Select v-model="formVis" :options="visOptions" option-label="label" option-value="value" class="w-full" />
         </div>
+        <p
+          class="text-xs text-[var(--text-muted)] leading-relaxed rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-raised)]/40 p-3"
+        >
+          {{ t('kanban.defaultColumnsHint') }}
+        </p>
         <div class="flex justify-end gap-2 pt-2">
           <Button :label="t('common.cancel')" severity="secondary" outlined @click="showCreate = false" />
           <Button :label="t('common.create')" icon="pi pi-check" :loading="creating" :disabled="!formName.trim()" @click="submitCreate" />

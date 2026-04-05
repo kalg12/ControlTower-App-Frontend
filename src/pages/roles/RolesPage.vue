@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useI18n } from 'vue-i18n'
 import DataTable from 'primevue/datatable'
@@ -18,12 +19,14 @@ const { t } = useI18n()
 const toast = useToast()
 const qc = useQueryClient()
 const auth = useAuthStore()
+const router = useRouter()
 
 const canEdit = computed(() => auth.hasPermission('user:write'))
+const canInviteUsers = computed(() => auth.hasPermission('user:write'))
 
 const { data: rolesPage, isLoading } = useQuery({
   queryKey: ['roles', 'page0'],
-  queryFn: () => rolesService.listRoles(0, 100),
+  queryFn: () => rolesService.listRoles(0, 200),
   staleTime: 30_000
 })
 
@@ -33,7 +36,24 @@ const { data: allPermissions } = useQuery({
   staleTime: 120_000
 })
 
-const roles = computed(() => rolesPage.value?.content ?? [])
+const roles = computed(() => {
+  const list = [...(rolesPage.value?.content ?? [])]
+  const rank = (code: string | undefined) => {
+    const c = code ?? ''
+    if (c === 'ADMIN') return 0
+    if (c === 'MEMBER') return 1
+    return 2
+  }
+  list.sort((a, b) => {
+    const d = rank(a.code) - rank(b.code)
+    return d !== 0 ? d : (a.name ?? '').localeCompare(b.name ?? '')
+  })
+  return list
+})
+
+function inviteWithRole(roleId: string) {
+  router.push({ name: 'users', query: { inviteWithRole: roleId } })
+}
 
 const byModule = computed(() => {
   const list = allPermissions.value ?? []
@@ -112,7 +132,21 @@ async function savePermissions() {
         </template>
       </Column>
       <Column field="description" :header="t('kanban.description')" />
-      <Column :header="t('common.actions')" style="width: 120px">
+      <Column :header="t('rolesPage.invite')" style="width: 130px">
+        <template #body="{ data }: { data: Role }">
+          <Button
+            v-if="canInviteUsers"
+            v-tooltip.top="t('rolesPage.inviteTooltip')"
+            icon="pi pi-user-plus"
+            size="small"
+            text
+            :aria-label="t('rolesPage.invite')"
+            @click="inviteWithRole(data.id)"
+          />
+          <span v-else class="text-xs text-[var(--text-placeholder)]">—</span>
+        </template>
+      </Column>
+      <Column :header="t('common.actions')" style="width: 100px">
         <template #body="{ data }: { data: Role }">
           <Button
             :label="t('common.edit')"

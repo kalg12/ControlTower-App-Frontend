@@ -3,6 +3,7 @@ import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { useI18n } from 'vue-i18n'
+import { isAxiosError } from 'axios'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import DataTable from 'primevue/datatable'
@@ -21,7 +22,7 @@ const auth = useAuthStore()
 const filterAssignee = ref<string | null>(null)
 const filterColumnKind = ref<KanbanColumnKind | ''>('')
 
-const { data: items, isLoading, isError, refetch } = useQuery({
+const { data: items, isLoading, isError, error: workItemsError, refetch } = useQuery({
   queryKey: computed(() => [
     'kanban',
     'work-items',
@@ -35,6 +36,18 @@ const { data: items, isLoading, isError, refetch } = useQuery({
     }),
   staleTime: 15_000
 })
+
+function workItemsErrorHint(err: unknown): string {
+  if (isAxiosError(err)) {
+    const st = err.response?.status
+    if (st === 401) return t('errors.sessionExpired')
+    if (st === 403) return t('errors.forbidden')
+    const body = err.response?.data as { message?: string } | undefined
+    if (body?.message && typeof body.message === 'string') return body.message
+    if (st) return `${t('errors.loadFailed')} (HTTP ${st})`
+  }
+  return t('errors.loadFailed')
+}
 
 const { data: userOptions } = useQuery({
   queryKey: computed(() => ['users', 'work-hub', auth.user?.tenantId]),
@@ -82,7 +95,16 @@ function prioritySeverity(p: string): 'success' | 'warn' | 'danger' | 'secondary
         </h1>
         <p class="text-sm text-[var(--text-muted)] mt-1">{{ t('kanban.workHubSubtitle') }}</p>
       </div>
-      <Button :label="t('common.retry')" icon="pi pi-refresh" severity="secondary" outlined @click="() => refetch()" />
+      <div class="flex flex-wrap gap-2">
+        <Button
+          :label="t('kanban.backToBoards')"
+          icon="pi pi-arrow-left"
+          severity="secondary"
+          outlined
+          @click="router.push({ name: 'kanban' })"
+        />
+        <Button :label="t('common.retry')" icon="pi pi-refresh" severity="secondary" outlined @click="() => refetch()" />
+      </div>
     </div>
 
     <div class="flex flex-wrap gap-3 items-end">
@@ -105,12 +127,17 @@ function prioritySeverity(p: string): 'success' | 'warn' | 'danger' | 'secondary
           option-label="label"
           option-value="value"
           class="w-full"
+          :placeholder="t('kanban.workAllColumns')"
         />
       </div>
     </div>
 
-    <div v-if="isError" class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center">
-      <p class="text-[var(--text-muted)]">{{ t('errors.loadFailed') }}</p>
+    <div v-if="isError" class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 text-center space-y-2">
+      <p class="text-[var(--text)] font-medium">{{ t('errors.loadFailed') }}</p>
+      <p class="text-sm text-[var(--text-muted)]">{{ workItemsErrorHint(workItemsError) }}</p>
+      <p class="text-xs text-[var(--text-placeholder)] pt-2">
+        {{ t('kanban.workHubTroubleshoot') }}
+      </p>
     </div>
 
     <DataTable

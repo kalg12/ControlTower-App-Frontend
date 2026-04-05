@@ -69,7 +69,10 @@
   },
   "kanban": {
     "title": "Kanban boards",
-    "subtitle": "Workflows for your team",
+    "subtitle": "Workflows for your team. New boards include To Do, In Progress, Done, and History.",
+    "openWorkHub": "Activity across boards",
+    "backToBoards": "Boards",
+    "defaultColumnsHint": "This board will open with four columns: To Do, In Progress, Done, and History. You can rename them or add more anytime.",
     "boardDetail": "Board",
     "createBoard": "New board",
     "editBoard": "Edit board",
@@ -117,7 +120,8 @@
     "colTodo": "To Do",
     "colInProgress": "In Progress",
     "colDone": "Done",
-    "colHistory": "History"
+    "colHistory": "History",
+    "workHubTroubleshoot": "Ensure the API is running (e.g. port 8080) and you are logged in. The work hub calls GET /api/v1/kanban/work-items. If boards have no cards yet, the table will be empty (not an error)."
   },
   "rolesPage": {
     "title": "Roles & permissions",
@@ -127,7 +131,9 @@
     "edit": "Edit permissions",
     "matrixHint": "Checked permissions apply to every user with this role.",
     "saved": "Role permissions updated",
-    "readOnlyHint": "You can view roles but need user:write to change permissions."
+    "readOnlyHint": "You can view roles but need user:write to change permissions.",
+    "invite": "Invite",
+    "inviteTooltip": "Open Users and pre-select this role for a new account"
   },
   "clientsPage": {
     "title": "Clients",

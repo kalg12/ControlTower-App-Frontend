@@ -69,7 +69,10 @@
   },
   "kanban": {
     "title": "Tableros Kanban",
-    "subtitle": "Flujos de trabajo para tu equipo",
+    "subtitle": "Flujos de trabajo para tu equipo. Los tableros nuevos incluyen Por hacer, En curso, Hecho e Historial.",
+    "openWorkHub": "Actividad en todos los tableros",
+    "backToBoards": "Tableros",
+    "defaultColumnsHint": "El tablero se creará con cuatro columnas: To Do, In Progress, Done e History (puedes renombrarlas). Podrás añadir más cuando quieras.",
     "boardDetail": "Tablero",
     "createBoard": "Nuevo tablero",
     "editBoard": "Editar tablero",
@@ -117,7 +120,8 @@
     "colTodo": "Por hacer",
     "colInProgress": "En curso",
     "colDone": "Hecho",
-    "colHistory": "Historial"
+    "colHistory": "Historial",
+    "workHubTroubleshoot": "Comprueba que la API esté en marcha (p. ej. puerto 8080) y que la sesión sea válida. El centro de trabajo usa GET /api/v1/kanban/work-items. Si aún no hay tarjetas en los tableros, la tabla estará vacía (no es un error)."
   },
   "rolesPage": {
     "title": "Roles y permisos",
@@ -127,7 +131,9 @@
     "edit": "Editar permisos",
     "matrixHint": "Los permisos marcados aplican a todos los usuarios con este rol.",
     "saved": "Permisos del rol actualizados",
-    "readOnlyHint": "Puedes ver los roles, pero necesitas user:write para cambiar permisos."
+    "readOnlyHint": "Puedes ver los roles, pero necesitas user:write para cambiar permisos.",
+    "invite": "Invitar",
+    "inviteTooltip": "Ir a Usuarios con este rol ya elegido para el nuevo usuario"
   },
   "clientsPage": {
     "title": "Clientes",

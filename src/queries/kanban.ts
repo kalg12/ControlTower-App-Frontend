@@ -57,7 +57,12 @@ export function useKanbanMutations() {
 
   const createBoard = useMutation({
     mutationFn: (body: BoardRequest) => kanbanService.createBoard(body),
-    onSuccess: () => invalidateBoards()
+    onSuccess: (board) => {
+      invalidateBoards()
+      if (board?.id) {
+        qc.setQueryData(qk.board(board.id), board)
+      }
+    }
   })
 
   const updateBoard = useMutation({

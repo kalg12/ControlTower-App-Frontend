@@ -23,7 +23,7 @@ export const kanbanService = {
     assigneeId?: string
     columnKind?: KanbanColumnKind | ''
   }): Promise<KanbanWorkItem[]> {
-    const res = await api.get<KanbanWorkItem[]>('/boards/work-items', {
+    const res = await api.get<KanbanWorkItem[]>('/kanban/work-items', {
       params: {
         assigneeId: params?.assigneeId || undefined,
         columnKind: params?.columnKind || undefined

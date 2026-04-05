@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
+import { useRoute, useRouter, type LocationQueryValue } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
 import { useForm } from 'vee-validate'
@@ -26,6 +27,8 @@ const queryClient = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
 const authStore = useAuthStore()
+const route = useRoute()
+const router = useRouter()
 const page = ref(0)
 const pageSize = 20
 const globalFilter = ref('')
@@ -44,7 +47,7 @@ const { data: result, isLoading, isError, refetch } = useQuery({
 
 const { data: rolesData } = useQuery({
   queryKey: ['roles', 'page0'],
-  queryFn: () => rolesService.listRoles(0, 100),
+  queryFn: () => rolesService.listRoles(0, 200),
   staleTime: 60000
 })
 
@@ -127,10 +130,36 @@ const [emailValue, emailAttrs] = defineField('email')
 const [passwordValue, passwordAttrs] = defineField('password')
 const [roleIdValue, roleIdAttrs] = defineField('roleId')
 
-function openInviteDialog() {
-  resetForm()
+function openInviteDialog(presetRoleId?: string) {
+  resetForm({
+    values: {
+      fullName: '',
+      email: '',
+      password: '',
+      roleId: presetRoleId ?? ''
+    }
+  })
   showInviteDialog.value = true
 }
+
+function queryParamId(v: LocationQueryValue | LocationQueryValue[] | undefined): string | undefined {
+  const s = Array.isArray(v) ? v[0] : v
+  if (s == null || s === '') return undefined
+  return String(s)
+}
+
+watch(
+  () => route.query.inviteWithRole,
+  (q) => {
+    const id = queryParamId(q)
+    if (!id) return
+    openInviteDialog(id)
+    const rest = { ...route.query }
+    delete rest.inviteWithRole
+    void router.replace({ path: route.path, query: rest })
+  },
+  { immediate: true }
+)
 
 const onSubmit = handleSubmit(async (values) => {
   if (!authStore.user?.tenantId) return
@@ -245,7 +274,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       </div>
       <div class="flex gap-2">
         <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
-        <Button label="Invite User" icon="pi pi-user-plus" @click="openInviteDialog" />
+        <Button label="Invite User" icon="pi pi-user-plus" @click="() => openInviteDialog()" />
       </div>
     </div>
 
