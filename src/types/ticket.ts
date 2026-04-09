@@ -61,6 +61,15 @@ export interface TicketComment {
   createdAt: string
 }
 
+export interface TicketCommentResponse {
+  id: string
+  authorId: string | null
+  content: string
+  internal: boolean
+  senderType: 'OPERATOR' | 'POS_USER'
+  createdAt: string
+}
+
 export interface TicketFilters {
   status?: TicketStatus
   priority?: TicketPriority

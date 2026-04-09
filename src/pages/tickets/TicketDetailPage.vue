@@ -16,6 +16,7 @@ import type { TicketStatus, TicketPriority } from '@/types/ticket'
 import { MessageSquare } from 'lucide-vue-next'
 import SourceBadge from '@/components/tickets/SourceBadge.vue'
 import PosContextPanel from '@/components/tickets/PosContextPanel.vue'
+import TicketChatPanel from '@/components/tickets/TicketChatPanel.vue'
 
 dayjs.extend(relativeTime)
 
@@ -213,6 +214,13 @@ function fromNow(dateStr: string) {
           :ctx="ticket.posContext"
           class="mt-4"
         />
+
+        <!-- POS Chat panel -->
+        <TicketChatPanel
+          v-if="ticket.source === 'POS'"
+          :ticket-id="ticket.id"
+          class="mt-4"
+        />
       </div>
 
       <!-- Bottom grid -->
@@ -285,15 +293,6 @@ function fromNow(dateStr: string) {
         </div>
       </div>
 
-      <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
-        <div class="flex items-center gap-2 mb-2">
-          <MessageSquare class="w-4 h-4 text-[var(--text-muted)]" />
-          <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide">Comments</h2>
-        </div>
-        <p class="text-sm text-[var(--text-muted)] mb-4">
-          Comment history requires a GET comments API. You can still add comments below; they are stored on the server.
-        </p>
-      </div>
     </template>
   </div>
 </template>

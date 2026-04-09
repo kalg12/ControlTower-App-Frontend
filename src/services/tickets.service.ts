@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { Ticket, CreateTicketRequest, TicketFilters, TicketStatus, TicketSource } from '@/types/ticket'
+import type { Ticket, TicketCommentResponse, CreateTicketRequest, TicketFilters, TicketStatus } from '@/types/ticket'
 import type { PaginatedResponse } from '@/types/api'
 
 /** Aligned with backend TicketController (/api/v1/tickets) */
@@ -58,9 +58,9 @@ export const ticketsService = {
     return res.data
   },
 
-  /** Backend has no GET comments; use when/if added */
-  async getComments(_id: string): Promise<never[]> {
-    return []
+  async getComments(id: string): Promise<TicketCommentResponse[]> {
+    const res = await api.get<TicketCommentResponse[]>(`/tickets/${id}/comments`)
+    return res.data
   },
 
   async addComment(id: string, content: string, internal = false): Promise<Ticket> {
