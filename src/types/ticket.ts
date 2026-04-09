@@ -70,6 +70,11 @@ export interface TicketCommentResponse {
   createdAt: string
 }
 
+export interface TicketStatsResponse {
+  total: number
+  byStatus: Record<string, number>
+}
+
 export interface TicketFilters {
   status?: TicketStatus
   priority?: TicketPriority

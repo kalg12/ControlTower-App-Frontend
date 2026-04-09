@@ -25,7 +25,8 @@
     "settings": "Ajustes",
     "ticketDetail": "Ticket",
     "clientDetail": "Cliente",
-    "auditLog": "Auditoría"
+    "auditLog": "Auditoría",
+    "posSupport": "Soporte POS"
   },
   "common": {
     "save": "Guardar",
@@ -153,5 +154,14 @@
   },
   "campaignsPage": {
     "backendNote": "La API de campañas aún no forma parte de este backend. Esta página fallará hasta que exista /api/v1/campaigns."
+  },
+  "posSupport": {
+    "title": "Soporte POS",
+    "subtitle": "Tickets de soporte recibidos desde los puntos de venta",
+    "totalTickets": "Total de tickets",
+    "open": "Abiertos",
+    "inProgress": "En progreso",
+    "resolved": "Resueltos / Cerrados",
+    "recentTickets": "Tickets recientes"
   }
 }

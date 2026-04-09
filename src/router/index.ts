@@ -42,6 +42,12 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.ticketDetail', permission: 'ticket:read' }
     },
     {
+      path: '/pos-support',
+      name: 'pos-support',
+      component: () => import('@/pages/tickets/PosSupportPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.posSupport', permission: 'ticket:read' }
+    },
+    {
       path: '/clients',
       name: 'clients',
       component: () => import('@/pages/clients/ClientsPage.vue'),

@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { Ticket, TicketCommentResponse, CreateTicketRequest, TicketFilters, TicketStatus } from '@/types/ticket'
+import type { Ticket, TicketCommentResponse, CreateTicketRequest, TicketFilters, TicketStatus, TicketStatsResponse } from '@/types/ticket'
 import type { PaginatedResponse } from '@/types/api'
 
 /** Aligned with backend TicketController (/api/v1/tickets) */
@@ -65,6 +65,11 @@ export const ticketsService = {
 
   async addComment(id: string, content: string, internal = false): Promise<Ticket> {
     const res = await api.post<Ticket>(`/tickets/${id}/comments`, { content, internal })
+    return res.data
+  },
+
+  async getStats(): Promise<TicketStatsResponse> {
+    const res = await api.get<TicketStatsResponse>('/tickets/stats')
     return res.data
   },
 

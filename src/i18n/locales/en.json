@@ -25,7 +25,8 @@
     "settings": "Settings",
     "ticketDetail": "Ticket",
     "clientDetail": "Client",
-    "auditLog": "Audit Log"
+    "auditLog": "Audit Log",
+    "posSupport": "POS Support"
   },
   "common": {
     "save": "Save",
@@ -153,5 +154,14 @@
   },
   "campaignsPage": {
     "backendNote": "Campaigns API is not part of this backend repository yet. This page will return errors until /api/v1/campaigns is implemented."
+  },
+  "posSupport": {
+    "title": "POS Support",
+    "subtitle": "Support tickets received from point-of-sale systems",
+    "totalTickets": "Total tickets",
+    "open": "Open",
+    "inProgress": "In progress",
+    "resolved": "Resolved / Closed",
+    "recentTickets": "Recent tickets"
   }
 }
