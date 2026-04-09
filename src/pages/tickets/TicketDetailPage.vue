@@ -14,6 +14,8 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import type { TicketStatus, TicketPriority } from '@/types/ticket'
 import { MessageSquare } from 'lucide-vue-next'
+import SourceBadge from '@/components/tickets/SourceBadge.vue'
+import PosContextPanel from '@/components/tickets/PosContextPanel.vue'
 
 dayjs.extend(relativeTime)
 
@@ -197,12 +199,20 @@ function fromNow(dateStr: string) {
           <span v-if="ticket.clientName"> · {{ ticket.clientName }}</span>
           <span v-else-if="ticket.clientId"> · Client: <span class="font-mono text-xs">{{ ticket.clientId }}</span></span>
         </p>
-        <div class="flex gap-2 mb-4">
+        <div class="flex flex-wrap gap-2 mb-4">
           <Tag :severity="statusSeverity(ticket.status)" :value="ticket.status.replace(/_/g, ' ')" />
           <Tag :severity="prioritySeverity(ticket.priority)" :value="ticket.priority" />
+          <SourceBadge v-if="ticket.source" :source="ticket.source" />
         </div>
 
         <p class="text-[var(--text)] whitespace-pre-wrap">{{ ticket.description }}</p>
+
+        <!-- POS context panel -->
+        <PosContextPanel
+          v-if="ticket.source === 'POS' && ticket.posContext"
+          :ctx="ticket.posContext"
+          class="mt-4"
+        />
       </div>
 
       <!-- Bottom grid -->

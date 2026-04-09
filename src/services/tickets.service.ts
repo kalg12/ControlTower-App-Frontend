@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { Ticket, CreateTicketRequest, TicketFilters, TicketStatus } from '@/types/ticket'
+import type { Ticket, CreateTicketRequest, TicketFilters, TicketStatus, TicketSource } from '@/types/ticket'
 import type { PaginatedResponse } from '@/types/api'
 
 /** Aligned with backend TicketController (/api/v1/tickets) */
@@ -9,6 +9,7 @@ export const ticketsService = {
       params: {
         status: filters?.status,
         priority: filters?.priority,
+        source: filters?.source,
         clientId: filters?.clientId,
         assigneeId: filters?.assigneeId,
         page: filters?.page,

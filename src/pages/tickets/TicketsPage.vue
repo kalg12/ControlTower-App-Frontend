@@ -20,7 +20,8 @@ import { ticketsService } from '@/services/tickets.service'
 import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
-import type { Ticket, TicketStatus, TicketPriority } from '@/types/ticket'
+import type { Ticket, TicketStatus, TicketPriority, TicketSource } from '@/types/ticket'
+import SourceBadge from '@/components/tickets/SourceBadge.vue'
 
 const router = useRouter()
 const queryClient = useQueryClient()
@@ -51,6 +52,7 @@ const page = ref(0)
 const pageSize = ref(20)
 const statusFilter = ref<TicketStatus | null>(null)
 const priorityFilter = ref<TicketPriority | null>(null)
+const sourceFilter = ref<TicketSource | null>(null)
 const globalFilter = ref('')
 
 const { data: clientsData } = useQuery({
@@ -63,12 +65,13 @@ const clientOptions = computed(() =>
 )
 
 const { data: result, isLoading, isError, isFetching, refetch } = useQuery({
-  queryKey: computed(() => ['tickets', page.value, pageSize.value, statusFilter.value, priorityFilter.value]),
+  queryKey: computed(() => ['tickets', page.value, pageSize.value, statusFilter.value, priorityFilter.value, sourceFilter.value]),
   queryFn: () => ticketsService.list({
     page: page.value,
     size: pageSize.value,
     status: statusFilter.value ?? undefined,
-    priority: priorityFilter.value ?? undefined
+    priority: priorityFilter.value ?? undefined,
+    source: sourceFilter.value ?? undefined
   }),
   staleTime: 15000
 })
@@ -107,6 +110,15 @@ const priorityOptions = [
   { label: 'Medium', value: 'MEDIUM' },
   { label: 'High', value: 'HIGH' },
   { label: 'Critical', value: 'CRITICAL' }
+]
+
+const sources: { label: string; value: TicketSource | null }[] = [
+  { label: 'All Sources', value: null },
+  { label: 'POS', value: 'POS' },
+  { label: 'Manual', value: 'MANUAL' },
+  { label: 'Health Alert', value: 'HEALTH_ALERT' },
+  { label: 'Webhook', value: 'WEBHOOK' },
+  { label: 'Email', value: 'EMAIL' }
 ]
 
 const statusOptions = [
@@ -318,6 +330,15 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         class="w-44"
         @change="applyFilters"
       />
+      <Select
+        v-model="sourceFilter"
+        :options="sources"
+        option-label="label"
+        option-value="value"
+        placeholder="All Sources"
+        class="w-44"
+        @change="applyFilters"
+      />
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
 
@@ -362,6 +383,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       <Column field="priority" header="Priority" style="width: 110px">
         <template #body="{ data: row }: { data: Ticket }">
           <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
+        </template>
+      </Column>
+
+      <Column field="source" header="Source" style="width: 140px">
+        <template #body="{ data: row }: { data: Ticket }">
+          <SourceBadge :source="row.source" />
         </template>
       </Column>
 

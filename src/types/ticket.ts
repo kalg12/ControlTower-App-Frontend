@@ -1,5 +1,16 @@
 export type TicketStatus = 'OPEN' | 'IN_PROGRESS' | 'WAITING' | 'RESOLVED' | 'CLOSED'
 export type TicketPriority = 'LOW' | 'MEDIUM' | 'HIGH' | 'CRITICAL'
+export type TicketSource = 'MANUAL' | 'HEALTH_ALERT' | 'WEBHOOK' | 'EMAIL' | 'POS'
+
+export interface PosContext {
+  posTicketId?: string
+  submittedBy?: string
+  submitterEmail?: string
+  branchId?: string
+  branchName?: string
+  category?: string
+  priority?: string
+}
 
 export interface Ticket {
   id: string
@@ -14,6 +25,9 @@ export interface Ticket {
   assigneeName?: string
   labels?: string[]
   commentsCount?: number
+  source?: TicketSource
+  sourceRefId?: string
+  posContext?: PosContext
   createdAt: string
   updatedAt: string
   resolvedAt?: string
@@ -50,6 +64,7 @@ export interface TicketComment {
 export interface TicketFilters {
   status?: TicketStatus
   priority?: TicketPriority
+  source?: TicketSource
   clientId?: string
   assigneeId?: string
   search?: string
