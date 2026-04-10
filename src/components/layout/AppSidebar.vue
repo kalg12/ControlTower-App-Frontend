@@ -85,8 +85,15 @@ function isActive(path: string): boolean {
   return route.path === path || route.path.startsWith(path + '/')
 }
 
+const posBadgeCount = computed(() =>
+  notifStore.items.filter(
+    (n) => !n.read && (n.type === 'POS_TICKET' || n.type === 'POS_CHAT')
+  ).length
+)
+
 function badge(to: string): number | null {
   if (to === '/notifications') return unreadCount.value || null
+  if (to === '/pos-support') return posBadgeCount.value || null
   return null
 }
 </script>

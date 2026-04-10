@@ -96,7 +96,17 @@ async function handleLogout() {
 function goToNotif(n: Notification) {
   notifOpen.value = false
   if (!n.read) notifStore.markRead(n.id).catch(() => { n.read = true })
-  router.push('/notifications')
+  // Navigate directly to the relevant ticket/page for POS notifications
+  if (n.type === 'POS_TICKET' || n.type === 'POS_CHAT') {
+    const ticketId = n.metadata?.ticketId
+    if (ticketId) {
+      router.push(`/tickets/${ticketId}`)
+    } else {
+      router.push('/pos-support')
+    }
+  } else {
+    router.push('/notifications')
+  }
 }
 </script>
 
