@@ -254,6 +254,23 @@ function confirmDeletePosEndpoint(ep: Integration) {
     }
   })
 }
+
+const isCheckingNow = ref<string | null>(null)
+
+async function checkNow(ep: Integration) {
+  isCheckingNow.value = ep.id
+  try {
+    await integrationsService.checkNow(ep.id)
+    setTimeout(() => {
+      queryClient.invalidateQueries({ queryKey: ['health-clients'] })
+      queryClient.invalidateQueries({ queryKey: ['health-incident-log'] })
+      isCheckingNow.value = null
+    }, 1500)
+  } catch {
+    toast.error('Check Now failed')
+    isCheckingNow.value = null
+  }
+}
 </script>
 
 <template>
@@ -543,9 +560,17 @@ function confirmDeletePosEndpoint(ep: Integration) {
             </template>
           </Column>
 
-          <Column v-if="canWriteIntegrations" header="Actions" style="width: 100px">
+          <Column v-if="canWriteIntegrations" header="Actions" style="width: 130px">
             <template #body="{ data: row }: { data: Integration }">
               <div class="flex gap-1">
+                <Button
+                  icon="pi pi-refresh"
+                  severity="info"
+                  text rounded size="small"
+                  :loading="isCheckingNow === row.id"
+                  v-tooltip.top="'Check Now'"
+                  @click="checkNow(row)"
+                />
                 <Button
                   :icon="row.active ? 'pi pi-pause' : 'pi pi-play'"
                   :severity="row.active ? 'warn' : 'success'"

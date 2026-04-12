@@ -26,5 +26,9 @@ export const integrationsService = {
 
   async delete(id: string): Promise<void> {
     await api.delete(`/integrations/${id}`)
+  },
+
+  async checkNow(id: string): Promise<void> {
+    await api.post(`/integrations/${id}/check-now`)
   }
 }
