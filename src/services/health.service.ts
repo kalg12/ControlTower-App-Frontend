@@ -9,9 +9,20 @@ export const healthService = {
     return res.data
   },
 
-  // GET /health/incidents → paginated
+  // GET /health/incidents → paginated (open only, legacy)
   async getIncidents(params?: { page?: number; size?: number; branchId?: string }): Promise<PaginatedResponse<HealthIncident>> {
     const res = await api.get<PaginatedResponse<HealthIncident>>('/health/incidents', { params })
+    return res.data
+  },
+
+  // GET /health/incidents/log → filterable history (open + resolved)
+  async getIncidentLog(params?: {
+    page?: number
+    size?: number
+    branchId?: string
+    openOnly?: boolean
+  }): Promise<PaginatedResponse<HealthIncident>> {
+    const res = await api.get<PaginatedResponse<HealthIncident>>('/health/incidents/log', { params })
     return res.data
   },
 

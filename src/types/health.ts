@@ -36,6 +36,7 @@ export interface HealthIncident {
   resolvedAt?: string
   open: boolean
   autoCreated: boolean
+  durationSeconds: number
   // Legacy fields
   clientName?: string
   startedAt?: string

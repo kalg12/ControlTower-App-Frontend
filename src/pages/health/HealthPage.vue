@@ -42,15 +42,23 @@ const { data: checks, isLoading, isError, refetch } = useQuery({
   refetchInterval: 60000 // auto-refresh every minute
 })
 
-const { data: incidentsPage, isLoading: isLoadingIncidents } = useQuery({
-  queryKey: ['health-incidents'],
-  queryFn: () => healthService.getIncidents({ page: 0, size: 20 }),
+// Incident log filters
+const logOpenOnly = ref(false)
+const logBranchId = ref<string | undefined>(undefined)
+
+const { data: incidentLogPage, isLoading: isLoadingIncidents, refetch: refetchLog } = useQuery({
+  queryKey: computed(() => ['health-incident-log', logOpenOnly.value, logBranchId.value]),
+  queryFn: () => healthService.getIncidentLog({
+    page: 0, size: 50,
+    openOnly: logOpenOnly.value,
+    branchId: logBranchId.value,
+  }),
   staleTime: 15000,
-  refetchInterval: 60000
+  refetchInterval: 60000,
 })
 
 const items = computed(() => checks.value ?? [])
-const incidents = computed(() => incidentsPage.value?.content ?? [])
+const incidents = computed(() => incidentLogPage.value?.content ?? [])
 
 const summary = computed(() => {
   const arr = items.value
@@ -85,6 +93,14 @@ function formatDateTime(dateStr: string) {
   return dayjs(dateStr).format('DD MMM YYYY, HH:mm')
 }
 
+function formatDuration(seconds: number): string {
+  if (seconds < 60) return `${seconds}s`
+  if (seconds < 3600) return `${Math.floor(seconds / 60)}m ${seconds % 60}s`
+  const h = Math.floor(seconds / 3600)
+  const m = Math.floor((seconds % 3600) / 60)
+  return `${h}h ${m}m`
+}
+
 function latencyClass(ms?: number) {
   if (!ms) return 'text-[var(--text-muted)]'
   if (ms > 500) return 'text-red-500 font-medium'
@@ -104,7 +120,7 @@ function confirmResolveIncident(incident: HealthIncident) {
     accept: async () => {
       try {
         await healthService.resolveIncident(incident.id!)
-        queryClient.invalidateQueries({ queryKey: ['health-incidents'] })
+        queryClient.invalidateQueries({ queryKey: ['health-incident-log'] })
         queryClient.invalidateQueries({ queryKey: ['health-clients'] })
         toast.success('Incident resolved successfully')
       } catch {
@@ -361,12 +377,38 @@ function confirmDeletePosEndpoint(ep: Integration) {
         </template>
       </DataTable>
 
-      <!-- Open Incidents section -->
+      <!-- Incident Log -->
       <div>
-        <h3 class="text-base font-semibold text-[var(--text)] mb-3">Open Incidents</h3>
+        <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
+          <div>
+            <h3 class="text-base font-semibold text-[var(--text)]">Incident Log</h3>
+            <p class="text-xs text-[var(--text-muted)]">History of all detected failures — open and resolved</p>
+          </div>
+          <div class="flex items-center gap-2">
+            <!-- Branch filter -->
+            <Select
+              v-model="logBranchId"
+              :options="[{ label: 'All branches', value: undefined }, ...items.map(c => ({ label: c.branchName ?? c.branchId, value: c.branchId }))]"
+              option-label="label"
+              option-value="value"
+              placeholder="All branches"
+              size="small"
+              class="w-44"
+            />
+            <!-- Status filter -->
+            <Select
+              v-model="logOpenOnly"
+              :options="[{ label: 'All', value: false }, { label: 'Open only', value: true }]"
+              option-label="label"
+              option-value="value"
+              size="small"
+              class="w-32"
+            />
+            <Button icon="pi pi-refresh" severity="secondary" outlined size="small" @click="refetchLog()" />
+          </div>
+        </div>
 
-        <!-- Incidents loading -->
-        <SkeletonTable v-if="isLoadingIncidents" :rows="5" :cols="5" />
+        <SkeletonTable v-if="isLoadingIncidents" :rows="5" :cols="6" />
 
         <DataTable
           v-else
@@ -375,30 +417,44 @@ function confirmDeletePosEndpoint(ep: Integration) {
           striped-rows
           class="rounded-xl overflow-hidden"
         >
-          <Column field="severity" header="Severity" style="width: 120px">
+          <Column field="severity" header="Severity" style="width: 110px">
             <template #body="{ data: row }: { data: HealthIncident }">
               <Tag :severity="incidentSeverity(row.severity)" :value="row.severity" />
             </template>
           </Column>
 
-          <Column field="description" header="Description" style="min-width: 200px">
-            <template #body="{ data: row }: { data: HealthIncident }">
-              <span class="text-sm text-[var(--text)]">{{ row.description }}</span>
-            </template>
-          </Column>
-
-          <Column field="branchName" header="Branch" style="width: 180px">
+          <Column field="branchName" header="Branch" style="width: 170px">
             <template #body="{ data: row }: { data: HealthIncident }">
               <div>
-                <span class="text-sm text-[var(--text)]">{{ row.branchName ?? '—' }}</span>
-                <span class="block text-xs text-[var(--text-muted)] font-mono">{{ row.branchId }}</span>
+                <span class="text-sm font-medium text-[var(--text)]">{{ row.branchName ?? '—' }}</span>
+                <span class="block text-xs text-[var(--text-muted)] font-mono truncate max-w-[140px]" :title="row.branchId">{{ row.branchId }}</span>
               </div>
             </template>
           </Column>
 
-          <Column field="openedAt" header="Opened At" sortable style="width: 160px">
+          <Column field="description" header="Description" style="min-width: 220px">
             <template #body="{ data: row }: { data: HealthIncident }">
-              <span class="text-sm text-[var(--text-muted)]">{{ formatDateTime(row.openedAt) }}</span>
+              <span class="text-sm text-[var(--text)] break-words">{{ row.description }}</span>
+            </template>
+          </Column>
+
+          <Column field="openedAt" header="Started" sortable style="width: 150px">
+            <template #body="{ data: row }: { data: HealthIncident }">
+              <div>
+                <span class="text-sm text-[var(--text-muted)]">{{ formatDateTime(row.openedAt) }}</span>
+                <span class="block text-xs text-[var(--text-muted)]">{{ formatTime(row.openedAt) }}</span>
+              </div>
+            </template>
+          </Column>
+
+          <Column field="durationSeconds" header="Duration" sortable style="width: 100px">
+            <template #body="{ data: row }: { data: HealthIncident }">
+              <span
+                class="text-sm font-medium"
+                :class="row.open ? 'text-red-500' : 'text-[var(--text-muted)]'"
+              >
+                {{ formatDuration(row.durationSeconds) }}
+              </span>
             </template>
           </Column>
 
@@ -406,12 +462,12 @@ function confirmDeletePosEndpoint(ep: Integration) {
             <template #body="{ data: row }: { data: HealthIncident }">
               <Tag
                 :severity="row.open ? 'danger' : 'success'"
-                :value="row.open ? 'open' : 'resolved'"
+                :value="row.open ? 'Open' : 'Resolved'"
               />
             </template>
           </Column>
 
-          <Column header="Actions" style="width: 110px">
+          <Column header="" style="width: 110px">
             <template #body="{ data: row }: { data: HealthIncident }">
               <Button
                 v-if="row.open && row.id"
@@ -421,11 +477,14 @@ function confirmDeletePosEndpoint(ep: Integration) {
                 outlined
                 @click="confirmResolveIncident(row)"
               />
+              <span v-else-if="row.resolvedAt" class="text-xs text-[var(--text-muted)]">
+                {{ formatTime(row.resolvedAt) }}
+              </span>
             </template>
           </Column>
 
           <template #empty>
-            <div class="text-center py-8 text-[var(--text-muted)]">No open incidents</div>
+            <div class="text-center py-8 text-[var(--text-muted)]">No incidents recorded</div>
           </template>
         </DataTable>
       </div>
