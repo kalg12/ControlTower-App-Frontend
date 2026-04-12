@@ -3,8 +3,10 @@ import type { Integration, CreateIntegrationRequest } from '@/types/integration'
 import type { PaginatedResponse } from '@/types/api'
 
 export const integrationsService = {
-  async list(page = 0, size = 20): Promise<PaginatedResponse<Integration>> {
-    const res = await api.get<PaginatedResponse<Integration>>('/integrations', { params: { page, size } })
+  async list(page = 0, size = 20, type?: string): Promise<PaginatedResponse<Integration>> {
+    const res = await api.get<PaginatedResponse<Integration>>('/integrations', {
+      params: { page, size, ...(type ? { type } : {}) }
+    })
     return res.data
   },
 

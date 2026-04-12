@@ -1,18 +1,31 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, ref, watch } from 'vue'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { z } from 'zod'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
+import Select from 'primevue/select'
+import InputText from 'primevue/inputtext'
+import InputNumber from 'primevue/inputnumber'
 import Card from '@/components/ui/Card.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import AppDialog from '@/components/ui/AppDialog.vue'
+import FormField from '@/components/ui/FormField.vue'
 import { CheckCircle, AlertTriangle, XCircle } from 'lucide-vue-next'
 import { useConfirm } from 'primevue/useconfirm'
 import { healthService } from '@/services/health.service'
+import { integrationsService } from '@/services/integrations.service'
+import { clientsService } from '@/services/clients.service'
+import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import type { HealthCheck, HealthIncident, HealthStatus } from '@/types/health'
+import type { Integration } from '@/types/integration'
+import type { Client, ClientBranch } from '@/types/client'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 
@@ -96,6 +109,131 @@ function confirmResolveIncident(incident: HealthIncident) {
         toast.success('Incident resolved successfully')
       } catch {
         toast.error('Failed to resolve incident')
+      }
+    }
+  })
+}
+
+// ── Monitored POS Endpoints ───────────────────────────────────────────
+
+const authStore = useAuthStore()
+const canWriteIntegrations = computed(() => authStore.hasPermission('integration:write'))
+
+const { data: posPage, isLoading: isLoadingPos, refetch: refetchPos } = useQuery({
+  queryKey: ['integrations-pos'],
+  queryFn: () => integrationsService.list(0, 50, 'POS'),
+  staleTime: 30000,
+})
+const posEndpoints = computed(() => posPage.value?.content ?? [])
+
+// ── Register POS modal ────────────────────────────────────────────────
+
+const showRegisterModal = ref(false)
+const isSubmittingPos = ref(false)
+const clients = ref<Client[]>([])
+const branches = ref<ClientBranch[]>([])
+const isLoadingClients = ref(false)
+const isLoadingBranches = ref(false)
+
+const posSchema = z.object({
+  clientId:                  z.string().min(1, 'Select a client'),
+  clientBranchId:            z.string().min(1, 'Select a branch'),
+  pullUrl:                   z.string().url('Must be a valid URL (e.g. http://pos-host:4000/health)'),
+  apiKey:                    z.string().optional(),
+  heartbeatIntervalSeconds:  z.number().int().min(30).max(86400),
+})
+
+const { handleSubmit: handlePosSubmit, errors: posErrors, resetForm: resetPosForm, defineField: definePosField } = useForm({
+  validationSchema: toTypedSchema(posSchema),
+  initialValues: { clientId: '', clientBranchId: '', pullUrl: '', apiKey: '', heartbeatIntervalSeconds: 300 },
+})
+
+const [clientIdValue]    = definePosField('clientId')
+const [branchIdValue]    = definePosField('clientBranchId')
+const [pullUrlValue]     = definePosField('pullUrl')
+const [apiKeyValue]      = definePosField('apiKey')
+const [heartbeatValue]   = definePosField('heartbeatIntervalSeconds')
+
+watch(clientIdValue, async (newId) => {
+  branchIdValue.value = ''
+  branches.value = []
+  if (!newId) return
+  isLoadingBranches.value = true
+  try {
+    branches.value = await clientsService.getBranches(newId as string)
+  } finally {
+    isLoadingBranches.value = false
+  }
+})
+
+async function openRegisterModal() {
+  resetPosForm()
+  branches.value = []
+  isLoadingClients.value = true
+  showRegisterModal.value = true
+  try {
+    const res = await clientsService.list({ size: 200 })
+    clients.value = res.content
+  } finally {
+    isLoadingClients.value = false
+  }
+}
+
+const onSubmitPos = handlePosSubmit(async (values) => {
+  isSubmittingPos.value = true
+  try {
+    await integrationsService.create({
+      type: 'POS',
+      clientBranchId: values.clientBranchId,
+      pullUrl: values.pullUrl,
+      apiKey: values.apiKey || undefined,
+      heartbeatIntervalSeconds: values.heartbeatIntervalSeconds,
+    })
+    await queryClient.invalidateQueries({ queryKey: ['integrations-pos'] })
+    showRegisterModal.value = false
+    toast.success('POS endpoint registered')
+  } catch {
+    toast.error('Failed to register POS endpoint')
+  } finally {
+    isSubmittingPos.value = false
+  }
+})
+
+function confirmTogglePosEndpoint(ep: Integration) {
+  const activating = !ep.active
+  confirm.require({
+    message: activating ? 'Activate this POS endpoint?' : 'Deactivate this POS endpoint?',
+    header: activating ? 'Activate Endpoint' : 'Deactivate Endpoint',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: activating ? 'Activate' : 'Deactivate', severity: activating ? 'success' : 'warn' },
+    accept: async () => {
+      try {
+        if (ep.active) await integrationsService.deactivate(ep.id)
+        else await integrationsService.activate(ep.id)
+        await queryClient.invalidateQueries({ queryKey: ['integrations-pos'] })
+        toast.success(activating ? 'Endpoint activated' : 'Endpoint deactivated')
+      } catch {
+        toast.error('Failed to update endpoint')
+      }
+    }
+  })
+}
+
+function confirmDeletePosEndpoint(ep: Integration) {
+  confirm.require({
+    message: 'Remove this POS endpoint from monitoring?',
+    header: 'Remove Endpoint',
+    icon: 'pi pi-trash',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Remove', severity: 'danger' },
+    accept: async () => {
+      try {
+        await integrationsService.delete(ep.id)
+        await queryClient.invalidateQueries({ queryKey: ['integrations-pos'] })
+        toast.success('Endpoint removed')
+      } catch {
+        toast.error('Failed to remove endpoint')
       }
     }
   })
@@ -291,6 +429,160 @@ function confirmResolveIncident(incident: HealthIncident) {
           </template>
         </DataTable>
       </div>
+
+      <!-- Monitored POS Endpoints -->
+      <div>
+        <div class="flex items-center justify-between mb-3">
+          <div>
+            <h3 class="text-base font-semibold text-[var(--text)]">Monitored POS Endpoints</h3>
+            <p class="text-xs text-[var(--text-muted)]">POS systems polled every 5 min by the pull scheduler</p>
+          </div>
+          <div class="flex gap-2">
+            <Button icon="pi pi-refresh" severity="secondary" outlined size="small" @click="refetchPos()" />
+            <Button
+              v-if="canWriteIntegrations"
+              label="Register POS"
+              icon="pi pi-plus"
+              size="small"
+              @click="openRegisterModal"
+            />
+          </div>
+        </div>
+
+        <SkeletonTable v-if="isLoadingPos" :rows="3" :cols="5" />
+
+        <DataTable
+          v-else
+          :value="posEndpoints"
+          removable-sort
+          striped-rows
+          class="rounded-xl overflow-hidden"
+        >
+          <Column field="clientBranchId" header="Branch ID" style="min-width: 200px">
+            <template #body="{ data: row }: { data: Integration }">
+              <span class="text-xs text-[var(--text-muted)] font-mono">{{ row.clientBranchId ?? '—' }}</span>
+            </template>
+          </Column>
+
+          <Column field="pullUrl" header="Pull URL" style="min-width: 240px">
+            <template #body="{ data: row }: { data: Integration }">
+              <span class="text-xs text-[var(--text-muted)] font-mono truncate block max-w-xs" :title="row.pullUrl">
+                {{ row.pullUrl ?? '—' }}
+              </span>
+            </template>
+          </Column>
+
+          <Column field="heartbeatIntervalSeconds" header="Interval" sortable style="width: 100px">
+            <template #body="{ data: row }: { data: Integration }">
+              <span class="text-sm text-[var(--text-muted)]">{{ row.heartbeatIntervalSeconds }}s</span>
+            </template>
+          </Column>
+
+          <Column field="active" header="Status" style="width: 110px">
+            <template #body="{ data: row }: { data: Integration }">
+              <Tag :severity="row.active ? 'success' : 'secondary'" :value="row.active ? 'Active' : 'Inactive'" />
+            </template>
+          </Column>
+
+          <Column v-if="canWriteIntegrations" header="Actions" style="width: 100px">
+            <template #body="{ data: row }: { data: Integration }">
+              <div class="flex gap-1">
+                <Button
+                  :icon="row.active ? 'pi pi-pause' : 'pi pi-play'"
+                  :severity="row.active ? 'warn' : 'success'"
+                  text rounded size="small"
+                  v-tooltip.top="row.active ? 'Deactivate' : 'Activate'"
+                  @click="confirmTogglePosEndpoint(row)"
+                />
+                <Button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  text rounded size="small"
+                  v-tooltip.top="'Remove'"
+                  @click="confirmDeletePosEndpoint(row)"
+                />
+              </div>
+            </template>
+          </Column>
+
+          <template #empty>
+            <div class="text-center py-6 text-[var(--text-muted)]">
+              No POS endpoints registered — click "Register POS" to add one
+            </div>
+          </template>
+        </DataTable>
+      </div>
     </template>
   </div>
+
+  <!-- Register POS Modal -->
+  <AppDialog
+    v-model:visible="showRegisterModal"
+    title="Register POS Endpoint"
+    :loading="isSubmittingPos"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onSubmitPos">
+      <FormField label="Client" name="clientId" :error="posErrors.clientId" required>
+        <Select
+          v-model="clientIdValue"
+          :options="clients"
+          option-label="name"
+          option-value="id"
+          placeholder="Select a client"
+          :loading="isLoadingClients"
+          :disabled="isSubmittingPos"
+          class="w-full"
+          filter
+        />
+      </FormField>
+
+      <FormField label="Branch" name="clientBranchId" :error="posErrors.clientBranchId" required>
+        <Select
+          v-model="branchIdValue"
+          :options="branches"
+          option-label="name"
+          option-value="id"
+          placeholder="Select a branch"
+          :loading="isLoadingBranches"
+          :disabled="!clientIdValue || isSubmittingPos"
+          class="w-full"
+        />
+      </FormField>
+
+      <FormField label="Pull URL" name="pullUrl" :error="posErrors.pullUrl" required>
+        <InputText
+          v-model="pullUrlValue"
+          placeholder="http://pos-host:4000/health"
+          :disabled="isSubmittingPos"
+          class="w-full"
+        />
+      </FormField>
+
+      <FormField label="API Key (optional)" name="apiKey" :error="posErrors.apiKey">
+        <InputText
+          v-model="apiKeyValue"
+          placeholder="Leave empty if /health is public"
+          :disabled="isSubmittingPos"
+          class="w-full"
+        />
+      </FormField>
+
+      <FormField label="Poll interval (seconds)" name="heartbeatIntervalSeconds" :error="posErrors.heartbeatIntervalSeconds">
+        <InputNumber
+          v-model="heartbeatValue"
+          :min="30"
+          :max="86400"
+          :disabled="isSubmittingPos"
+          class="w-full"
+        />
+      </FormField>
+    </form>
+
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button label="Cancel" severity="secondary" outlined :disabled="isSubmittingPos" @click="showRegisterModal = false" />
+        <Button label="Register" :loading="isSubmittingPos" @click="onSubmitPos" />
+      </div>
+    </template>
+  </AppDialog>
 </template>

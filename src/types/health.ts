@@ -3,6 +3,8 @@ export type HealthStatus = 'UP' | 'DOWN' | 'DEGRADED' | 'HEALTHY' | 'UNKNOWN'
 // Backend response from GET /api/v1/health/clients (array, not paginated)
 export interface HealthCheck {
   branchId: string
+  branchName?: string
+  clientName?: string
   status: HealthStatus
   latencyMs?: number
   version?: string
@@ -10,8 +12,6 @@ export interface HealthCheck {
   openIncidents: number
   // Legacy fields for UI compatibility
   id?: string
-  branchName?: string
-  clientName?: string
   clientId?: string
   checkedAt?: string
   message?: string
@@ -27,7 +27,9 @@ export interface HealthSummary {
 
 // Backend response from GET /api/v1/health/incidents (paginated)
 export interface HealthIncident {
+  id?: string
   branchId: string
+  branchName?: string
   severity: string
   description: string
   openedAt: string
@@ -35,8 +37,6 @@ export interface HealthIncident {
   open: boolean
   autoCreated: boolean
   // Legacy fields
-  id?: string
-  branchName?: string
   clientName?: string
   startedAt?: string
 }
