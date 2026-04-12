@@ -27,7 +27,8 @@ const router = useRouter()
 const { data, isLoading, isError, refetch, isFetching } = useQuery({
   queryKey: ['dashboard'],
   queryFn: () => dashboardService.getDashboard(),
-  staleTime: 30000
+  staleTime: 30000,
+  refetchInterval: 60000
 })
 
 // Branch Health — Donut chart (ApexCharts)
