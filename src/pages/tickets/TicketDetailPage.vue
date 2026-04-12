@@ -12,7 +12,7 @@ import { ticketsService } from '@/services/tickets.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import type { TicketStatus, TicketPriority } from '@/types/ticket'
+import type { TicketStatus, TicketPriority, TicketCommentResponse } from '@/types/ticket'
 import { MessageSquare } from 'lucide-vue-next'
 import SourceBadge from '@/components/tickets/SourceBadge.vue'
 import PosContextPanel from '@/components/tickets/PosContextPanel.vue'
@@ -34,7 +34,12 @@ const { data: ticket, isLoading, isError } = useQuery({
   staleTime: 15000
 })
 
-/** Backend has no GET /tickets/{id}/comments — history not available yet */
+const { data: comments, isLoading: isLoadingComments } = useQuery({
+  queryKey: computed(() => ['ticket-comments', id.value]),
+  queryFn: () => ticketsService.getComments(id.value),
+  staleTime: 15000,
+  enabled: computed(() => !!id.value),
+})
 
 const statusOptions: { label: string; value: TicketStatus }[] = [
   { label: 'Open', value: 'OPEN' },
@@ -96,6 +101,7 @@ async function submitComment() {
   try {
     await ticketsService.addComment(id.value, commentText.value.trim())
     commentText.value = ''
+    await queryClient.invalidateQueries({ queryKey: ['ticket-comments', id.value] })
     await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
     toast.success('Comment added')
   } catch {
@@ -271,24 +277,73 @@ function fromNow(dateStr: string) {
           </div>
         </div>
 
-        <!-- Add Comment -->
-        <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 flex flex-col gap-3">
-          <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide">Add Comment</h2>
-          <Textarea
-            v-model="commentText"
-            placeholder="Write a comment..."
-            :rows="4"
-            class="w-full"
-            :disabled="isSubmittingComment"
-          />
-          <div class="flex justify-end">
-            <Button
-              label="Submit"
-              icon="pi pi-send"
-              :loading="isSubmittingComment"
-              :disabled="!commentText.trim()"
-              @click="submitComment"
+        <!-- Comments -->
+        <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 flex flex-col gap-4">
+          <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide flex items-center gap-2">
+            <MessageSquare class="w-4 h-4" />
+            Comments
+            <span v-if="comments?.length" class="text-xs font-normal text-[var(--text-muted)]">({{ comments.length }})</span>
+          </h2>
+
+          <!-- Comment list -->
+          <div v-if="isLoadingComments" class="space-y-3">
+            <div v-for="i in 2" :key="i" class="flex gap-3">
+              <Skeleton shape="circle" size="2rem" />
+              <div class="flex-1 space-y-1.5">
+                <Skeleton height="0.75rem" width="30%" />
+                <Skeleton height="0.75rem" width="80%" />
+              </div>
+            </div>
+          </div>
+
+          <div v-else-if="comments?.length" class="space-y-3 max-h-72 overflow-y-auto pr-1">
+            <div
+              v-for="c in comments"
+              :key="c.id"
+              class="flex gap-3"
+            >
+              <!-- Avatar -->
+              <div
+                class="w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 text-xs font-semibold"
+                :class="c.senderType === 'OPERATOR'
+                  ? 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900 dark:text-indigo-300'
+                  : 'bg-amber-100 text-amber-700 dark:bg-amber-900 dark:text-amber-300'"
+              >
+                {{ c.senderType === 'OPERATOR' ? 'CT' : 'POS' }}
+              </div>
+              <!-- Bubble -->
+              <div class="flex-1 min-w-0">
+                <div class="flex items-center gap-2 mb-0.5">
+                  <span class="text-xs font-medium text-[var(--text)]">
+                    {{ c.senderType === 'OPERATOR' ? 'Agent' : 'POS User' }}
+                  </span>
+                  <span class="text-xs text-[var(--text-muted)]">{{ fromNow(c.createdAt) }}</span>
+                </div>
+                <p class="text-sm text-[var(--text)] whitespace-pre-wrap break-words">{{ c.content }}</p>
+              </div>
+            </div>
+          </div>
+
+          <p v-else class="text-sm text-[var(--text-muted)]">No comments yet.</p>
+
+          <!-- Add comment -->
+          <div class="border-t border-[var(--border)] pt-4 flex flex-col gap-2">
+            <Textarea
+              v-model="commentText"
+              placeholder="Write a comment..."
+              :rows="3"
+              class="w-full"
+              :disabled="isSubmittingComment"
             />
+            <div class="flex justify-end">
+              <Button
+                label="Send"
+                icon="pi pi-send"
+                :loading="isSubmittingComment"
+                :disabled="!commentText.trim()"
+                @click="submitComment"
+              />
+            </div>
           </div>
         </div>
       </div>
