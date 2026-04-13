@@ -434,6 +434,229 @@ function confirmDeleteContact(c: ClientContact) {
     }
   })
 }
+
+// ── CRM: Log Interaction ─────────────────────────────────────────────
+
+const showInteractionDialog = ref(false)
+const isSubmittingInteraction = ref(false)
+
+const interactionTypeOptions = [
+  { label: t('crm.typeCall'), value: 'CALL' },
+  { label: t('crm.typeMeeting'), value: 'MEETING' },
+  { label: t('crm.typeEmail'), value: 'EMAIL' },
+  { label: t('crm.typeMessage'), value: 'MESSAGE' },
+  { label: t('crm.typeSiteVisit'), value: 'SITE_VISIT' },
+  { label: t('crm.typeDemo'), value: 'DEMO' },
+  { label: t('crm.typeSupport'), value: 'SUPPORT' },
+  { label: t('crm.typeFollowUp'), value: 'FOLLOW_UP' },
+  { label: t('crm.typeOther'), value: 'OTHER' },
+]
+
+const interactionSchema = z.object({
+  title: z.string().min(2, 'Min 2 characters'),
+  description: z.string().optional(),
+  interactionType: z.string().min(1, 'Select a type'),
+  branchId: z.string().optional(),
+  occurredAt: z.string().optional(),
+  outcome: z.string().optional(),
+  durationMinutes: z.number().int().min(1).max(480).optional(),
+})
+
+const interactionForm = useForm({
+  validationSchema: toTypedSchema(interactionSchema),
+  initialValues: { title: '', description: '', interactionType: 'CALL', branchId: '', occurredAt: '', outcome: '', durationMinutes: undefined },
+})
+
+const [intTitle, intTitleAttrs] = interactionForm.defineField('title')
+const [intDesc, intDescAttrs] = interactionForm.defineField('description')
+const [intType] = interactionForm.defineField('interactionType')
+const [intBranch] = interactionForm.defineField('branchId')
+const [intOccurred] = interactionForm.defineField('occurredAt')
+const [intOutcome, intOutcomeAttrs] = interactionForm.defineField('outcome')
+const [intDuration] = interactionForm.defineField('durationMinutes')
+
+function openLogInteraction() {
+  interactionForm.resetForm()
+  showInteractionDialog.value = true
+}
+
+const onSubmitInteraction = interactionForm.handleSubmit(async (values) => {
+  isSubmittingInteraction.value = true
+  try {
+    await crmService.logInteraction(id.value, {
+      title: values.title,
+      description: values.description || undefined,
+      interactionType: values.interactionType as InteractionType,
+      branchId: values.branchId || undefined,
+      occurredAt: values.occurredAt || undefined,
+      outcome: values.outcome || undefined,
+      durationMinutes: values.durationMinutes || undefined,
+    })
+    await queryClient.invalidateQueries({ queryKey: ['interactions', id.value] })
+    await queryClient.invalidateQueries({ queryKey: ['client', id.value] })
+    showInteractionDialog.value = false
+    toast.success(t('crm.interactionLogged'))
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  } finally {
+    isSubmittingInteraction.value = false
+  }
+})
+
+function confirmDeleteInteraction(inter: ClientInteraction) {
+  confirm.require({
+    message: t('crm.deleteInteractionConfirm'),
+    header: 'Delete Interaction',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: async () => {
+      try {
+        await crmService.deleteInteraction(inter.id)
+        await queryClient.invalidateQueries({ queryKey: ['interactions', id.value] })
+        toast.success(t('crm.interactionDeleted'))
+      } catch {
+        toast.error(t('errors.loadFailed'))
+      }
+    }
+  })
+}
+
+// ── CRM: Create/Edit Opportunity ─────────────────────────────────────
+
+const showOppDialog = ref(false)
+const editingOpp = ref<ClientOpportunity | null>(null)
+const isSubmittingOpp = ref(false)
+
+const stageOptions = [
+  { label: t('crm.stageProspecting'), value: 'PROSPECTING' },
+  { label: t('crm.stageQualified'), value: 'QUALIFIED' },
+  { label: t('crm.stageDemoScheduled'), value: 'DEMO_SCHEDULED' },
+  { label: t('crm.stageProposalSent'), value: 'PROPOSAL_SENT' },
+  { label: t('crm.stageNegotiation'), value: 'NEGOTIATION' },
+  { label: t('crm.stageVerbalCommit'), value: 'VERBAL_COMMIT' },
+  { label: t('crm.stageClosedWon'), value: 'CLOSED_WON' },
+  { label: t('crm.stageClosedLost'), value: 'CLOSED_LOST' },
+]
+
+const sourceOptions = [
+  { label: t('crm.sourceInbound'), value: 'INBOUND' },
+  { label: t('crm.sourceOutbound'), value: 'OUTBOUND' },
+  { label: t('crm.sourceReferral'), value: 'REFERRAL' },
+  { label: t('crm.sourceWebsite'), value: 'WEBSITE' },
+  { label: t('crm.sourceExistingClient'), value: 'EXISTING_CLIENT' },
+  { label: t('crm.sourceDemoRequest'), value: 'DEMO_REQUEST' },
+  { label: t('crm.sourceSupportEscalation'), value: 'SUPPORT_ESCALATION' },
+  { label: t('crm.sourceOther'), value: 'OTHER' },
+]
+
+const currencyOptions = [
+  { label: 'MXN', value: 'MXN' },
+  { label: 'USD', value: 'USD' },
+  { label: 'EUR', value: 'EUR' },
+]
+
+const oppSchema = z.object({
+  title: z.string().min(2, 'Min 2 characters'),
+  description: z.string().optional(),
+  value: z.number().min(0).optional(),
+  currency: z.string().min(1),
+  stage: z.string().min(1),
+  expectedCloseDate: z.string().optional(),
+  source: z.string().optional(),
+  lossReason: z.string().optional(),
+})
+
+const oppForm = useForm({
+  validationSchema: toTypedSchema(oppSchema),
+  initialValues: { title: '', description: '', value: undefined, currency: 'MXN', stage: 'PROSPECTING', expectedCloseDate: '', source: '', lossReason: '' },
+})
+
+const [oppTitle, oppTitleAttrs] = oppForm.defineField('title')
+const [oppDesc, oppDescAttrs] = oppForm.defineField('description')
+const [oppValue] = oppForm.defineField('value')
+const [oppCurrency] = oppForm.defineField('currency')
+const [oppStage] = oppForm.defineField('stage')
+const [oppCloseDate] = oppForm.defineField('expectedCloseDate')
+const [oppSource] = oppForm.defineField('source')
+const [oppLoss, oppLossAttrs] = oppForm.defineField('lossReason')
+
+function openCreateOpp() {
+  editingOpp.value = null
+  oppForm.resetForm()
+  showOppDialog.value = true
+}
+
+function openEditOpp(opp: ClientOpportunity) {
+  editingOpp.value = opp
+  oppForm.setValues({
+    title: opp.title,
+    description: opp.description ?? '',
+    value: opp.value,
+    currency: opp.currency || 'MXN',
+    stage: opp.stage,
+    expectedCloseDate: opp.expectedCloseDate ? dayjs(opp.expectedCloseDate).format('YYYY-MM-DD') : '',
+    source: opp.source ?? '',
+    lossReason: opp.lossReason ?? '',
+  })
+  showOppDialog.value = true
+}
+
+const onSubmitOpp = oppForm.handleSubmit(async (values) => {
+  isSubmittingOpp.value = true
+  try {
+    if (editingOpp.value) {
+      await crmService.updateOpportunity(editingOpp.value.id, {
+        title: values.title,
+        description: values.description || undefined,
+        value: values.value,
+        currency: values.currency,
+        stage: values.stage as OpportunityStage,
+        expectedCloseDate: values.expectedCloseDate ? new Date(values.expectedCloseDate).toISOString() : undefined,
+        source: (values.source || undefined) as OpportunitySource | undefined,
+        lossReason: values.lossReason || undefined,
+      })
+      toast.success(t('crm.oppUpdated'))
+    } else {
+      await crmService.createOpportunity(id.value, {
+        title: values.title,
+        description: values.description || undefined,
+        value: values.value,
+        currency: values.currency,
+        stage: values.stage as OpportunityStage,
+        expectedCloseDate: values.expectedCloseDate ? new Date(values.expectedCloseDate).toISOString() : undefined,
+        source: (values.source || undefined) as OpportunitySource | undefined,
+      })
+      toast.success(t('crm.oppCreated'))
+    }
+    await queryClient.invalidateQueries({ queryKey: ['opportunities', id.value] })
+    await queryClient.invalidateQueries({ queryKey: ['client', id.value] })
+    showOppDialog.value = false
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  } finally {
+    isSubmittingOpp.value = false
+  }
+})
+
+function confirmDeleteOpp(opp: ClientOpportunity) {
+  confirm.require({
+    message: t('crm.deleteOppConfirm'),
+    header: 'Delete Opportunity',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: async () => {
+      try {
+        await crmService.deleteOpportunity(opp.id)
+        await queryClient.invalidateQueries({ queryKey: ['opportunities', id.value] })
+        toast.success(t('crm.oppDeleted'))
+      } catch {
+        toast.error(t('errors.loadFailed'))
+      }
+    }
+  })
+}
 </script>
 
 <template>
@@ -643,6 +866,7 @@ function confirmDeleteContact(c: ClientContact) {
                   </div>
                   <div class="flex gap-2">
                     <Button icon="pi pi-refresh" severity="secondary" outlined size="small" @click="refetchInteractions()" />
+                    <Button :label="t('crm.logInteraction')" icon="pi pi-plus" size="small" @click="openLogInteraction()" />
                   </div>
                 </div>
               </template>
@@ -673,6 +897,11 @@ function confirmDeleteContact(c: ClientContact) {
                 <Column field="occurredAt" :header="t('crm.occurredAt')" style="width: 150px">
                   <template #body="{ data: row }: { data: ClientInteraction }">
                     <span class="text-sm text-[var(--text-muted)]">{{ formatDateTime(row.occurredAt) }}</span>
+                  </template>
+                </Column>
+                <Column :header="t('common.actions')" style="width: 80px">
+                  <template #body="{ data: row }: { data: ClientInteraction }">
+                    <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDeleteInteraction(row)" />
                   </template>
                 </Column>
                 <template #empty>
@@ -796,6 +1025,7 @@ function confirmDeleteContact(c: ClientContact) {
               </div>
               <div class="flex gap-2">
                 <Button icon="pi pi-refresh" severity="secondary" outlined size="small" @click="refetchOpps()" />
+                <Button :label="t('crm.createOpp')" icon="pi pi-plus" size="small" @click="openCreateOpp()" />
               </div>
             </div>
 
@@ -840,6 +1070,14 @@ function confirmDeleteContact(c: ClientContact) {
               <Column field="source" :header="t('crm.source')" style="width: 130px">
                 <template #body="{ data: row }: { data: ClientOpportunity }">
                   <span class="text-sm text-[var(--text-muted)]">{{ row.source ? row.source.replace('_', ' ') : '—' }}</span>
+                </template>
+              </Column>
+              <Column :header="t('common.actions')" style="width: 100px">
+                <template #body="{ data: row }: { data: ClientOpportunity }">
+                  <div class="flex gap-1">
+                    <Button icon="pi pi-pencil" severity="secondary" text rounded size="small" @click="openEditOpp(row)" />
+                    <Button icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDeleteOpp(row)" />
+                  </div>
                 </template>
               </Column>
               <template #empty>
@@ -962,6 +1200,80 @@ function confirmDeleteContact(c: ClientContact) {
       <div class="flex justify-end gap-2">
         <Button :label="t('common.cancel')" severity="secondary" outlined :disabled="isEditingBranch" @click="showEditBranchDialog = false" />
         <Button :label="t('common.save')" :loading="isEditingBranch" @click="onEditBranchSubmit" />
+      </div>
+    </template>
+  </AppDialog>
+
+  <!-- Log Interaction Dialog -->
+  <AppDialog v-model:visible="showInteractionDialog" :title="t('crm.logInteraction')" :subtitle="t('crm.logInteractionSubtitle')" :loading="isSubmittingInteraction">
+    <form class="flex flex-col gap-4" @submit.prevent="onSubmitInteraction">
+      <FormField :label="t('crm.title')" name="int-title" :error="interactionForm.errors.value.title" required>
+        <InputText v-model="intTitle" v-bind="intTitleAttrs" class="w-full" :disabled="isSubmittingInteraction" />
+      </FormField>
+      <FormField :label="t('crm.type')" name="int-type" :error="interactionForm.errors.value.interactionType" required>
+        <Select v-model="intType" :options="interactionTypeOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmittingInteraction" />
+      </FormField>
+      <FormField :label="t('crm.description')" name="int-desc">
+        <Textarea v-model="intDesc" v-bind="intDescAttrs" :rows="2" class="w-full" :disabled="isSubmittingInteraction" />
+      </FormField>
+      <div class="grid grid-cols-2 gap-3">
+        <FormField :label="t('crm.branch')" name="int-branch">
+          <Select v-model="intBranch" :options="branches ?? []" option-label="name" option-value="id" :placeholder="t('crm.branch')" class="w-full" :disabled="isSubmittingInteraction" />
+        </FormField>
+        <FormField :label="t('crm.durationMinutes')" name="int-duration">
+          <InputText v-model="intDuration" type="number" min="1" max="480" class="w-full" :disabled="isSubmittingInteraction" />
+        </FormField>
+      </div>
+      <FormField :label="t('crm.outcome')" name="int-outcome">
+        <Textarea v-model="intOutcome" v-bind="intOutcomeAttrs" :rows="2" class="w-full" :disabled="isSubmittingInteraction" />
+      </FormField>
+    </form>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button :label="t('common.cancel')" severity="secondary" outlined :disabled="isSubmittingInteraction" @click="showInteractionDialog = false" />
+        <Button :label="t('common.save')" :loading="isSubmittingInteraction" @click="onSubmitInteraction" />
+      </div>
+    </template>
+  </AppDialog>
+
+  <!-- Create/Edit Opportunity Dialog -->
+  <AppDialog v-model:visible="showOppDialog" :title="editingOpp ? t('crm.editOpp') : t('crm.createOpp')" :subtitle="t('crm.createOppSubtitle')" :loading="isSubmittingOpp">
+    <form class="flex flex-col gap-4" @submit.prevent="onSubmitOpp">
+      <FormField :label="t('crm.title')" name="opp-title" :error="oppForm.errors.value.title" required>
+        <InputText v-model="oppTitle" v-bind="oppTitleAttrs" class="w-full" :disabled="isSubmittingOpp" />
+      </FormField>
+      <FormField :label="t('crm.description')" name="opp-desc">
+        <Textarea v-model="oppDesc" v-bind="oppDescAttrs" :rows="2" class="w-full" :disabled="isSubmittingOpp" />
+      </FormField>
+      <div class="grid grid-cols-2 gap-3">
+        <FormField :label="t('crm.value')" name="opp-value">
+          <InputText v-model="oppValue" type="number" min="0" class="w-full" :disabled="isSubmittingOpp" />
+        </FormField>
+        <FormField :label="t('crm.currency')" name="opp-currency">
+          <Select v-model="oppCurrency" :options="currencyOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmittingOpp" />
+        </FormField>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <FormField :label="t('crm.stage')" name="opp-stage">
+          <Select v-model="oppStage" :options="stageOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmittingOpp" />
+        </FormField>
+        <FormField :label="t('crm.expectedCloseDate')" name="opp-close">
+          <InputText v-model="oppCloseDate" type="date" class="w-full" :disabled="isSubmittingOpp" />
+        </FormField>
+      </div>
+      <FormField :label="t('crm.source')" name="opp-source">
+        <Select v-model="oppSource" :options="sourceOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmittingOpp" />
+      </FormField>
+      <div v-if="oppStage === 'CLOSED_LOST'" class="flex flex-col gap-2">
+        <FormField :label="t('crm.lossReason')" name="opp-loss" :error="oppForm.errors.value.lossReason">
+          <Textarea v-model="oppLoss" v-bind="oppLossAttrs" :rows="2" class="w-full" :disabled="isSubmittingOpp" />
+        </FormField>
+      </div>
+    </form>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button :label="t('common.cancel')" severity="secondary" outlined :disabled="isSubmittingOpp" @click="showOppDialog = false" />
+        <Button :label="editingOpp ? t('common.save') : t('common.create')" :loading="isSubmittingOpp" @click="onSubmitOpp" />
       </div>
     </template>
   </AppDialog>
