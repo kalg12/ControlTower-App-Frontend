@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useForm } from 'vee-validate'
@@ -11,13 +11,15 @@ import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import InputText from 'primevue/inputtext'
+import Textarea from 'primevue/textarea'
+import Select from 'primevue/select'
 import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
-import type { Client, ClientBranch } from '@/types/client'
+import type { Client, ClientBranch, ClientContact, CreateContactRequest } from '@/types/client'
 
 const route = useRoute()
 const router = useRouter()
@@ -40,6 +42,13 @@ const { data: branches, isLoading: branchesLoading } = useQuery({
   enabled: computed(() => !!id.value)
 })
 
+const { data: contacts, isLoading: contactsLoading } = useQuery({
+  queryKey: computed(() => ['contacts', id.value]),
+  queryFn: () => clientsService.getContacts(id.value),
+  staleTime: 15000,
+  enabled: computed(() => !!id.value)
+})
+
 function statusSeverity(status?: string): 'success' | 'warn' | 'danger' | 'secondary' {
   if (!status) return 'secondary'
   if (status === 'ACTIVE') return 'success'
@@ -57,28 +66,40 @@ const showEditDialog = ref(false)
 const isEditSubmitting = ref(false)
 
 const clientSchema = z.object({
-  name: z.string().min(2, 'Min 2 characters'),
+  name:      z.string().min(2, 'Min 2 characters'),
   legalName: z.string().optional(),
-  taxId: z.string().optional(),
-  country: z.string().min(2)
+  taxId:     z.string().optional(),
+  country:   z.string().min(2),
+  website:   z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  industry:  z.string().optional(),
+  segment:   z.enum(['', 'SMB', 'MID_MARKET', 'ENTERPRISE']).optional(),
+  notes:     z.string().optional(),
 })
 
 const editForm = useForm({
   validationSchema: toTypedSchema(clientSchema),
-  initialValues: { name: '', legalName: '', taxId: '', country: 'MX' }
+  initialValues: { name: '', legalName: '', taxId: '', country: 'MX', website: '', industry: '', segment: '' as '', notes: '' }
 })
 
-const [editName, editNameAttrs] = editForm.defineField('name')
+const [editName, editNameAttrs]       = editForm.defineField('name')
 const [editLegalName, editLegalNameAttrs] = editForm.defineField('legalName')
-const [editTaxId, editTaxIdAttrs] = editForm.defineField('taxId')
+const [editTaxId, editTaxIdAttrs]     = editForm.defineField('taxId')
 const [editCountry, editCountryAttrs] = editForm.defineField('country')
+const [editWebsite, editWebsiteAttrs] = editForm.defineField('website')
+const [editIndustry, editIndustryAttrs] = editForm.defineField('industry')
+const [editSegment]                   = editForm.defineField('segment')
+const [editNotes, editNotesAttrs]     = editForm.defineField('notes')
 
 function openEditDialog(c: Client) {
   editForm.setValues({
-    name: c.name,
+    name:      c.name,
     legalName: c.legalName ?? '',
-    taxId: c.taxId ?? '',
-    country: c.country ?? 'MX'
+    taxId:     c.taxId ?? '',
+    country:   c.country ?? 'MX',
+    website:   c.website ?? '',
+    industry:  c.industry ?? '',
+    segment:   (c.segment ?? '') as '',
+    notes:     c.notes ?? '',
   })
   showEditDialog.value = true
 }
@@ -87,10 +108,14 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
   isEditSubmitting.value = true
   try {
     await clientsService.update(id.value, {
-      name: values.name,
+      name:      values.name,
       legalName: values.legalName || undefined,
-      taxId: values.taxId || undefined,
-      country: values.country
+      taxId:     values.taxId || undefined,
+      country:   values.country,
+      website:   values.website || undefined,
+      industry:  values.industry || undefined,
+      segment:   values.segment || undefined,
+      notes:     values.notes || undefined,
     })
     await queryClient.invalidateQueries({ queryKey: ['client', id.value] })
     await queryClient.invalidateQueries({ queryKey: ['clients'] })
@@ -204,6 +229,91 @@ const onEditBranchSubmit = editBranchForm.handleSubmit(async (values) => {
   }
 })
 
+// --- Contacts ---
+const showContactDialog  = ref(false)
+const editingContact     = ref<ClientContact | null>(null)
+const isSubmittingContact = ref(false)
+
+const contactRoleOptions = [
+  { label: 'Owner',     value: 'OWNER' },
+  { label: 'Technical', value: 'TECHNICAL' },
+  { label: 'Billing',   value: 'BILLING' },
+  { label: 'Support',   value: 'SUPPORT' },
+]
+
+const contactSchema = z.object({
+  fullName: z.string().min(2, 'Min 2 characters'),
+  email:    z.string().email('Invalid email').optional().or(z.literal('')),
+  phone:    z.string().optional(),
+  role:     z.string().min(1, 'Select a role'),
+  primary:  z.boolean(),
+  notes:    z.string().optional(),
+})
+
+const contactForm = useForm({
+  validationSchema: toTypedSchema(contactSchema),
+  initialValues: { fullName: '', email: '', phone: '', role: 'OWNER', primary: false, notes: '' },
+})
+
+const [cfFullName, cfFullNameAttrs] = contactForm.defineField('fullName')
+const [cfEmail,    cfEmailAttrs]    = contactForm.defineField('email')
+const [cfPhone,    cfPhoneAttrs]    = contactForm.defineField('phone')
+const [cfRole]                      = contactForm.defineField('role')
+const [cfPrimary]                   = contactForm.defineField('primary')
+const [cfNotes,    cfNotesAttrs]    = contactForm.defineField('notes')
+
+function openAddContact() {
+  editingContact.value = null
+  contactForm.resetForm()
+  showContactDialog.value = true
+}
+
+function openEditContact(c: ClientContact) {
+  editingContact.value = c
+  contactForm.setValues({ fullName: c.fullName, email: c.email ?? '', phone: c.phone ?? '', role: c.role, primary: c.primary, notes: c.notes ?? '' })
+  showContactDialog.value = true
+}
+
+const onSubmitContact = contactForm.handleSubmit(async (values) => {
+  isSubmittingContact.value = true
+  const payload: CreateContactRequest = { fullName: values.fullName, email: values.email || undefined, phone: values.phone || undefined, role: values.role, primary: values.primary, notes: values.notes || undefined }
+  try {
+    if (editingContact.value) {
+      await clientsService.updateContact(id.value, editingContact.value.id, payload)
+    } else {
+      await clientsService.addContact(id.value, payload)
+    }
+    await queryClient.invalidateQueries({ queryKey: ['contacts', id.value] })
+    await queryClient.invalidateQueries({ queryKey: ['client', id.value] })
+    showContactDialog.value = false
+    toast.success(editingContact.value ? 'Contact updated' : 'Contact added')
+  } catch {
+    toast.error('Failed to save contact')
+  } finally {
+    isSubmittingContact.value = false
+  }
+})
+
+function confirmDeleteContact(c: ClientContact) {
+  confirm.require({
+    message: `Remove ${c.fullName} from this client?`,
+    header: 'Remove Contact',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
+    acceptProps: { label: 'Remove', severity: 'danger' },
+    accept: async () => {
+      try {
+        await clientsService.deleteContact(id.value, c.id)
+        await queryClient.invalidateQueries({ queryKey: ['contacts', id.value] })
+        await queryClient.invalidateQueries({ queryKey: ['client', id.value] })
+        toast.success('Contact removed')
+      } catch {
+        toast.error('Failed to remove contact')
+      }
+    }
+  })
+}
+
 // --- Delete Branch ---
 function confirmDeleteBranch(branch: ClientBranch) {
   confirm.require({
@@ -298,6 +408,84 @@ function confirmDeleteBranch(branch: ClientBranch) {
             <p class="text-sm text-[var(--text)] line-clamp-2">{{ client.notes }}</p>
           </div>
         </div>
+      </div>
+
+      <!-- CRM fields row -->
+      <div v-if="client.website || client.industry || client.segment || client.notes" class="grid grid-cols-2 md:grid-cols-4 gap-4 rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
+        <div v-if="client.industry">
+          <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Industry</p>
+          <p class="text-sm text-[var(--text)]">{{ client.industry }}</p>
+        </div>
+        <div v-if="client.segment">
+          <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Segment</p>
+          <p class="text-sm text-[var(--text)]">{{ client.segment.replace('_', ' ') }}</p>
+        </div>
+        <div v-if="client.website">
+          <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Website</p>
+          <a :href="client.website" target="_blank" rel="noopener" class="text-sm text-[var(--primary)] hover:underline truncate block">{{ client.website }}</a>
+        </div>
+        <div v-if="client.notes" class="col-span-2 md:col-span-1">
+          <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Notes</p>
+          <p class="text-sm text-[var(--text)] line-clamp-3">{{ client.notes }}</p>
+        </div>
+      </div>
+
+      <!-- Contacts Section -->
+      <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-base font-semibold text-[var(--text)]">
+            Contacts
+            <span v-if="contacts?.length" class="text-[var(--text-muted)] font-normal text-sm ml-1">({{ contacts.length }})</span>
+          </h2>
+          <Button label="Add Contact" icon="pi pi-user-plus" size="small" @click="openAddContact" />
+        </div>
+
+        <template v-if="contactsLoading">
+          <Skeleton height="1rem" v-for="i in 3" :key="i" class="mb-2" />
+        </template>
+
+        <DataTable v-else :value="contacts ?? []" striped-rows class="rounded-xl overflow-hidden">
+          <Column field="fullName" header="Name" style="min-width: 160px">
+            <template #body="{ data: row }: { data: ClientContact }">
+              <div class="flex items-center gap-2">
+                <span class="font-medium text-[var(--text)]">{{ row.fullName }}</span>
+                <Tag v-if="row.primary" value="Primary" severity="success" class="text-xs" />
+              </div>
+            </template>
+          </Column>
+          <Column field="role" header="Role" style="width: 120px">
+            <template #body="{ data: row }: { data: ClientContact }">
+              <Tag :value="row.role" severity="secondary" />
+            </template>
+          </Column>
+          <Column field="email" header="Email" style="min-width: 180px">
+            <template #body="{ data: row }: { data: ClientContact }">
+              <a v-if="row.email" :href="`mailto:${row.email}`" class="text-sm text-[var(--primary)] hover:underline">{{ row.email }}</a>
+              <span v-else class="text-[var(--text-muted)] text-sm">—</span>
+            </template>
+          </Column>
+          <Column field="phone" header="Phone" style="width: 140px">
+            <template #body="{ data: row }: { data: ClientContact }">
+              <span class="text-sm text-[var(--text-muted)]">{{ row.phone ?? '—' }}</span>
+            </template>
+          </Column>
+          <Column field="notes" header="Notes" style="min-width: 160px">
+            <template #body="{ data: row }: { data: ClientContact }">
+              <span class="text-sm text-[var(--text-muted)] line-clamp-1">{{ row.notes ?? '—' }}</span>
+            </template>
+          </Column>
+          <Column header="Actions" style="width: 100px">
+            <template #body="{ data: row }: { data: ClientContact }">
+              <div class="flex gap-1">
+                <Button icon="pi pi-pencil" severity="secondary" text rounded size="small" v-tooltip.top="'Edit'" @click="openEditContact(row)" />
+                <Button icon="pi pi-trash" severity="danger" text rounded size="small" v-tooltip.top="'Remove'" @click="confirmDeleteContact(row)" />
+              </div>
+            </template>
+          </Column>
+          <template #empty>
+            <div class="text-center py-6 text-[var(--text-muted)]">No contacts yet — click "Add Contact" to add one</div>
+          </template>
+        </DataTable>
       </div>
 
       <!-- Branches Section -->
@@ -395,6 +583,27 @@ function confirmDeleteBranch(branch: ClientBranch) {
       <FormField label="Country" name="edit-country" :error="editForm.errors.value.country" required>
         <InputText id="edit-country" v-model="editCountry" v-bind="editCountryAttrs" placeholder="e.g. MX" class="w-full" :disabled="isEditSubmitting" />
       </FormField>
+      <FormField label="Website" name="edit-website" :error="editForm.errors.value.website">
+        <InputText id="edit-website" v-model="editWebsite" v-bind="editWebsiteAttrs" placeholder="https://example.com" class="w-full" :disabled="isEditSubmitting" />
+      </FormField>
+      <div class="grid grid-cols-2 gap-3">
+        <FormField label="Industry" name="edit-industry" :error="editForm.errors.value.industry">
+          <InputText id="edit-industry" v-model="editIndustry" v-bind="editIndustryAttrs" placeholder="e.g. Restaurant" class="w-full" :disabled="isEditSubmitting" />
+        </FormField>
+        <FormField label="Segment" name="edit-segment">
+          <Select
+            v-model="editSegment"
+            :options="[{ label: '— None —', value: '' }, { label: 'SMB', value: 'SMB' }, { label: 'Mid-Market', value: 'MID_MARKET' }, { label: 'Enterprise', value: 'ENTERPRISE' }]"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            :disabled="isEditSubmitting"
+          />
+        </FormField>
+      </div>
+      <FormField label="Notes" name="edit-notes" :error="editForm.errors.value.notes">
+        <Textarea id="edit-notes" v-model="editNotes" v-bind="editNotesAttrs" placeholder="Internal notes about this client..." :rows="3" class="w-full" :disabled="isEditSubmitting" />
+      </FormField>
     </form>
     <template #footer>
       <div class="flex justify-end gap-2">
@@ -439,6 +648,53 @@ function confirmDeleteBranch(branch: ClientBranch) {
       <div class="flex justify-end gap-2">
         <Button label="Cancel" severity="secondary" outlined :disabled="isEditingBranch" @click="showEditBranchDialog = false" />
         <Button label="Save Changes" :loading="isEditingBranch" @click="onEditBranchSubmit" />
+      </div>
+    </template>
+  </AppDialog>
+
+  <!-- Add / Edit Contact Dialog -->
+  <AppDialog
+    v-model:visible="showContactDialog"
+    :title="editingContact ? 'Edit Contact' : 'Add Contact'"
+    :loading="isSubmittingContact"
+  >
+    <form class="flex flex-col gap-4" @submit.prevent="onSubmitContact">
+      <FormField label="Full Name" name="cf-fullName" :error="contactForm.errors.value.fullName" required>
+        <InputText v-model="cfFullName" v-bind="cfFullNameAttrs" placeholder="John Doe" class="w-full" :disabled="isSubmittingContact" />
+      </FormField>
+      <div class="grid grid-cols-2 gap-3">
+        <FormField label="Email" name="cf-email" :error="contactForm.errors.value.email">
+          <InputText v-model="cfEmail" v-bind="cfEmailAttrs" placeholder="john@example.com" class="w-full" :disabled="isSubmittingContact" />
+        </FormField>
+        <FormField label="Phone" name="cf-phone" :error="contactForm.errors.value.phone">
+          <InputText v-model="cfPhone" v-bind="cfPhoneAttrs" placeholder="+52 55 1234 5678" class="w-full" :disabled="isSubmittingContact" />
+        </FormField>
+      </div>
+      <FormField label="Role" name="cf-role" :error="contactForm.errors.value.role" required>
+        <Select v-model="cfRole" :options="contactRoleOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmittingContact" />
+      </FormField>
+      <FormField label="Notes" name="cf-notes">
+        <Textarea v-model="cfNotes" v-bind="cfNotesAttrs" placeholder="e.g. Call before noon, handles billing" :rows="2" class="w-full" :disabled="isSubmittingContact" />
+      </FormField>
+      <div class="flex items-center gap-3 py-1">
+        <button
+          type="button"
+          :class="['relative w-11 h-6 rounded-full transition-colors duration-200', cfPrimary ? 'bg-[var(--primary)]' : 'bg-[var(--border)]']"
+          :disabled="isSubmittingContact"
+          @click="cfPrimary = !cfPrimary"
+        >
+          <span :class="['absolute top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform duration-200', cfPrimary ? 'translate-x-5' : 'translate-x-0.5']" />
+        </button>
+        <div>
+          <p class="text-sm font-medium text-[var(--text)]">Primary contact</p>
+          <p class="text-xs text-[var(--text-muted)]">Marks this person as the main point of contact</p>
+        </div>
+      </div>
+    </form>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button label="Cancel" severity="secondary" outlined :disabled="isSubmittingContact" @click="showContactDialog = false" />
+        <Button :label="editingContact ? 'Save Changes' : 'Add Contact'" :loading="isSubmittingContact" @click="onSubmitContact" />
       </div>
     </template>
   </AppDialog>

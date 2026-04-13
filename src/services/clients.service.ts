@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { Client, ClientBranch, CreateClientRequest, UpdateClientRequest, ClientFilters, CreateBranchRequest } from '@/types/client'
+import type { Client, ClientBranch, ClientContact, CreateClientRequest, UpdateClientRequest, ClientFilters, CreateBranchRequest, CreateContactRequest } from '@/types/client'
 import type { PaginatedResponse } from '@/types/api'
 
 export const clientsService = {
@@ -52,5 +52,24 @@ export const clientsService = {
 
   async deleteBranch(_clientId: string, branchId: string): Promise<void> {
     await api.delete(`/clients/branches/${branchId}`)
+  },
+
+  async getContacts(clientId: string): Promise<ClientContact[]> {
+    const res = await api.get<ClientContact[]>(`/clients/${clientId}/contacts`)
+    return res.data
+  },
+
+  async addContact(clientId: string, data: CreateContactRequest): Promise<ClientContact> {
+    const res = await api.post<ClientContact>(`/clients/${clientId}/contacts`, data)
+    return res.data
+  },
+
+  async updateContact(clientId: string, contactId: string, data: CreateContactRequest): Promise<ClientContact> {
+    const res = await api.put<ClientContact>(`/clients/${clientId}/contacts/${contactId}`, data)
+    return res.data
+  },
+
+  async deleteContact(clientId: string, contactId: string): Promise<void> {
+    await api.delete(`/clients/${clientId}/contacts/${contactId}`)
   }
 }

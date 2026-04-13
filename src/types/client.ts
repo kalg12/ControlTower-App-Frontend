@@ -7,13 +7,24 @@ export interface Client {
   country?: string
   status?: string
   notes?: string
+  website?: string
+  industry?: string
+  segment?: 'SMB' | 'MID_MARKET' | 'ENTERPRISE'
+  contactCount?: number
   createdAt: string
-  // Legacy fields kept for backward compat
-  slug?: string
-  contactEmail?: string
-  contactPhone?: string
   branches?: ClientBranch[]
-  branchCount?: number
+}
+
+export interface ClientContact {
+  id: string
+  clientId: string
+  fullName: string
+  email?: string
+  phone?: string
+  role: 'OWNER' | 'TECHNICAL' | 'BILLING' | 'SUPPORT'
+  primary: boolean
+  notes?: string
+  createdAt: string
 }
 
 export interface ClientBranch {
@@ -34,13 +45,30 @@ export interface CreateClientRequest {
   legalName?: string
   taxId?: string
   country?: string
+  notes?: string
+  website?: string
+  industry?: string
+  segment?: string
 }
 
 export interface UpdateClientRequest {
-  name?: string
+  name: string
   legalName?: string
   taxId?: string
   country?: string
+  notes?: string
+  website?: string
+  industry?: string
+  segment?: string
+}
+
+export interface CreateContactRequest {
+  fullName: string
+  email?: string
+  phone?: string
+  role?: string
+  primary?: boolean
+  notes?: string
 }
 
 export interface CreateBranchRequest {
