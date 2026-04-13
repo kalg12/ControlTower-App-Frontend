@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { computed, ref, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
@@ -11,6 +12,7 @@ import Button from 'primevue/button'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
+import Paginator from 'primevue/paginator'
 import Card from '@/components/ui/Card.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
@@ -28,8 +30,16 @@ import type { Integration } from '@/types/integration'
 import type { Client, ClientBranch } from '@/types/client'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/es'
 
 dayjs.extend(relativeTime)
+
+const { t, locale } = useI18n()
+
+// Set dayjs locale to match app locale
+watch(locale, (loc) => {
+  dayjs.locale(loc === 'es' ? 'es' : 'en')
+}, { immediate: true })
 
 const toast = useToast()
 const confirm = useConfirm()
@@ -42,14 +52,18 @@ const { data: checks, isLoading, isError, refetch } = useQuery({
   refetchInterval: 30000 // auto-refresh every 30s
 })
 
-// Incident log filters
+// ── Incident log with pagination ──────────────────────────────────────
+
 const logOpenOnly = ref(false)
 const logBranchId = ref<string | undefined>(undefined)
+const logPage = ref(0)
+const logPageSize = 20
 
 const { data: incidentLogPage, isLoading: isLoadingIncidents, refetch: refetchLog } = useQuery({
-  queryKey: computed(() => ['health-incident-log', logOpenOnly.value, logBranchId.value]),
+  queryKey: computed(() => ['health-incident-log', logOpenOnly.value, logBranchId.value, logPage.value]),
   queryFn: () => healthService.getIncidentLog({
-    page: 0, size: 50,
+    page: logPage.value,
+    size: logPageSize,
     openOnly: logOpenOnly.value,
     branchId: logBranchId.value,
   }),
@@ -57,8 +71,14 @@ const { data: incidentLogPage, isLoading: isLoadingIncidents, refetch: refetchLo
   refetchInterval: 30000,
 })
 
+// Reset page when filters change
+watch([logOpenOnly, logBranchId], () => {
+  logPage.value = 0
+})
+
 const items = computed(() => checks.value ?? [])
 const incidents = computed(() => incidentLogPage.value?.content ?? [])
+const incidentTotalElements = computed(() => incidentLogPage.value?.totalElements ?? 0)
 
 const summary = computed(() => {
   const arr = items.value
@@ -112,35 +132,43 @@ function confirmResolveIncident(incident: HealthIncident) {
   if (!incident.id) return
   const where = incident.branchName ?? incident.branchId
   confirm.require({
-    message: `Mark this incident as resolved for ${where}?`,
-    header: 'Resolve Incident',
+    message: t('health.resolveConfirm', { branch: where }),
+    header: t('health.resolveTitle'),
     icon: 'pi pi-check-circle',
-    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
-    acceptProps: { label: 'Resolve', severity: 'success' },
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('health.resolve'), severity: 'success' },
     accept: async () => {
       try {
         await healthService.resolveIncident(incident.id!)
         queryClient.invalidateQueries({ queryKey: ['health-incident-log'] })
         queryClient.invalidateQueries({ queryKey: ['health-clients'] })
-        toast.success('Incident resolved successfully')
+        toast.success(t('health.resolveSuccess'))
       } catch {
-        toast.error('Failed to resolve incident')
+        toast.error(t('health.resolveFailed'))
       }
     }
   })
 }
 
-// ── Monitored POS Endpoints ───────────────────────────────────────────
+// ── Monitored POS Endpoints (paginated) ───────────────────────────────
 
 const authStore = useAuthStore()
 const canWriteIntegrations = computed(() => authStore.hasPermission('integration:write'))
 
+const posPageNum = ref(0)
+const posPageSize = 10
+
 const { data: posPage, isLoading: isLoadingPos, refetch: refetchPos } = useQuery({
-  queryKey: ['integrations-pos'],
-  queryFn: () => integrationsService.list(0, 50, 'POS'),
+  queryKey: computed(() => ['integrations-pos', posPageNum.value]),
+  queryFn: () => integrationsService.list(posPageNum.value, posPageSize, 'POS'),
   staleTime: 30000,
 })
 const posEndpoints = computed(() => posPage.value?.content ?? [])
+const posTotalElements = computed(() => posPage.value?.totalElements ?? 0)
+
+watch(posPageNum, () => {
+  refetchPos()
+})
 
 // ── Register POS modal ────────────────────────────────────────────────
 
@@ -152,9 +180,9 @@ const isLoadingClients = ref(false)
 const isLoadingBranches = ref(false)
 
 const posSchema = z.object({
-  clientId:                  z.string().min(1, 'Select a client'),
-  clientBranchId:            z.string().min(1, 'Select a branch'),
-  pullUrl:                   z.string().url('Must be a valid URL (e.g. http://pos-host:4000/health)'),
+  clientId:                  z.string().min(1, t('health.formClient')),
+  clientBranchId:            z.string().min(1, t('health.formBranch')),
+  pullUrl:                   z.string().url(t('health.formPullUrl')),
   apiKey:                    z.string().optional(),
   heartbeatIntervalSeconds:  z.number().int().min(30).max(86400),
 })
@@ -207,9 +235,9 @@ const onSubmitPos = handlePosSubmit(async (values) => {
     })
     await queryClient.invalidateQueries({ queryKey: ['integrations-pos'] })
     showRegisterModal.value = false
-    toast.success('POS endpoint registered')
+    toast.success(t('health.registerSuccess'))
   } catch {
-    toast.error('Failed to register POS endpoint')
+    toast.error(t('health.registerFailed'))
   } finally {
     isSubmittingPos.value = false
   }
@@ -218,19 +246,19 @@ const onSubmitPos = handlePosSubmit(async (values) => {
 function confirmTogglePosEndpoint(ep: Integration) {
   const activating = !ep.active
   confirm.require({
-    message: activating ? 'Activate this POS endpoint?' : 'Deactivate this POS endpoint?',
-    header: activating ? 'Activate Endpoint' : 'Deactivate Endpoint',
+    message: activating ? t('health.activateConfirm') : t('health.deactivateConfirm'),
+    header: activating ? t('health.activateTitle') : t('health.deactivateTitle'),
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
-    acceptProps: { label: activating ? 'Activate' : 'Deactivate', severity: activating ? 'success' : 'warn' },
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: activating ? t('health.activate') : t('health.deactivate'), severity: activating ? 'success' : 'warn' },
     accept: async () => {
       try {
         if (ep.active) await integrationsService.deactivate(ep.id)
         else await integrationsService.activate(ep.id)
         await queryClient.invalidateQueries({ queryKey: ['integrations-pos'] })
-        toast.success(activating ? 'Endpoint activated' : 'Endpoint deactivated')
+        toast.success(activating ? t('health.activateSuccess') : t('health.deactivateSuccess'))
       } catch {
-        toast.error('Failed to update endpoint')
+        toast.error(t('health.updateFailed'))
       }
     }
   })
@@ -238,18 +266,18 @@ function confirmTogglePosEndpoint(ep: Integration) {
 
 function confirmDeletePosEndpoint(ep: Integration) {
   confirm.require({
-    message: 'Remove this POS endpoint from monitoring?',
-    header: 'Remove Endpoint',
+    message: t('health.removeConfirm'),
+    header: t('health.removeTitle'),
     icon: 'pi pi-trash',
-    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
-    acceptProps: { label: 'Remove', severity: 'danger' },
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('health.remove'), severity: 'danger' },
     accept: async () => {
       try {
         await integrationsService.delete(ep.id)
         await queryClient.invalidateQueries({ queryKey: ['integrations-pos'] })
-        toast.success('Endpoint removed')
+        toast.success(t('health.removeSuccess'))
       } catch {
-        toast.error('Failed to remove endpoint')
+        toast.error(t('health.removeFailed'))
       }
     }
   })
@@ -267,26 +295,46 @@ async function checkNow(ep: Integration) {
       isCheckingNow.value = null
     }, 2500)
   } catch {
-    toast.error('Check Now failed')
+    toast.error(t('health.checkFailed'))
     isCheckingNow.value = null
   }
 }
+
+function statusLabel(status: HealthStatus) {
+  if (status === 'UP' || status === 'HEALTHY') return t('health.upHealthy')
+  if (status === 'DEGRADED') return t('health.degraded')
+  if (status === 'DOWN') return t('health.down')
+  return status
+}
+
+function incidentStatusLabel(open: boolean) {
+  return open ? t('health.open') : t('health.resolved')
+}
+
+function endpointStatusLabel(active: boolean) {
+  return active ? t('health.active') : t('health.inactive')
+}
+
+const branchOptions = computed(() => {
+  const base = items.value.map(c => ({ label: c.branchName ?? c.branchId, value: c.branchId }))
+  return [{ label: t('health.allBranches'), value: undefined }, ...base]
+})
 </script>
 
 <template>
   <div class="space-y-5">
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">Health Monitoring</h2>
-        <p class="text-sm text-[var(--text-muted)]">Real-time status of all branch POS systems</p>
+        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('health.title') }}</h2>
+        <p class="text-sm text-[var(--text-muted)]">{{ t('health.subtitle') }}</p>
       </div>
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
 
     <!-- Error -->
     <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
-      <span>Failed to load health data. Check your connection or permissions.</span>
-      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
+      <span>{{ t('health.loadFailed') }}</span>
+      <Button :label="t('common.retry')" size="small" severity="danger" text @click="refetch()" />
     </div>
 
     <!-- Loading -->
@@ -307,7 +355,7 @@ async function checkNow(ep: Integration) {
             </div>
             <div>
               <p class="text-2xl font-bold text-[var(--text)]">{{ summary.up }}</p>
-              <p class="text-xs text-[var(--text-muted)] font-medium">Up / Healthy</p>
+              <p class="text-xs text-[var(--text-muted)] font-medium">{{ t('health.upHealthy') }}</p>
             </div>
           </div>
         </Card>
@@ -319,7 +367,7 @@ async function checkNow(ep: Integration) {
             </div>
             <div>
               <p class="text-2xl font-bold text-[var(--text)]">{{ summary.degraded }}</p>
-              <p class="text-xs text-[var(--text-muted)] font-medium">Degraded</p>
+              <p class="text-xs text-[var(--text-muted)] font-medium">{{ t('health.degraded') }}</p>
             </div>
           </div>
         </Card>
@@ -331,7 +379,7 @@ async function checkNow(ep: Integration) {
             </div>
             <div>
               <p class="text-2xl font-bold text-[var(--text)]">{{ summary.down }}</p>
-              <p class="text-xs text-[var(--text-muted)] font-medium">Down</p>
+              <p class="text-xs text-[var(--text-muted)] font-medium">{{ t('health.down') }}</p>
             </div>
           </div>
         </Card>
@@ -345,7 +393,7 @@ async function checkNow(ep: Integration) {
         striped-rows
         class="rounded-xl overflow-hidden"
       >
-        <Column field="branchName" header="Branch" sortable style="min-width: 180px">
+        <Column field="branchName" :header="t('health.branch')" sortable style="min-width: 180px">
           <template #body="{ data: row }: { data: HealthCheck }">
             <div>
               <span class="font-medium text-[var(--text)]">{{ row.branchName ?? '—' }}</span>
@@ -361,13 +409,13 @@ async function checkNow(ep: Integration) {
           </template>
         </Column>
 
-        <Column field="status" header="Status" style="width: 130px">
+        <Column field="status" :header="t('health.status')" style="width: 130px">
           <template #body="{ data: row }: { data: HealthCheck }">
-            <Tag :severity="statusSeverity(row.status)" :value="row.status" />
+            <Tag :severity="statusSeverity(row.status)" :value="statusLabel(row.status)" />
           </template>
         </Column>
 
-        <Column field="latencyMs" header="Latency" sortable style="width: 110px">
+        <Column field="latencyMs" :header="t('health.latency')" sortable style="width: 110px">
           <template #body="{ data: row }: { data: HealthCheck }">
             <span :class="latencyClass(row.latencyMs)">
               {{ row.latencyMs != null ? `${row.latencyMs}ms` : '—' }}
@@ -375,13 +423,13 @@ async function checkNow(ep: Integration) {
           </template>
         </Column>
 
-        <Column field="version" header="Version" style="width: 110px">
+        <Column field="version" :header="t('health.version')" style="width: 110px">
           <template #body="{ data: row }: { data: HealthCheck }">
             <span class="text-[var(--text-muted)] text-sm font-mono">{{ row.version ?? '—' }}</span>
           </template>
         </Column>
 
-        <Column field="openIncidents" header="Open Incidents" style="width: 130px">
+        <Column field="openIncidents" :header="t('health.openIncidents')" style="width: 130px">
           <template #body="{ data: row }: { data: HealthCheck }">
             <Tag
               :severity="row.openIncidents > 0 ? 'danger' : 'success'"
@@ -390,14 +438,14 @@ async function checkNow(ep: Integration) {
           </template>
         </Column>
 
-        <Column field="lastCheckedAt" header="Last Check" sortable style="width: 140px">
+        <Column field="lastCheckedAt" :header="t('health.lastCheck')" sortable style="width: 140px">
           <template #body="{ data: row }: { data: HealthCheck }">
             <span class="text-[var(--text-muted)] text-sm">{{ formatTime(row.lastCheckedAt) }}</span>
           </template>
         </Column>
 
         <template #empty>
-          <div class="text-center py-8 text-[var(--text-muted)]">No health data available</div>
+          <div class="text-center py-8 text-[var(--text-muted)]">{{ t('health.noData') }}</div>
         </template>
       </DataTable>
 
@@ -405,24 +453,27 @@ async function checkNow(ep: Integration) {
       <div>
         <div class="flex items-center justify-between mb-3 flex-wrap gap-2">
           <div>
-            <h3 class="text-base font-semibold text-[var(--text)]">Incident Log</h3>
-            <p class="text-xs text-[var(--text-muted)]">History of all detected failures — open and resolved</p>
+            <h3 class="text-base font-semibold text-[var(--text)]">{{ t('health.incidentLog') }}</h3>
+            <p class="text-xs text-[var(--text-muted)]">{{ t('health.incidentLogSubtitle') }}</p>
           </div>
           <div class="flex items-center gap-2">
             <!-- Branch filter -->
             <Select
               v-model="logBranchId"
-              :options="[{ label: 'All branches', value: undefined }, ...items.map(c => ({ label: c.branchName ?? c.branchId, value: c.branchId }))]"
+              :options="branchOptions"
               option-label="label"
               option-value="value"
-              placeholder="All branches"
+              :placeholder="t('health.allBranches')"
               size="small"
               class="w-44"
             />
             <!-- Status filter -->
             <Select
               v-model="logOpenOnly"
-              :options="[{ label: 'All', value: false }, { label: 'Open only', value: true }]"
+              :options="[
+                { label: t('health.all'), value: false },
+                { label: t('health.openOnly'), value: true }
+              ]"
               option-label="label"
               option-value="value"
               size="small"
@@ -434,97 +485,108 @@ async function checkNow(ep: Integration) {
 
         <SkeletonTable v-if="isLoadingIncidents" :rows="5" :cols="6" />
 
-        <DataTable
-          v-else
-          :value="incidents"
-          removable-sort
-          striped-rows
-          class="rounded-xl overflow-hidden"
-        >
-          <Column field="severity" header="Severity" style="width: 110px">
-            <template #body="{ data: row }: { data: HealthIncident }">
-              <Tag :severity="incidentSeverity(row.severity)" :value="row.severity" />
-            </template>
-          </Column>
+        <template v-else>
+          <DataTable
+            :value="incidents"
+            removable-sort
+            striped-rows
+            class="rounded-xl overflow-hidden"
+          >
+            <Column field="severity" :header="t('health.severity')" style="width: 110px">
+              <template #body="{ data: row }: { data: HealthIncident }">
+                <Tag :severity="incidentSeverity(row.severity)" :value="row.severity" />
+              </template>
+            </Column>
 
-          <Column field="branchName" header="Branch" style="width: 170px">
-            <template #body="{ data: row }: { data: HealthIncident }">
-              <div>
-                <span class="text-sm font-medium text-[var(--text)]">{{ row.branchName ?? '—' }}</span>
-                <span class="block text-xs text-[var(--text-muted)] font-mono truncate max-w-[140px]" :title="row.branchId">{{ row.branchId }}</span>
-              </div>
-            </template>
-          </Column>
+            <Column field="branchName" :header="t('health.branch')" style="width: 170px">
+              <template #body="{ data: row }: { data: HealthIncident }">
+                <div>
+                  <span class="text-sm font-medium text-[var(--text)]">{{ row.branchName ?? '—' }}</span>
+                  <span class="block text-xs text-[var(--text-muted)] font-mono truncate max-w-[140px]" :title="row.branchId">{{ row.branchId }}</span>
+                </div>
+              </template>
+            </Column>
 
-          <Column field="description" header="Description" style="min-width: 220px">
-            <template #body="{ data: row }: { data: HealthIncident }">
-              <span class="text-sm text-[var(--text)] break-words">{{ row.description }}</span>
-            </template>
-          </Column>
+            <Column field="description" :header="t('health.description')" style="min-width: 220px">
+              <template #body="{ data: row }: { data: HealthIncident }">
+                <span class="text-sm text-[var(--text)] break-words">{{ row.description }}</span>
+              </template>
+            </Column>
 
-          <Column field="openedAt" header="Started" sortable style="width: 150px">
-            <template #body="{ data: row }: { data: HealthIncident }">
-              <div>
-                <span class="text-sm text-[var(--text-muted)]">{{ formatDateTime(row.openedAt) }}</span>
-                <span class="block text-xs text-[var(--text-muted)]">{{ formatTime(row.openedAt) }}</span>
-              </div>
-            </template>
-          </Column>
+            <Column field="openedAt" :header="t('health.started')" sortable style="width: 150px">
+              <template #body="{ data: row }: { data: HealthIncident }">
+                <div>
+                  <span class="text-sm text-[var(--text-muted)]">{{ formatDateTime(row.openedAt) }}</span>
+                  <span class="block text-xs text-[var(--text-muted)]">{{ formatTime(row.openedAt) }}</span>
+                </div>
+              </template>
+            </Column>
 
-          <Column field="durationSeconds" header="Duration" sortable style="width: 100px">
-            <template #body="{ data: row }: { data: HealthIncident }">
-              <span
-                class="text-sm font-medium"
-                :class="row.open ? 'text-red-500' : 'text-[var(--text-muted)]'"
-              >
-                {{ formatDuration(row.durationSeconds) }}
-              </span>
-            </template>
-          </Column>
+            <Column field="durationSeconds" :header="t('health.duration')" sortable style="width: 100px">
+              <template #body="{ data: row }: { data: HealthIncident }">
+                <span
+                  class="text-sm font-medium"
+                  :class="row.open ? 'text-red-500' : 'text-[var(--text-muted)]'"
+                >
+                  {{ formatDuration(row.durationSeconds) }}
+                </span>
+              </template>
+            </Column>
 
-          <Column field="open" header="Status" style="width: 110px">
-            <template #body="{ data: row }: { data: HealthIncident }">
-              <Tag
-                :severity="row.open ? 'danger' : 'success'"
-                :value="row.open ? 'Open' : 'Resolved'"
-              />
-            </template>
-          </Column>
+            <Column field="open" :header="t('health.status')" style="width: 110px">
+              <template #body="{ data: row }: { data: HealthIncident }">
+                <Tag
+                  :severity="row.open ? 'danger' : 'success'"
+                  :value="incidentStatusLabel(row.open)"
+                />
+              </template>
+            </Column>
 
-          <Column header="" style="width: 110px">
-            <template #body="{ data: row }: { data: HealthIncident }">
-              <Button
-                v-if="row.open && row.id"
-                label="Resolve"
-                size="small"
-                severity="secondary"
-                outlined
-                @click="confirmResolveIncident(row)"
-              />
-              <span v-else-if="row.resolvedAt" class="text-xs text-[var(--text-muted)]">
-                {{ formatTime(row.resolvedAt) }}
-              </span>
-            </template>
-          </Column>
+            <Column header="" style="width: 110px">
+              <template #body="{ data: row }: { data: HealthIncident }">
+                <Button
+                  v-if="row.open && row.id"
+                  :label="t('health.resolve')"
+                  size="small"
+                  severity="secondary"
+                  outlined
+                  @click="confirmResolveIncident(row)"
+                />
+                <span v-else-if="row.resolvedAt" class="text-xs text-[var(--text-muted)]">
+                  {{ formatTime(row.resolvedAt) }}
+                </span>
+              </template>
+            </Column>
 
-          <template #empty>
-            <div class="text-center py-8 text-[var(--text-muted)]">No incidents recorded</div>
-          </template>
-        </DataTable>
+            <template #empty>
+              <div class="text-center py-8 text-[var(--text-muted)]">{{ t('health.noIncidents') }}</div>
+            </template>
+          </DataTable>
+
+          <!-- Incident log paginator -->
+          <Paginator
+            v-if="incidentTotalElements > logPageSize"
+            :rows="logPageSize"
+            :total-records="incidentTotalElements"
+            :page="logPage"
+            @page="logPage = $event.page"
+            class="rounded-xl mt-2"
+          />
+        </template>
       </div>
 
       <!-- Monitored POS Endpoints -->
       <div>
         <div class="flex items-center justify-between mb-3">
           <div>
-            <h3 class="text-base font-semibold text-[var(--text)]">Monitored POS Endpoints</h3>
-            <p class="text-xs text-[var(--text-muted)]">POS systems polled every 60s by the pull scheduler</p>
+            <h3 class="text-base font-semibold text-[var(--text)]">{{ t('health.monitoredEndpoints') }}</h3>
+            <p class="text-xs text-[var(--text-muted)]">{{ t('health.endpointsSubtitle') }}</p>
           </div>
           <div class="flex gap-2">
             <Button icon="pi pi-refresh" severity="secondary" outlined size="small" @click="refetchPos()" />
             <Button
               v-if="canWriteIntegrations"
-              label="Register POS"
+              :label="t('health.registerPos')"
               icon="pi pi-plus"
               size="small"
               @click="openRegisterModal"
@@ -534,74 +596,85 @@ async function checkNow(ep: Integration) {
 
         <SkeletonTable v-if="isLoadingPos" :rows="3" :cols="5" />
 
-        <DataTable
-          v-else
-          :value="posEndpoints"
-          removable-sort
-          striped-rows
-          class="rounded-xl overflow-hidden"
-        >
-          <Column field="clientBranchId" header="Branch ID" style="min-width: 200px">
-            <template #body="{ data: row }: { data: Integration }">
-              <span class="text-xs text-[var(--text-muted)] font-mono">{{ row.clientBranchId ?? '—' }}</span>
-            </template>
-          </Column>
+        <template v-else>
+          <DataTable
+            :value="posEndpoints"
+            removable-sort
+            striped-rows
+            class="rounded-xl overflow-hidden"
+          >
+            <Column field="clientBranchId" :header="t('health.branchId')" style="min-width: 200px">
+              <template #body="{ data: row }: { data: Integration }">
+                <span class="text-xs text-[var(--text-muted)] font-mono">{{ row.clientBranchId ?? '—' }}</span>
+              </template>
+            </Column>
 
-          <Column field="pullUrl" header="Pull URL" style="min-width: 240px">
-            <template #body="{ data: row }: { data: Integration }">
-              <span class="text-xs text-[var(--text-muted)] font-mono truncate block max-w-xs" :title="row.pullUrl">
-                {{ row.pullUrl ?? '—' }}
-              </span>
-            </template>
-          </Column>
+            <Column field="pullUrl" :header="t('health.pullUrl')" style="min-width: 240px">
+              <template #body="{ data: row }: { data: Integration }">
+                <span class="text-xs text-[var(--text-muted)] font-mono truncate block max-w-xs" :title="row.pullUrl">
+                  {{ row.pullUrl ?? '—' }}
+                </span>
+              </template>
+            </Column>
 
-          <Column field="heartbeatIntervalSeconds" header="Interval" sortable style="width: 100px">
-            <template #body="{ data: row }: { data: Integration }">
-              <span class="text-sm text-[var(--text-muted)]">{{ row.heartbeatIntervalSeconds }}s</span>
-            </template>
-          </Column>
+            <Column field="heartbeatIntervalSeconds" :header="t('health.interval')" sortable style="width: 100px">
+              <template #body="{ data: row }: { data: Integration }">
+                <span class="text-sm text-[var(--text-muted)]">{{ row.heartbeatIntervalSeconds }}s</span>
+              </template>
+            </Column>
 
-          <Column field="active" header="Status" style="width: 110px">
-            <template #body="{ data: row }: { data: Integration }">
-              <Tag :severity="row.active ? 'success' : 'secondary'" :value="row.active ? 'Active' : 'Inactive'" />
-            </template>
-          </Column>
+            <Column field="active" :header="t('health.status')" style="width: 110px">
+              <template #body="{ data: row }: { data: Integration }">
+                <Tag :severity="row.active ? 'success' : 'secondary'" :value="endpointStatusLabel(row.active)" />
+              </template>
+            </Column>
 
-          <Column v-if="canWriteIntegrations" header="Actions" style="width: 130px">
-            <template #body="{ data: row }: { data: Integration }">
-              <div class="flex gap-1">
-                <Button
-                  icon="pi pi-refresh"
-                  severity="info"
-                  text rounded size="small"
-                  :loading="isCheckingNow === row.id"
-                  v-tooltip.top="'Check Now'"
-                  @click="checkNow(row)"
-                />
-                <Button
-                  :icon="row.active ? 'pi pi-pause' : 'pi pi-play'"
-                  :severity="row.active ? 'warn' : 'success'"
-                  text rounded size="small"
-                  v-tooltip.top="row.active ? 'Deactivate' : 'Activate'"
-                  @click="confirmTogglePosEndpoint(row)"
-                />
-                <Button
-                  icon="pi pi-trash"
-                  severity="danger"
-                  text rounded size="small"
-                  v-tooltip.top="'Remove'"
-                  @click="confirmDeletePosEndpoint(row)"
-                />
+            <Column v-if="canWriteIntegrations" :header="t('health.actions')" style="width: 130px">
+              <template #body="{ data: row }: { data: Integration }">
+                <div class="flex gap-1">
+                  <Button
+                    icon="pi pi-refresh"
+                    severity="info"
+                    text rounded size="small"
+                    :loading="isCheckingNow === row.id"
+                    v-tooltip.top="t('health.checkNow')"
+                    @click="checkNow(row)"
+                  />
+                  <Button
+                    :icon="row.active ? 'pi pi-pause' : 'pi pi-play'"
+                    :severity="row.active ? 'warn' : 'success'"
+                    text rounded size="small"
+                    v-tooltip.top="row.active ? t('health.deactivate') : t('health.activate')"
+                    @click="confirmTogglePosEndpoint(row)"
+                  />
+                  <Button
+                    icon="pi pi-trash"
+                    severity="danger"
+                    text rounded size="small"
+                    v-tooltip.top="t('health.remove')"
+                    @click="confirmDeletePosEndpoint(row)"
+                  />
+                </div>
+              </template>
+            </Column>
+
+            <template #empty>
+              <div class="text-center py-6 text-[var(--text-muted)]">
+                {{ t('health.noEndpoints') }}
               </div>
             </template>
-          </Column>
+          </DataTable>
 
-          <template #empty>
-            <div class="text-center py-6 text-[var(--text-muted)]">
-              No POS endpoints registered — click "Register POS" to add one
-            </div>
-          </template>
-        </DataTable>
+          <!-- POS endpoints paginator -->
+          <Paginator
+            v-if="posTotalElements > posPageSize"
+            :rows="posPageSize"
+            :total-records="posTotalElements"
+            :page="posPageNum"
+            @page="posPageNum = $event.page"
+            class="rounded-xl mt-2"
+          />
+        </template>
       </div>
     </template>
   </div>
@@ -609,17 +682,17 @@ async function checkNow(ep: Integration) {
   <!-- Register POS Modal -->
   <AppDialog
     v-model:visible="showRegisterModal"
-    title="Register POS Endpoint"
+    :title="t('health.registerTitle')"
     :loading="isSubmittingPos"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onSubmitPos">
-      <FormField label="Client" name="clientId" :error="posErrors.clientId" required>
+      <FormField :label="t('health.formClient')" name="clientId" :error="posErrors.clientId" required>
         <Select
           v-model="clientIdValue"
           :options="clients"
           option-label="name"
           option-value="id"
-          placeholder="Select a client"
+          :placeholder="t('health.formClient')"
           :loading="isLoadingClients"
           :disabled="isSubmittingPos"
           class="w-full"
@@ -627,38 +700,38 @@ async function checkNow(ep: Integration) {
         />
       </FormField>
 
-      <FormField label="Branch" name="clientBranchId" :error="posErrors.clientBranchId" required>
+      <FormField :label="t('health.formBranch')" name="clientBranchId" :error="posErrors.clientBranchId" required>
         <Select
           v-model="branchIdValue"
           :options="branches"
           option-label="name"
           option-value="id"
-          placeholder="Select a branch"
+          :placeholder="t('health.formBranch')"
           :loading="isLoadingBranches"
           :disabled="!clientIdValue || isSubmittingPos"
           class="w-full"
         />
       </FormField>
 
-      <FormField label="Pull URL" name="pullUrl" :error="posErrors.pullUrl" required>
+      <FormField :label="t('health.formPullUrl')" name="pullUrl" :error="posErrors.pullUrl" required>
         <InputText
           v-model="pullUrlValue"
-          placeholder="http://pos-host:4000/health"
+          :placeholder="t('health.formPullUrl')"
           :disabled="isSubmittingPos"
           class="w-full"
         />
       </FormField>
 
-      <FormField label="API Key (optional)" name="apiKey" :error="posErrors.apiKey">
+      <FormField :label="t('health.formApiKey')" name="apiKey" :error="posErrors.apiKey">
         <InputText
           v-model="apiKeyValue"
-          placeholder="Leave empty if /health is public"
+          :placeholder="t('health.formApiKey')"
           :disabled="isSubmittingPos"
           class="w-full"
         />
       </FormField>
 
-      <FormField label="Poll interval (seconds)" name="heartbeatIntervalSeconds" :error="posErrors.heartbeatIntervalSeconds">
+      <FormField :label="t('health.formInterval')" name="heartbeatIntervalSeconds" :error="posErrors.heartbeatIntervalSeconds">
         <InputNumber
           v-model="heartbeatValue"
           :min="30"
@@ -671,8 +744,8 @@ async function checkNow(ep: Integration) {
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="Cancel" severity="secondary" outlined :disabled="isSubmittingPos" @click="showRegisterModal = false" />
-        <Button label="Register" :loading="isSubmittingPos" @click="onSubmitPos" />
+        <Button :label="t('common.cancel')" severity="secondary" outlined :disabled="isSubmittingPos" @click="showRegisterModal = false" />
+        <Button :label="t('health.registerPos')" :loading="isSubmittingPos" @click="onSubmitPos" />
       </div>
     </template>
   </AppDialog>

@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { computed } from 'vue'
+import { computed, watch } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
 import VueApexCharts from 'vue3-apexcharts'
@@ -20,8 +21,14 @@ import {
   CheckCircle2,
   Clock
 } from 'lucide-vue-next'
+import 'dayjs/locale/es'
+
+const { t, locale } = useI18n()
 
 dayjs.extend(relativeTime)
+watch(locale, (loc) => {
+  dayjs.locale(loc === 'es' ? 'es' : 'en')
+}, { immediate: true })
 
 const router = useRouter()
 
@@ -33,7 +40,6 @@ const { data, isLoading, isError, refetch, isFetching } = useQuery({
 })
 
 // Branch Health — Donut chart (ApexCharts)
-// Guard against all-zero which crashes ApexCharts donut
 const healthDonutSeries = computed(() => {
   const up = data.value?.branchesUp ?? 0
   const deg = data.value?.branchesDegraded ?? 0
@@ -43,7 +49,7 @@ const healthDonutSeries = computed(() => {
 
 const healthDonutOptions = computed<ApexOptions>(() => ({
   chart: { type: 'donut', background: 'transparent', toolbar: { show: false } },
-  labels: ['Up', 'Degraded', 'Down'],
+  labels: [t('dashboard.chartUp'), t('dashboard.chartDegraded'), t('dashboard.chartDown')],
   colors: ['#22c55e', '#f59e0b', '#ef4444'],
   legend: { position: 'bottom', fontSize: '12px', fontFamily: 'inherit' },
   dataLabels: { enabled: false },
@@ -52,14 +58,14 @@ const healthDonutOptions = computed<ApexOptions>(() => ({
       show: true,
       total: {
         show: true,
-        label: 'Total',
+        label: t('dashboard.chartTotal'),
         formatter: () => String(data.value?.activeBranches ?? 0)
       }
     } } }
   },
   stroke: { width: 0 },
   tooltip: { theme: 'dark' },
-  noData: { text: 'No data available', align: 'center', verticalAlign: 'middle', style: { fontSize: '13px' } }
+  noData: { text: t('dashboard.noData'), align: 'center', verticalAlign: 'middle', style: { fontSize: '13px' } }
 }))
 
 // Ticket breakdown — Radial bar chart
@@ -74,7 +80,7 @@ const ticketRadialSeries = computed(() => {
 
 const ticketRadialOptions = computed<ApexOptions>(() => ({
   chart: { type: 'radialBar', background: 'transparent', toolbar: { show: false } },
-  labels: ['Open', 'In Progress'],
+  labels: [t('dashboard.chartOpen'), t('dashboard.chartInProgress')],
   colors: ['#6366f1', '#f59e0b'],
   legend: { show: true, position: 'bottom', fontSize: '12px', fontFamily: 'inherit' },
   plotOptions: {
@@ -88,12 +94,12 @@ const ticketRadialOptions = computed<ApexOptions>(() => ({
     }
   },
   tooltip: { theme: 'dark' },
-  noData: { text: 'No tickets', align: 'center', verticalAlign: 'middle', style: { fontSize: '13px' } }
+  noData: { text: t('dashboard.noTickets'), align: 'center', verticalAlign: 'middle', style: { fontSize: '13px' } }
 }))
 
 // License breakdown — bar chart
 const licenseBarSeries = computed(() => [{
-  name: 'Licenses',
+  name: t('dashboard.licenses'),
   data: [
     data.value?.activeLicenses ?? 0,
     data.value?.trialLicenses ?? 0,
@@ -103,7 +109,10 @@ const licenseBarSeries = computed(() => [{
 
 const licenseBarOptions = computed<ApexOptions>(() => ({
   chart: { type: 'bar', background: 'transparent', toolbar: { show: false }, sparkline: { enabled: false } },
-  xaxis: { categories: ['Active', 'Trial', 'Expired'], labels: { style: { fontFamily: 'inherit', fontSize: '12px' } } },
+  xaxis: {
+    categories: [t('dashboard.chartActive'), t('dashboard.chartTrial'), t('dashboard.chartExpired')],
+    labels: { style: { fontFamily: 'inherit', fontSize: '12px' } }
+  },
   yaxis: { labels: { style: { fontFamily: 'inherit' } } },
   colors: ['#22c55e', '#6366f1', '#ef4444'],
   plotOptions: { bar: { distributed: true, borderRadius: 6, columnWidth: '50%' } },
@@ -111,7 +120,7 @@ const licenseBarOptions = computed<ApexOptions>(() => ({
   dataLabels: { enabled: true, style: { fontFamily: 'inherit', fontWeight: 600 } },
   tooltip: { theme: 'dark' },
   grid: { borderColor: 'var(--border, #e5e7eb)' },
-  noData: { text: 'No licenses', align: 'center', verticalAlign: 'middle', style: { fontSize: '13px' } }
+  noData: { text: t('dashboard.noLicenses'), align: 'center', verticalAlign: 'middle', style: { fontSize: '13px' } }
 }))
 
 const healthPercentage = computed(() => {
@@ -138,13 +147,13 @@ function formatNow() {
 
     <!-- Error banner (non-blocking) -->
     <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400">
-      Failed to load dashboard data. Showing last known values.
+      {{ t('dashboard.loadFailed') }}
     </div>
 
     <template v-if="!isLoading">
       <!-- Header row: last updated + refresh -->
       <div class="flex items-center justify-between">
-        <p class="text-xs text-[var(--text-placeholder)]">Updated {{ formatNow() }}</p>
+        <p class="text-xs text-[var(--text-placeholder)]">{{ t('dashboard.updated') }} {{ formatNow() }}</p>
         <button
           class="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-raised)]"
           :class="isFetching ? 'opacity-50 pointer-events-none' : ''"
@@ -153,7 +162,7 @@ function formatNow() {
           <svg :class="['w-3.5 h-3.5', isFetching ? 'animate-spin' : '']" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="2">
             <path stroke-linecap="round" stroke-linejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
           </svg>
-          {{ isFetching ? 'Refreshing...' : 'Refresh' }}
+          {{ isFetching ? t('dashboard.refreshing') : t('dashboard.refresh') }}
         </button>
       </div>
 
@@ -163,7 +172,7 @@ function formatNow() {
         <Card class="cursor-pointer hover:border-[var(--primary)]/40 transition-colors" @click="router.push('/clients')">
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Clients</p>
+              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">{{ t('dashboard.clients') }}</p>
               <p class="text-2xl font-bold text-[var(--text)]">{{ data?.totalClients ?? 0 }}</p>
             </div>
             <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center">
@@ -171,7 +180,7 @@ function formatNow() {
             </div>
           </div>
           <p class="text-xs text-[var(--text-muted)] mt-2 flex items-center gap-1">
-            <TrendingUp class="w-3 h-3" /> View all clients
+            <TrendingUp class="w-3 h-3" /> {{ t('dashboard.viewAllClients') }}
           </p>
         </Card>
 
@@ -179,7 +188,7 @@ function formatNow() {
         <Card class="cursor-pointer hover:border-[var(--primary)]/40 transition-colors" @click="router.push('/tickets')">
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Open Tickets</p>
+              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">{{ t('dashboard.openTickets') }}</p>
               <p class="text-2xl font-bold text-[var(--text)]">{{ data?.openTickets ?? 0 }}</p>
             </div>
             <div class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950 flex items-center justify-center">
@@ -188,10 +197,10 @@ function formatNow() {
           </div>
           <div class="mt-2 flex items-center gap-2">
             <span v-if="(data?.slaBreachedTickets ?? 0) > 0" class="text-xs text-red-500 flex items-center gap-1">
-              <AlertTriangle class="w-3 h-3" /> {{ data?.slaBreachedTickets }} SLA breach
+              <AlertTriangle class="w-3 h-3" /> {{ data?.slaBreachedTickets }} {{ t('dashboard.slaBreach') }}
             </span>
             <span v-else class="text-xs text-green-500 flex items-center gap-1">
-              <CheckCircle2 class="w-3 h-3" /> SLA OK
+              <CheckCircle2 class="w-3 h-3" /> {{ t('dashboard.slaOk') }}
             </span>
           </div>
         </Card>
@@ -200,7 +209,7 @@ function formatNow() {
         <Card class="cursor-pointer hover:border-[var(--primary)]/40 transition-colors" @click="router.push('/health')">
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Branch Health</p>
+              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">{{ t('dashboard.branchHealth') }}</p>
               <p class="text-2xl font-bold text-[var(--text)]">
                 {{ healthPercentage }}<span class="text-base font-normal text-[var(--text-muted)]">%</span>
               </p>
@@ -216,14 +225,14 @@ function formatNow() {
               :style="{ width: healthPercentage + '%' }"
             />
           </div>
-          <p class="text-xs text-[var(--text-muted)] mt-1.5">{{ data?.branchesUp ?? 0 }}/{{ data?.activeBranches ?? 0 }} up</p>
+          <p class="text-xs text-[var(--text-muted)] mt-1.5">{{ data?.branchesUp ?? 0 }}/{{ data?.activeBranches ?? 0 }} {{ t('dashboard.up') }}</p>
         </Card>
 
         <!-- Licenses -->
         <Card class="cursor-pointer hover:border-[var(--primary)]/40 transition-colors" @click="router.push('/licenses')">
           <div class="flex items-start justify-between">
             <div>
-              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">Licenses</p>
+              <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wider mb-1">{{ t('dashboard.licenses') }}</p>
               <p class="text-2xl font-bold text-[var(--text)]">{{ data?.activeLicenses ?? 0 }}</p>
             </div>
             <div class="w-9 h-9 rounded-lg bg-violet-50 dark:bg-violet-950 flex items-center justify-center">
@@ -231,10 +240,10 @@ function formatNow() {
             </div>
           </div>
           <div class="mt-2 flex items-center gap-3 text-xs">
-            <span v-if="(data?.trialLicenses ?? 0) > 0" class="text-blue-500">{{ data?.trialLicenses }} trial</span>
-            <span v-if="(data?.expiredLicenses ?? 0) > 0" class="text-red-500">{{ data?.expiredLicenses }} expired</span>
+            <span v-if="(data?.trialLicenses ?? 0) > 0" class="text-blue-500">{{ data?.trialLicenses }} {{ t('dashboard.trial') }}</span>
+            <span v-if="(data?.expiredLicenses ?? 0) > 0" class="text-red-500">{{ data?.expiredLicenses }} {{ t('dashboard.expired') }}</span>
             <span v-if="!(data?.trialLicenses) && !(data?.expiredLicenses)" class="text-green-500 flex items-center gap-1">
-              <CheckCircle2 class="w-3 h-3" /> All good
+              <CheckCircle2 class="w-3 h-3" /> {{ t('dashboard.allGood') }}
             </span>
           </div>
         </Card>
@@ -246,8 +255,8 @@ function formatNow() {
         <Card>
           <template #header>
             <div class="flex items-center justify-between w-full">
-              <h2 class="text-sm font-semibold text-[var(--text)]">Branch Status</h2>
-              <RouterLink to="/health" class="text-xs text-[var(--primary)] hover:underline font-medium">View Health</RouterLink>
+              <h2 class="text-sm font-semibold text-[var(--text)]">{{ t('dashboard.branchStatus') }}</h2>
+              <RouterLink to="/health" class="text-xs text-[var(--primary)] hover:underline font-medium">{{ t('dashboard.viewHealth') }}</RouterLink>
             </div>
           </template>
           <VueApexCharts
@@ -276,7 +285,7 @@ function formatNow() {
           </div>
           <p v-else class="text-xs text-green-500 text-center mt-3 flex items-center justify-center gap-1">
             <CheckCircle2 class="w-3.5 h-3.5" />
-            All systems operational
+            {{ t('dashboard.allSystemsOperational') }}
           </p>
         </Card>
 
@@ -284,8 +293,8 @@ function formatNow() {
         <Card>
           <template #header>
             <div class="flex items-center justify-between w-full">
-              <h2 class="text-sm font-semibold text-[var(--text)]">Ticket Breakdown</h2>
-              <RouterLink to="/tickets" class="text-xs text-[var(--primary)] hover:underline font-medium">View Tickets</RouterLink>
+              <h2 class="text-sm font-semibold text-[var(--text)]">{{ t('dashboard.ticketBreakdown') }}</h2>
+              <RouterLink to="/tickets" class="text-xs text-[var(--primary)] hover:underline font-medium">{{ t('dashboard.viewTickets') }}</RouterLink>
             </div>
           </template>
           <VueApexCharts
@@ -300,8 +309,8 @@ function formatNow() {
         <Card>
           <template #header>
             <div class="flex items-center justify-between w-full">
-              <h2 class="text-sm font-semibold text-[var(--text)]">License Overview</h2>
-              <RouterLink to="/licenses" class="text-xs text-[var(--primary)] hover:underline font-medium">Manage</RouterLink>
+              <h2 class="text-sm font-semibold text-[var(--text)]">{{ t('dashboard.licenseOverview') }}</h2>
+              <RouterLink to="/licenses" class="text-xs text-[var(--primary)] hover:underline font-medium">{{ t('dashboard.manage') }}</RouterLink>
             </div>
           </template>
           <VueApexCharts
@@ -321,7 +330,7 @@ function formatNow() {
               <AlertTriangle :class="['w-4.5 h-4.5', (data?.openIncidents ?? 0) > 0 ? 'text-red-500' : 'text-green-500']" />
             </div>
             <div>
-              <p class="text-xs text-[var(--text-muted)]">Open Incidents</p>
+              <p class="text-xs text-[var(--text-muted)]">{{ t('dashboard.openIncidents') }}</p>
               <p class="text-xl font-bold" :class="(data?.openIncidents ?? 0) > 0 ? 'text-red-500' : 'text-green-500'">{{ data?.openIncidents ?? 0 }}</p>
             </div>
           </div>
@@ -333,7 +342,7 @@ function formatNow() {
               <Clock class="w-4.5 h-4.5 text-amber-500" />
             </div>
             <div>
-              <p class="text-xs text-[var(--text-muted)]">In Progress</p>
+              <p class="text-xs text-[var(--text-muted)]">{{ t('dashboard.inProgress') }}</p>
               <p class="text-xl font-bold text-[var(--text)]">{{ data?.ticketsInProgress ?? 0 }}</p>
             </div>
           </div>
@@ -345,7 +354,7 @@ function formatNow() {
               <AlertTriangle :class="['w-4.5 h-4.5', (data?.slaBreachedTickets ?? 0) > 0 ? 'text-red-500' : 'text-green-500']" />
             </div>
             <div>
-              <p class="text-xs text-[var(--text-muted)]">SLA Breached</p>
+              <p class="text-xs text-[var(--text-muted)]">{{ t('dashboard.slaBreached') }}</p>
               <p class="text-xl font-bold" :class="(data?.slaBreachedTickets ?? 0) > 0 ? 'text-red-500' : 'text-green-500'">{{ data?.slaBreachedTickets ?? 0 }}</p>
             </div>
           </div>
@@ -357,7 +366,7 @@ function formatNow() {
               <MessageSquare class="w-4.5 h-4.5 text-blue-500" />
             </div>
             <div>
-              <p class="text-xs text-[var(--text-muted)]">Notifications</p>
+              <p class="text-xs text-[var(--text-muted)]">{{ t('dashboard.notifications') }}</p>
               <p class="text-xl font-bold text-[var(--text)]">{{ data?.unreadNotifications ?? 0 }}</p>
             </div>
           </div>
