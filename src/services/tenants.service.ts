@@ -29,5 +29,9 @@ export const tenantsService = {
 
   async reactivate(id: string): Promise<void> {
     await api.post(`/tenants/${id}/reactivate`)
+  },
+
+  async delete(id: string): Promise<void> {
+    await api.delete(`/tenants/${id}`)
   }
 }

@@ -470,7 +470,11 @@
     "reactivateConfirm": "Reactivate \"{name}\"?",
     "reactivateTitle": "Reactivate Tenant",
     "reactivateSuccess": "Tenant reactivated",
-    "reactivateFailed": "Could not reactivate tenant"
+    "reactivateFailed": "Could not reactivate tenant",
+    "deleteConfirm": "Permanently delete \"{name}\"? This action cannot be undone.",
+    "deleteTitle": "Delete Tenant",
+    "deleteSuccess": "Tenant deleted",
+    "deleteFailed": "Could not delete tenant"
   },
   "users": {
     "title": "Users",

@@ -115,6 +115,25 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
   }
 })
 
+function confirmDelete(tenant: Tenant) {
+  confirm.require({
+    message: t('tenants.deleteConfirm', { name: tenant.name }),
+    header: t('tenants.deleteTitle'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: async () => {
+      try {
+        await tenantsService.delete(tenant.id)
+        await queryClient.invalidateQueries({ queryKey: ['tenants'] })
+        toast.success(t('tenants.deleteSuccess'))
+      } catch {
+        toast.error(t('tenants.deleteFailed'))
+      }
+    }
+  })
+}
+
 function confirmSuspend(tenant: Tenant) {
   const action = tenant.status === 'SUSPENDED' ? 'reactivate' : 'suspend'
   confirm.require({
@@ -189,6 +208,7 @@ function confirmSuspend(tenant: Tenant) {
           <div class="flex gap-1">
             <Button icon="pi pi-pencil" severity="secondary" text rounded size="small" v-tooltip.top="t('common.edit')" @click="openEditDialog(row)" />
             <Button :icon="row.status === 'SUSPENDED' ? 'pi pi-play' : 'pi pi-pause'" :severity="row.status === 'SUSPENDED' ? 'success' : 'warn'" text rounded size="small" v-tooltip.top="row.status === 'SUSPENDED' ? t('common.reactivate') : t('common.suspend')" @click="confirmSuspend(row)" />
+            <Button icon="pi pi-trash" severity="danger" text rounded size="small" v-tooltip.top="t('common.delete')" @click="confirmDelete(row)" />
           </div>
         </template>
       </Column>

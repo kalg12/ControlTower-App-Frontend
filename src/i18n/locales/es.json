@@ -419,7 +419,11 @@
     "reactivateConfirm": "¿Reactivar a \"{name}\"?",
     "reactivateTitle": "Reactivar Inquilino",
     "reactivateSuccess": "Inquilino reactivado",
-    "reactivateFailed": "No se pudo reactivar el inquilino"
+    "reactivateFailed": "No se pudo reactivar el inquilino",
+    "deleteConfirm": "¿Eliminar definitivamente a \"{name}\"? Esta acción no se puede deshacer.",
+    "deleteTitle": "Eliminar Inquilino",
+    "deleteSuccess": "Inquilino eliminado",
+    "deleteFailed": "No se pudo eliminar el inquilino"
   },
   "users": {
     "title": "Usuarios",
