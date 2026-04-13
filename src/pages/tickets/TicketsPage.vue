@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
 import { useConfirm } from 'primevue/useconfirm'
@@ -23,6 +24,7 @@ import dayjs from 'dayjs'
 import type { Ticket, TicketStatus, TicketPriority, TicketSource } from '@/types/ticket'
 import SourceBadge from '@/components/tickets/SourceBadge.vue'
 
+const { t } = useI18n()
 const router = useRouter()
 const queryClient = useQueryClient()
 const toast = useToast()
@@ -30,18 +32,18 @@ const confirm = useConfirm()
 
 function confirmDeleteTicket(ticket: Ticket) {
   confirm.require({
-    message: `Delete "${ticket.title}"? This cannot be undone.`,
-    header: 'Delete Ticket',
+    message: t('tickets.deleteConfirm', { title: ticket.title }),
+    header: t('tickets.deleteHeader'),
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
-    acceptProps: { label: 'Delete', severity: 'danger' },
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
     accept: async () => {
       try {
         await ticketsService.delete(ticket.id)
         await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-        toast.success('Ticket deleted')
+        toast.success(t('tickets.deleteSuccess'))
       } catch {
-        toast.error('Failed to delete ticket')
+        toast.error(t('tickets.deleteFailed'))
       }
     }
   })
@@ -88,46 +90,46 @@ const tickets = computed(() => {
 })
 const totalRecords = computed(() => result.value?.totalElements ?? 0)
 
-const statuses: { label: string; value: TicketStatus | null }[] = [
-  { label: 'All Status', value: null },
-  { label: 'Open', value: 'OPEN' },
-  { label: 'In Progress', value: 'IN_PROGRESS' },
-  { label: 'Waiting', value: 'WAITING' },
-  { label: 'Resolved', value: 'RESOLVED' },
-  { label: 'Closed', value: 'CLOSED' }
-]
+const statusOptionsFilter = computed(() => [
+  { label: t('tickets.allStatus'), value: null as TicketStatus | null },
+  { label: t('tickets.statusOpen'), value: 'OPEN' as TicketStatus },
+  { label: t('tickets.statusInProgress'), value: 'IN_PROGRESS' as TicketStatus },
+  { label: t('tickets.statusWaiting'), value: 'WAITING' as TicketStatus },
+  { label: t('tickets.statusResolved'), value: 'RESOLVED' as TicketStatus },
+  { label: t('tickets.statusClosed'), value: 'CLOSED' as TicketStatus }
+])
 
-const priorities: { label: string; value: TicketPriority | null }[] = [
-  { label: 'All Priority', value: null },
-  { label: 'Low', value: 'LOW' },
-  { label: 'Medium', value: 'MEDIUM' },
-  { label: 'High', value: 'HIGH' },
-  { label: 'Critical', value: 'CRITICAL' }
-]
+const priorityOptionsFilter = computed(() => [
+  { label: t('tickets.allPriority'), value: null as TicketPriority | null },
+  { label: t('tickets.priorityLow'), value: 'LOW' as TicketPriority },
+  { label: t('tickets.priorityMedium'), value: 'MEDIUM' as TicketPriority },
+  { label: t('tickets.priorityHigh'), value: 'HIGH' as TicketPriority },
+  { label: t('tickets.priorityCritical'), value: 'CRITICAL' as TicketPriority }
+])
 
-const priorityOptions = [
-  { label: 'Low', value: 'LOW' },
-  { label: 'Medium', value: 'MEDIUM' },
-  { label: 'High', value: 'HIGH' },
-  { label: 'Critical', value: 'CRITICAL' }
-]
+const sourceOptionsFilter = computed(() => [
+  { label: t('tickets.allSources'), value: null as TicketSource | null },
+  { label: t('tickets.sourcePos'), value: 'POS' as TicketSource },
+  { label: t('tickets.sourceManual'), value: 'MANUAL' as TicketSource },
+  { label: t('tickets.sourceHealthAlert'), value: 'HEALTH_ALERT' as TicketSource },
+  { label: t('tickets.sourceWebhook'), value: 'WEBHOOK' as TicketSource },
+  { label: t('tickets.sourceEmail'), value: 'EMAIL' as TicketSource }
+])
 
-const sources: { label: string; value: TicketSource | null }[] = [
-  { label: 'All Sources', value: null },
-  { label: 'POS', value: 'POS' },
-  { label: 'Manual', value: 'MANUAL' },
-  { label: 'Health Alert', value: 'HEALTH_ALERT' },
-  { label: 'Webhook', value: 'WEBHOOK' },
-  { label: 'Email', value: 'EMAIL' }
-]
+const formPriorityOptions = computed(() => [
+  { label: t('tickets.priorityLow'), value: 'LOW' as const },
+  { label: t('tickets.priorityMedium'), value: 'MEDIUM' as const },
+  { label: t('tickets.priorityHigh'), value: 'HIGH' as const },
+  { label: t('tickets.priorityCritical'), value: 'CRITICAL' as const }
+])
 
-const statusOptions = [
-  { label: 'Open', value: 'OPEN' },
-  { label: 'In Progress', value: 'IN_PROGRESS' },
-  { label: 'Waiting', value: 'WAITING' },
-  { label: 'Resolved', value: 'RESOLVED' },
-  { label: 'Closed', value: 'CLOSED' }
-]
+const formStatusOptions = computed(() => [
+  { label: t('tickets.statusOpen'), value: 'OPEN' as const },
+  { label: t('tickets.statusInProgress'), value: 'IN_PROGRESS' as const },
+  { label: t('tickets.statusWaiting'), value: 'WAITING' as const },
+  { label: t('tickets.statusResolved'), value: 'RESOLVED' as const },
+  { label: t('tickets.statusClosed'), value: 'CLOSED' as const }
+])
 
 function statusSeverity(status: TicketStatus): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
   const map: Record<TicketStatus, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
@@ -190,9 +192,9 @@ async function handleExport() {
     a.download = `tickets-${dayjs().format('YYYY-MM-DD')}.csv`
     a.click()
     URL.revokeObjectURL(url)
-    toast.success('Tickets exported')
+    toast.success(t('tickets.exportSuccess'))
   } catch {
-    toast.error('Export failed')
+    toast.error(t('tickets.exportFailed'))
   } finally {
     exporting.value = false
   }
@@ -204,9 +206,7 @@ const isSubmitting = ref(false)
 
 const createSchema = z.object({
   title: z.string().min(3, 'Min 3 characters').max(200),
-  description: z.string().min(10, 'Min 10 characters'),
-  priority: z.enum(['LOW', 'MEDIUM', 'HIGH', 'CRITICAL']),
-  clientId: z.string().optional()
+  description: z.string().min(10, 'Min 10 characters')
 })
 
 const createForm = useForm({
@@ -235,9 +235,9 @@ const onSubmit = createForm.handleSubmit(async (values) => {
     })
     await queryClient.invalidateQueries({ queryKey: ['tickets'] })
     showCreateDialog.value = false
-    toast.success('Ticket created successfully')
+    toast.success(t('tickets.createSuccess'))
   } catch {
-    toast.error('Failed to create ticket')
+    toast.error(t('tickets.createFailed'))
   } finally {
     isSubmitting.value = false
   }
@@ -274,9 +274,9 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     await ticketsService.updateStatus(editingTicket.value.id, values.status)
     await queryClient.invalidateQueries({ queryKey: ['tickets'] })
     showEditDialog.value = false
-    toast.success('Ticket updated')
+    toast.success(t('tickets.updateSuccess'))
   } catch {
-    toast.error('Failed to update ticket')
+    toast.error(t('tickets.updateFailed'))
   } finally {
     isEditSubmitting.value = false
   }
@@ -288,19 +288,19 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     <!-- Header -->
     <div class="flex items-center justify-between">
       <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">Support Tickets</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} total tickets</p>
+        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('tickets.title') }}</h2>
+        <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} {{ t('tickets.totalCount') }}</p>
       </div>
       <div class="flex gap-2">
         <Button
-          label="Export CSV"
+          :label="t('tickets.exportCsv')"
           icon="pi pi-download"
           severity="secondary"
           outlined
           :loading="exporting"
           @click="handleExport"
         />
-        <Button label="New Ticket" icon="pi pi-plus" @click="openCreateDialog" />
+        <Button :label="t('tickets.newTicket')" icon="pi pi-plus" @click="openCreateDialog" />
       </div>
     </div>
 
@@ -308,34 +308,34 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     <div class="flex flex-col sm:flex-row gap-3">
       <InputText
         v-model="globalFilter"
-        placeholder="Search tickets..."
+        :placeholder="t('tickets.searchPlaceholder')"
         class="flex-1"
         @input="onSearch"
       />
       <Select
         v-model="statusFilter"
-        :options="statuses"
+        :options="statusOptionsFilter"
         option-label="label"
         option-value="value"
-        placeholder="All Status"
+        :placeholder="t('tickets.allStatus')"
         class="w-48"
         @change="applyFilters"
       />
       <Select
         v-model="priorityFilter"
-        :options="priorities"
+        :options="priorityOptionsFilter"
         option-label="label"
         option-value="value"
-        placeholder="All Priority"
+        :placeholder="t('tickets.allPriority')"
         class="w-44"
         @change="applyFilters"
       />
       <Select
         v-model="sourceFilter"
-        :options="sources"
+        :options="sourceOptionsFilter"
         option-label="label"
         option-value="value"
-        placeholder="All Sources"
+        :placeholder="t('tickets.allSources')"
         class="w-44"
         @change="applyFilters"
       />
@@ -344,8 +344,8 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
 
     <!-- Error state -->
     <div v-if="isError" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
-      <span>Failed to load tickets. Check your connection or permissions.</span>
-      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
+      <span>{{ t('tickets.loadFailed') }}</span>
+      <Button :label="t('common.retry')" size="small" severity="danger" text @click="refetch()" />
     </div>
 
     <!-- Skeleton on first load -->
@@ -368,43 +368,43 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       class="rounded-xl overflow-hidden"
       @page="onPage"
     >
-      <Column field="title" header="Title" sortable style="min-width: 240px">
+      <Column field="title" :header="t('tickets.formTitle')" sortable style="min-width: 240px">
         <template #body="{ data: row }: { data: Ticket }">
           <span class="font-medium text-[var(--text)] line-clamp-1">{{ row.title }}</span>
         </template>
       </Column>
 
-      <Column field="status" header="Status" style="width: 150px">
+      <Column field="status" :header="t('tickets.status')" style="width: 150px">
         <template #body="{ data: row }: { data: Ticket }">
           <Tag :severity="statusSeverity(row.status)" :value="row.status.replace('_', ' ')" />
         </template>
       </Column>
 
-      <Column field="priority" header="Priority" style="width: 110px">
+      <Column field="priority" :header="t('tickets.priority')" style="width: 110px">
         <template #body="{ data: row }: { data: Ticket }">
           <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
         </template>
       </Column>
 
-      <Column field="source" header="Source" style="width: 140px">
+      <Column field="source" :header="t('tickets.source')" style="width: 140px">
         <template #body="{ data: row }: { data: Ticket }">
           <SourceBadge :source="row.source" />
         </template>
       </Column>
 
-      <Column field="clientId" header="Client" style="min-width: 140px">
+      <Column field="clientId" :header="t('tickets.client')" style="min-width: 140px">
         <template #body="{ data: row }: { data: Ticket }">
           <span class="text-[var(--text-muted)] text-sm">{{ row.clientName ?? row.clientId ?? '—' }}</span>
         </template>
       </Column>
 
-      <Column field="createdAt" header="Created" sortable style="width: 130px">
+      <Column field="createdAt" :header="t('tickets.createdAt')" sortable style="width: 130px">
         <template #body="{ data: row }: { data: Ticket }">
           <span class="text-[var(--text-muted)] text-sm">{{ formatDate(row.createdAt) }}</span>
         </template>
       </Column>
 
-      <Column header="Actions" style="width: 140px">
+      <Column :header="t('common.actions')" style="width: 140px">
         <template #body="{ data: row }: { data: Ticket }">
           <div class="flex gap-1">
             <Button
@@ -412,7 +412,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               severity="secondary"
               text
               rounded
-              v-tooltip.top="'Edit'"
+              v-tooltip.top="t('common.edit')"
               @click="openEditDialog(row)"
             />
             <Button
@@ -420,7 +420,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               severity="secondary"
               text
               rounded
-              v-tooltip.top="'View detail'"
+              v-tooltip.top="t('common.edit')"
               @click="router.push('/tickets/' + row.id)"
             />
             <Button
@@ -428,7 +428,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               severity="danger"
               text
               rounded
-              v-tooltip.top="'Delete'"
+              v-tooltip.top="t('common.delete')"
               @click="confirmDeleteTicket(row)"
             />
           </div>
@@ -436,7 +436,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       </Column>
 
       <template #empty>
-        <div class="text-center py-8 text-[var(--text-muted)]">No tickets found</div>
+        <div class="text-center py-8 text-[var(--text-muted)]">{{ t('common.noRows') }}</div>
       </template>
     </DataTable>
   </div>
@@ -444,49 +444,49 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
   <!-- Create Ticket Dialog -->
   <AppDialog
     v-model:visible="showCreateDialog"
-    title="New Ticket"
-    subtitle="Fill in the details to create a new support ticket."
+    :title="t('tickets.createTitle')"
+    :subtitle="t('tickets.createSubtitle')"
     :loading="isSubmitting"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
-      <FormField label="Title" name="title" :error="createForm.errors.value.title" required>
+      <FormField :label="t('tickets.formTitle')" name="title" :error="createForm.errors.value.title" required>
         <InputText
           id="title"
           v-model="titleValue"
           v-bind="titleAttrs"
-          placeholder="Ticket title"
+          :placeholder="t('tickets.formTitlePlaceholder')"
           class="w-full"
           :disabled="isSubmitting"
         />
       </FormField>
 
-      <FormField label="Description" name="description" :error="createForm.errors.value.description" required>
+      <FormField :label="t('tickets.formDescription')" name="description" :error="createForm.errors.value.description" required>
         <Textarea
           id="description"
           v-model="descriptionValue"
           v-bind="descriptionAttrs"
-          placeholder="Describe the issue..."
+          :placeholder="t('tickets.formDescriptionPlaceholder')"
           :rows="3"
           class="w-full"
           :disabled="isSubmitting"
         />
       </FormField>
 
-      <FormField label="Priority" name="priority" :error="createForm.errors.value.priority" required>
+      <FormField :label="t('tickets.priority')" name="priority" :error="createForm.errors.value.priority" required>
         <Select
           id="priority"
           v-model="priorityValue"
           v-bind="priorityAttrs"
-          :options="priorityOptions"
+          :options="formPriorityOptions"
           option-label="label"
           option-value="value"
-          placeholder="Select priority"
+          :placeholder="t('tickets.formPriorityPlaceholder')"
           class="w-full"
           :disabled="isSubmitting"
         />
       </FormField>
 
-      <FormField label="Client" name="clientId" :error="createForm.errors.value.clientId">
+      <FormField :label="t('tickets.client')" name="clientId" :error="createForm.errors.value.clientId">
         <Select
           id="clientId"
           v-model="clientIdValue"
@@ -494,7 +494,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
           :options="clientOptions"
           option-label="label"
           option-value="value"
-          placeholder="Select client (optional)"
+          :placeholder="t('tickets.formClientPlaceholder')"
           filter
           show-clear
           class="w-full"
@@ -506,14 +506,14 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button
-          label="Cancel"
+          :label="t('common.cancel')"
           severity="secondary"
           outlined
           :disabled="isSubmitting"
           @click="showCreateDialog = false"
         />
         <Button
-          label="Create Ticket"
+          :label="t('tickets.newTicket')"
           :loading="isSubmitting"
           @click="onSubmit"
         />
@@ -524,20 +524,20 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
   <!-- Edit Ticket Dialog -->
   <AppDialog
     v-model:visible="showEditDialog"
-    title="Edit Ticket"
-    subtitle="Update ticket status (backend supports status changes only)."
+    :title="t('tickets.editTitle')"
+    :subtitle="t('tickets.editSubtitle')"
     :loading="isEditSubmitting"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
-      <FormField label="Status" name="edit-status" :error="editForm.errors.value.status" required>
+      <FormField :label="t('tickets.status')" name="edit-status" :error="editForm.errors.value.status" required>
         <Select
           id="edit-status"
           v-model="editStatus"
           v-bind="editStatusAttrs"
-          :options="statusOptions"
+          :options="formStatusOptions"
           option-label="label"
           option-value="value"
-          placeholder="Select status"
+          :placeholder="t('tickets.formStatusPlaceholder')"
           class="w-full"
           :disabled="isEditSubmitting"
         />
@@ -547,14 +547,14 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button
-          label="Cancel"
+          :label="t('common.cancel')"
           severity="secondary"
           outlined
           :disabled="isEditSubmitting"
           @click="showEditDialog = false"
         />
         <Button
-          label="Save Changes"
+          :label="t('tickets.saveChanges')"
           :loading="isEditSubmitting"
           @click="onEditSubmit"
         />
