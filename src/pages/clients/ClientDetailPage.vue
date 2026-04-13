@@ -350,12 +350,19 @@ const showContactDialog = ref(false)
 const editingContact = ref<ClientContact | null>(null)
 const isSubmittingContact = ref(false)
 
-const contactRoleOptions = [
-  { label: 'Owner', value: 'OWNER' },
-  { label: 'Technical', value: 'TECHNICAL' },
-  { label: 'Billing', value: 'BILLING' },
-  { label: 'Support', value: 'SUPPORT' },
-]
+const contactRoleOptions = computed(() => [
+  { label: t('clientsPage.contactRoleOwner'),     value: 'OWNER' },
+  { label: t('clientsPage.contactRoleTechnical'), value: 'TECHNICAL' },
+  { label: t('clientsPage.contactRoleBilling'),   value: 'BILLING' },
+  { label: t('clientsPage.contactRoleSupport'),   value: 'SUPPORT' },
+])
+
+const segmentOptions = computed(() => [
+  { label: t('clientsPage.segmentNone'),       value: '' },
+  { label: t('clientsPage.segmentSmb'),        value: 'SMB' },
+  { label: t('clientsPage.segmentMidMarket'),  value: 'MID_MARKET' },
+  { label: t('clientsPage.segmentEnterprise'), value: 'ENTERPRISE' },
+])
 
 const contactForm = useForm({
   validationSchema: toTypedSchema(z.object({
@@ -918,7 +925,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                 {{ t('crm.tabBranches') }}
                 <span v-if="branches?.length" class="text-[var(--text-muted)] font-normal text-sm ml-1">({{ branches.length }})</span>
               </h3>
-              <Button label="Add Branch" icon="pi pi-plus" size="small" @click="openBranchDialog" />
+              <Button :label="t('clientsPage.addBranch')" icon="pi pi-plus" size="small" @click="openBranchDialog" />
             </div>
 
             <template v-if="branchesLoading">
@@ -1105,18 +1112,18 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
       <FormField :label="t('clientsPage.country')" name="edit-country" :error="editForm.errors.value.country" required>
         <InputText id="edit-country" v-model="editCountry" v-bind="editCountryAttrs" class="w-full" :disabled="isEditSubmitting" />
       </FormField>
-      <FormField label="Website" name="edit-website" :error="editForm.errors.value.website">
+      <FormField :label="t('clientsPage.website')" name="edit-website" :error="editForm.errors.value.website">
         <InputText id="edit-website" v-model="editWebsite" v-bind="editWebsiteAttrs" placeholder="https://example.com" class="w-full" :disabled="isEditSubmitting" />
       </FormField>
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="Industry" name="edit-industry">
+        <FormField :label="t('clientsPage.industry')" name="edit-industry">
           <InputText id="edit-industry" v-model="editIndustry" v-bind="editIndustryAttrs" class="w-full" :disabled="isEditSubmitting" />
         </FormField>
-        <FormField label="Segment" name="edit-segment">
-          <Select v-model="editSegment" :options="[{ label: '— None —', value: '' }, { label: 'SMB', value: 'SMB' }, { label: 'Mid-Market', value: 'MID_MARKET' }, { label: 'Enterprise', value: 'ENTERPRISE' }]" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
+        <FormField :label="t('clientsPage.segment')" name="edit-segment">
+          <Select v-model="editSegment" :options="segmentOptions" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
         </FormField>
       </div>
-      <FormField label="Notes" name="edit-notes">
+      <FormField :label="t('clientsPage.notes')" name="edit-notes">
         <Textarea id="edit-notes" v-model="editNotes" v-bind="editNotesAttrs" :rows="3" class="w-full" :disabled="isEditSubmitting" />
       </FormField>
     </form>
@@ -1129,23 +1136,23 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
   </AppDialog>
 
   <!-- Add/Edit Contact Dialog -->
-  <AppDialog v-model:visible="showContactDialog" :title="editingContact ? 'Edit Contact' : 'Add Contact'" :loading="isSubmittingContact">
+  <AppDialog v-model:visible="showContactDialog" :title="editingContact ? t('common.edit') : t('common.create')" :loading="isSubmittingContact">
     <form class="flex flex-col gap-4" @submit.prevent="onSubmitContact">
-      <FormField label="Full Name" name="cf-fullName" :error="contactForm.errors.value.fullName" required>
+      <FormField :label="t('clientsPage.contactFullName')" name="cf-fullName" :error="contactForm.errors.value.fullName" required>
         <InputText v-model="cfFullName" v-bind="cfFullNameAttrs" class="w-full" :disabled="isSubmittingContact" />
       </FormField>
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="Email" name="cf-email" :error="contactForm.errors.value.email">
+        <FormField :label="t('clientsPage.contactEmail')" name="cf-email" :error="contactForm.errors.value.email">
           <InputText v-model="cfEmail" v-bind="cfEmailAttrs" class="w-full" :disabled="isSubmittingContact" />
         </FormField>
-        <FormField label="Phone" name="cf-phone" :error="contactForm.errors.value.phone">
+        <FormField :label="t('clientsPage.contactPhone')" name="cf-phone" :error="contactForm.errors.value.phone">
           <InputText v-model="cfPhone" v-bind="cfPhoneAttrs" class="w-full" :disabled="isSubmittingContact" />
         </FormField>
       </div>
-      <FormField label="Role" name="cf-role" :error="contactForm.errors.value.role" required>
+      <FormField :label="t('clientsPage.contactRole')" name="cf-role" :error="contactForm.errors.value.role" required>
         <Select v-model="cfRole" :options="contactRoleOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmittingContact" />
       </FormField>
-      <FormField label="Notes" name="cf-notes">
+      <FormField :label="t('clientsPage.contactNotes')" name="cf-notes">
         <Textarea v-model="cfNotes" v-bind="cfNotesAttrs" :rows="2" class="w-full" :disabled="isSubmittingContact" />
       </FormField>
     </form>
@@ -1158,19 +1165,19 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
   </AppDialog>
 
   <!-- Add Branch Dialog -->
-  <AppDialog v-model:visible="showBranchDialog" title="Add Branch" :loading="isSubmittingBranch">
+  <AppDialog v-model:visible="showBranchDialog" :title="t('clientsPage.addBranch')" :loading="isSubmittingBranch">
     <form class="flex flex-col gap-4" @submit.prevent="onSubmitBranch">
-      <FormField label="Branch Name" name="name" :error="branchForm.errors.value.name" required>
+      <FormField :label="t('clientsPage.branchName')" name="name" :error="branchForm.errors.value.name" required>
         <InputText v-model="branchNameValue" v-bind="branchNameAttrs" class="w-full" :disabled="isSubmittingBranch" />
       </FormField>
-      <FormField label="Address" name="address" :error="branchForm.errors.value.address">
+      <FormField :label="t('clientsPage.address')" name="address" :error="branchForm.errors.value.address">
         <InputText v-model="addressValue" v-bind="addressAttrs" class="w-full" :disabled="isSubmittingBranch" />
       </FormField>
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="City" name="city" :error="branchForm.errors.value.city">
+        <FormField :label="t('clientsPage.city')" name="city" :error="branchForm.errors.value.city">
           <InputText v-model="cityValue" v-bind="cityAttrs" class="w-full" :disabled="isSubmittingBranch" />
         </FormField>
-        <FormField label="Country" name="country" :error="branchForm.errors.value.country" required>
+        <FormField :label="t('clientsPage.country')" name="country" :error="branchForm.errors.value.country" required>
           <InputText v-model="countryValue" v-bind="countryAttrs" class="w-full" :disabled="isSubmittingBranch" />
         </FormField>
       </div>
@@ -1184,15 +1191,15 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
   </AppDialog>
 
   <!-- Edit Branch Dialog -->
-  <AppDialog v-model:visible="showEditBranchDialog" title="Edit Branch" :loading="isEditingBranch">
+  <AppDialog v-model:visible="showEditBranchDialog" :title="t('common.edit')" :loading="isEditingBranch">
     <form class="flex flex-col gap-4" @submit.prevent="onEditBranchSubmit">
-      <FormField label="Branch Name" name="eb-name" :error="editBranchForm.errors.value.name" required>
+      <FormField :label="t('clientsPage.branchName')" name="eb-name" :error="editBranchForm.errors.value.name" required>
         <InputText v-model="ebName" v-bind="ebNameAttrs" class="w-full" :disabled="isEditingBranch" />
       </FormField>
-      <FormField label="Address" name="eb-address" :error="editBranchForm.errors.value.address">
+      <FormField :label="t('clientsPage.address')" name="eb-address" :error="editBranchForm.errors.value.address">
         <InputText v-model="ebAddress" v-bind="ebAddressAttrs" class="w-full" :disabled="isEditingBranch" />
       </FormField>
-      <FormField label="City" name="eb-city" :error="editBranchForm.errors.value.city">
+      <FormField :label="t('clientsPage.city')" name="eb-city" :error="editBranchForm.errors.value.city">
         <InputText v-model="ebCity" v-bind="ebCityAttrs" class="w-full" :disabled="isEditingBranch" />
       </FormField>
     </form>

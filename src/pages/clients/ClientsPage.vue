@@ -119,26 +119,26 @@ const showCreateDialog = ref(false)
 const isSubmitting = ref(false)
 
 // Do not use Zod .default() with toTypedSchema — Zod 4 breaks @vee-validate/zod; use initialValues.
-const segmentOptions = [
-  { label: '— None —',    value: '' },
-  { label: 'SMB',         value: 'SMB' },
-  { label: 'Mid-Market',  value: 'MID_MARKET' },
-  { label: 'Enterprise',  value: 'ENTERPRISE' },
-]
+const segmentOptions = computed(() => [
+  { label: t('clientsPage.segmentNone'),       value: '' },
+  { label: t('clientsPage.segmentSmb'),        value: 'SMB' },
+  { label: t('clientsPage.segmentMidMarket'),  value: 'MID_MARKET' },
+  { label: t('clientsPage.segmentEnterprise'), value: 'ENTERPRISE' },
+])
 
-const schema = z.object({
-  name:      z.string().min(2, 'Min 2 characters'),
+const schema = computed(() => z.object({
+  name:      z.string().min(2, t('clientsPage.nameMin')),
   legalName: z.string().optional(),
   taxId:     z.string().optional(),
-  country:   z.string().min(2, 'Country code (e.g. MX)'),
-  website:   z.string().url('Must be a valid URL').optional().or(z.literal('')),
+  country:   z.string().min(2, t('clientsPage.countryMin')),
+  website:   z.string().url(t('clientsPage.websiteInvalid')).optional().or(z.literal('')),
   industry:  z.string().optional(),
   segment:   z.string().optional(),
   notes:     z.string().optional(),
-})
+}))
 
 const createForm = useForm({
-  validationSchema: toTypedSchema(schema),
+  validationSchema: computed(() => toTypedSchema(schema.value)),
   initialValues: { name: '', legalName: '', taxId: '', country: 'MX', website: '', industry: '', segment: '', notes: '' }
 })
 
@@ -185,7 +185,7 @@ const editingClient = ref<Client | null>(null)
 const isEditSubmitting = ref(false)
 
 const editForm = useForm({
-  validationSchema: toTypedSchema(schema),
+  validationSchema: computed(() => toTypedSchema(schema.value)),
   initialValues: { name: '', legalName: '', taxId: '', country: 'MX', website: '', industry: '', segment: '', notes: '' }
 })
 
@@ -406,18 +406,18 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       <FormField :label="t('clientsPage.country')" name="country" :error="createForm.errors.value.country" required>
         <InputText id="country" v-model="countryValue" v-bind="countryAttrs" class="w-full" :disabled="isSubmitting" />
       </FormField>
-      <FormField label="Website" name="website" :error="createForm.errors.value.website">
+      <FormField :label="t('clientsPage.website')" name="website" :error="createForm.errors.value.website">
         <InputText id="website" v-model="websiteValue" v-bind="websiteAttrs" placeholder="https://example.com" class="w-full" :disabled="isSubmitting" />
       </FormField>
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="Industry" name="industry">
+        <FormField :label="t('clientsPage.industry')" name="industry">
           <InputText id="industry" v-model="industryValue" v-bind="industryAttrs" placeholder="e.g. Restaurant" class="w-full" :disabled="isSubmitting" />
         </FormField>
-        <FormField label="Segment" name="segment">
+        <FormField :label="t('clientsPage.segment')" name="segment">
           <Select v-model="segmentValue" :options="segmentOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmitting" />
         </FormField>
       </div>
-      <FormField label="Notes" name="notes">
+      <FormField :label="t('clientsPage.notes')" name="notes">
         <Textarea v-model="notesValue" v-bind="notesAttrs" placeholder="Internal notes..." :rows="2" class="w-full" :disabled="isSubmitting" />
       </FormField>
     </form>
@@ -481,18 +481,18 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       <FormField :label="t('clientsPage.country')" name="edit-country" :error="editForm.errors.value.country" required>
         <InputText id="edit-country" v-model="editCountry" v-bind="editCountryAttrs" class="w-full" :disabled="isEditSubmitting" />
       </FormField>
-      <FormField label="Website" name="edit-website" :error="editForm.errors.value.website">
+      <FormField :label="t('clientsPage.website')" name="edit-website" :error="editForm.errors.value.website">
         <InputText id="edit-website" v-model="editWebsite" v-bind="editWebsiteAttrs" placeholder="https://example.com" class="w-full" :disabled="isEditSubmitting" />
       </FormField>
       <div class="grid grid-cols-2 gap-3">
-        <FormField label="Industry" name="edit-industry">
+        <FormField :label="t('clientsPage.industry')" name="edit-industry">
           <InputText id="edit-industry" v-model="editIndustry" v-bind="editIndustryAttrs" placeholder="e.g. Restaurant" class="w-full" :disabled="isEditSubmitting" />
         </FormField>
-        <FormField label="Segment" name="edit-segment">
+        <FormField :label="t('clientsPage.segment')" name="edit-segment">
           <Select v-model="editSegment" :options="segmentOptions" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
         </FormField>
       </div>
-      <FormField label="Notes" name="edit-notes">
+      <FormField :label="t('clientsPage.notes')" name="edit-notes">
         <Textarea v-model="editNotes" v-bind="editNotesAttrs" placeholder="Internal notes..." :rows="2" class="w-full" :disabled="isEditSubmitting" />
       </FormField>
     </form>
