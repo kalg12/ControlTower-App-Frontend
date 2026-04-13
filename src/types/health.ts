@@ -10,6 +10,7 @@ export interface HealthCheck {
   version?: string
   lastCheckedAt: string
   openIncidents: number
+  errorMessage?: string
   // Legacy fields for UI compatibility
   id?: string
   clientId?: string

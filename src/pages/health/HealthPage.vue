@@ -350,6 +350,13 @@ async function checkNow(ep: Integration) {
             <div>
               <span class="font-medium text-[var(--text)]">{{ row.branchName ?? '—' }}</span>
               <span class="block text-xs text-[var(--text-muted)] font-mono">{{ row.branchId }}</span>
+              <span
+                v-if="row.status === 'DOWN' && row.errorMessage"
+                class="block text-xs text-red-400 mt-0.5 break-all"
+                :title="row.errorMessage"
+              >
+                ⚠ {{ row.errorMessage.length > 80 ? row.errorMessage.slice(0, 80) + '…' : row.errorMessage }}
+              </span>
             </div>
           </template>
         </Column>
