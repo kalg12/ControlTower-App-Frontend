@@ -674,7 +674,17 @@
     "invalidCredentials": "Correo o contraseña inválidos.",
     "signedInAs": "Sesión iniciada como {email}",
     "mfaInvalid": "Código inválido o sesión vencida. Intenta iniciar sesión de nuevo.",
-    "loginFailed": "Error al iniciar sesión. Intenta de nuevo."
+    "loginFailed": "Error al iniciar sesión. Intenta de nuevo.",
+    "forgotPasswordTitle": "Restablecer contraseña",
+    "forgotPasswordSubtitle": "Ingresa tu correo y te enviaremos un enlace para restablecer tu contraseña.",
+    "emailAddress": "Correo electrónico",
+    "backToSignIn": "Volver a iniciar sesión",
+    "sendResetLink": "Enviar enlace",
+    "sending": "Enviando…",
+    "checkEmail": "Revisa tu correo",
+    "resetEmailSent": "Enviamos un enlace de restablecimiento a {email}. Puede tardar un momento en llegar.",
+    "resetEmailFailed": "No se pudo enviar el correo de restablecimiento",
+    "resetEmailFailedDesc": "Por favor intenta de nuevo más tarde."
   },
   "notFound": {
     "code": "404",

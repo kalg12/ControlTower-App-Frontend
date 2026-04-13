@@ -26,7 +26,8 @@
     "ticketDetail": "Ticket",
     "clientDetail": "Client",
     "auditLog": "Audit Log",
-    "posSupport": "POS Support"
+    "posSupport": "POS Support",
+    "activity": "Activity"
   },
   "common": {
     "save": "Save",
@@ -48,7 +49,11 @@
     "none": "—",
     "language": "Language",
     "english": "English",
-    "spanish": "Spanish"
+    "spanish": "Spanish",
+    "noRows": "No records found",
+    "confirm": "Confirm",
+    "success": "Success",
+    "error": "Error"
   },
   "errors": {
     "sessionExpired": "Your session expired. Please sign in again.",
@@ -61,12 +66,63 @@
   "auth": {
     "login": "Sign in",
     "logout": "Sign out",
-    "logoutSuccess": "Signed out"
+    "logoutSuccess": "Signed out",
+    "signIn": "Sign in",
+    "signInLoading": "Signing in…",
+    "welcomeBack": "Welcome back!",
+    "welcomeBackDesc": "Welcome back to Control Tower",
+    "emailLabel": "Email address",
+    "emailPlaceholder": "you@company.com",
+    "passwordLabel": "Password",
+    "passwordPlaceholder": "Your password",
+    "forgotPassword": "Forgot your password?",
+    "verifySignIn": "Verify and sign in",
+    "mfaTitle": "Authentication Code",
+    "mfaLabel": "Code from authenticator app",
+    "mfaDesc": "Enter the 6-digit code from your authenticator app",
+    "mfaRequired": "Two-factor authentication required. Enter the code from your app.",
+    "emailRequired": "Email is required",
+    "emailValid": "Enter a valid email address",
+    "passwordRequired": "Password is required",
+    "passwordMin": "Password must be at least 6 characters",
+    "invalidCredentials": "Invalid email or password.",
+    "signedInAs": "Signed in as {email}",
+    "mfaInvalid": "Invalid code or session expired. Please sign in again.",
+    "loginFailed": "Sign in failed. Please try again.",
+    "forgotPasswordTitle": "Reset password",
+    "forgotPasswordSubtitle": "Enter your email and we'll send you a reset link.",
+    "emailAddress": "Email address",
+    "backToSignIn": "Back to sign in",
+    "sendResetLink": "Send reset link",
+    "sending": "Sending…",
+    "checkEmail": "Check your email",
+    "resetEmailSent": "We sent a password reset link to {email}. It may take a minute to arrive.",
+    "resetEmailFailed": "Failed to send reset email",
+    "resetEmailFailedDesc": "Please try again later."
   },
   "header": {
     "toggleSidebar": "Toggle sidebar",
     "wsConnected": "Live updates on",
-    "wsDisconnected": "Live updates off"
+    "wsDisconnected": "Live updates off",
+    "lightMode": "Light mode",
+    "darkMode": "Dark mode",
+    "realTimeConnected": "Connected in real time",
+    "connecting": "Connecting…",
+    "connected": "Connected",
+    "disconnected": "Disconnected",
+    "notifications": "Notifications",
+    "markAllRead": "Mark all as read",
+    "noNotifications": "No notifications",
+    "viewAllNotifications": "View all notifications",
+    "settings": "Settings",
+    "logout": "Sign out"
+  },
+  "notFound": {
+    "code": "404",
+    "title": "Page not found",
+    "description": "The page you're looking for doesn't exist or has been moved.",
+    "goBack": "Go back",
+    "dashboard": "Dashboard"
   },
   "kanban": {
     "title": "Kanban boards",
