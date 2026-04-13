@@ -28,7 +28,7 @@ const confirm = useConfirm()
 
 const { data: result, isLoading, isError, refetch } = useQuery({
   queryKey: ['campaigns'],
-  queryFn: () => campaignsService.list({ page: 0, size: 200 }),
+  queryFn: () => campaignsService.list({ page: 0, size: 100 }),
   staleTime: 30000,
 })
 
@@ -40,7 +40,13 @@ function formatDate(dateStr: string) {
 }
 
 function statusSeverity(status: string): 'success' | 'warn' | 'danger' | 'info' | 'secondary' {
-  const map: Record<string, any> = { ACTIVE: 'success', DRAFT: 'info', SENT: 'secondary', PAUSED: 'warn' }
+  const map: Record<string, any> = {
+    DRAFT: 'info',
+    SCHEDULED: 'warn',
+    SENT: 'success',
+    FAILED: 'danger',
+    CANCELED: 'secondary',
+  }
   return map[status] || 'secondary'
 }
 
@@ -191,10 +197,6 @@ function confirmDelete(c: Campaign) {
       </template>
     </DataTable>
 
-    <!-- Backend note -->
-    <div class="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-      {{ t('campaigns.backendNote') }}
-    </div>
   </div>
 
   <!-- Create Dialog -->
