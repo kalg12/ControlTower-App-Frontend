@@ -38,8 +38,8 @@ const queryClient = useQueryClient()
 const { data: checks, isLoading, isError, refetch } = useQuery({
   queryKey: ['health-clients'],
   queryFn: () => healthService.getClients(),
-  staleTime: 15000,
-  refetchInterval: 60000 // auto-refresh every minute
+  staleTime: 0,
+  refetchInterval: 30000 // auto-refresh every 30s
 })
 
 // Incident log filters
@@ -53,8 +53,8 @@ const { data: incidentLogPage, isLoading: isLoadingIncidents, refetch: refetchLo
     openOnly: logOpenOnly.value,
     branchId: logBranchId.value,
   }),
-  staleTime: 15000,
-  refetchInterval: 60000,
+  staleTime: 0,
+  refetchInterval: 30000,
 })
 
 const items = computed(() => checks.value ?? [])
@@ -265,7 +265,7 @@ async function checkNow(ep: Integration) {
       queryClient.invalidateQueries({ queryKey: ['health-clients'] })
       queryClient.invalidateQueries({ queryKey: ['health-incident-log'] })
       isCheckingNow.value = null
-    }, 1500)
+    }, 2500)
   } catch {
     toast.error('Check Now failed')
     isCheckingNow.value = null
@@ -511,7 +511,7 @@ async function checkNow(ep: Integration) {
         <div class="flex items-center justify-between mb-3">
           <div>
             <h3 class="text-base font-semibold text-[var(--text)]">Monitored POS Endpoints</h3>
-            <p class="text-xs text-[var(--text-muted)]">POS systems polled every 5 min by the pull scheduler</p>
+            <p class="text-xs text-[var(--text-muted)]">POS systems polled every 60s by the pull scheduler</p>
           </div>
           <div class="flex gap-2">
             <Button icon="pi pi-refresh" severity="secondary" outlined size="small" @click="refetchPos()" />

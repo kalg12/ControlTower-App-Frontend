@@ -3,6 +3,7 @@ import { computed } from 'vue'
 import { useQuery } from '@tanstack/vue-query'
 import { useRouter } from 'vue-router'
 import VueApexCharts from 'vue3-apexcharts'
+import Tag from 'primevue/tag'
 import { dashboardService } from '@/services/dashboard.service'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -255,6 +256,28 @@ function formatNow() {
             :series="healthDonutSeries"
             :options="healthDonutOptions"
           />
+          <!-- Alert branches list -->
+          <div v-if="(data?.alertBranches?.length ?? 0) > 0" class="mt-3 space-y-1.5">
+            <div
+              v-for="b in data!.alertBranches"
+              :key="b.branchId"
+              class="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-[var(--surface-raised)]"
+            >
+              <div class="min-w-0">
+                <span class="text-xs font-medium text-[var(--text)] truncate block">{{ b.branchName ?? b.branchId }}</span>
+                <span class="text-xs text-[var(--text-muted)] truncate block">{{ b.clientName }}</span>
+              </div>
+              <Tag
+                :severity="b.status === 'DOWN' ? 'danger' : 'warn'"
+                :value="b.status"
+                class="text-xs ml-2 flex-shrink-0"
+              />
+            </div>
+          </div>
+          <p v-else class="text-xs text-green-500 text-center mt-3 flex items-center justify-center gap-1">
+            <CheckCircle2 class="w-3.5 h-3.5" />
+            All systems operational
+          </p>
         </Card>
 
         <!-- Ticket Radial -->
