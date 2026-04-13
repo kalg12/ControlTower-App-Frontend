@@ -540,7 +540,10 @@
     "disableFailed": "Could not disable 2FA",
     "invalidCode": "Invalid code",
     "avatarFallback": "User",
-    "passwordMinIfSet": "Min. 8 characters if set"
+    "passwordMinIfSet": "Min. 8 characters if set",
+    "rolesLabel": "Roles",
+    "rolesPlaceholder": "Select roles (optional)",
+    "rolesHint": "Select the roles this user will have. Empty keeps current roles."
   },
   "licenses": {
     "title": "Licenses",

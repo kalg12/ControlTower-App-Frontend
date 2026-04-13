@@ -11,15 +11,16 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
+import MultiSelect from 'primevue/multiselect'
 import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
-import { usersService } from '@/services/users.service'
+import { usersService, rolesService } from '@/services/users.service'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
-import type { User } from '@/types/user'
+import type { User, Role } from '@/types/user'
 import { Shield, ShieldOff } from 'lucide-vue-next'
 
 const { t } = useI18n()
@@ -30,6 +31,14 @@ const confirm = useConfirm()
 
 const page = ref(0)
 const pageSize = 20
+
+const { data: rolesResult } = useQuery({
+  queryKey: ['roles'],
+  queryFn: () => rolesService.listRoles(0, 100),
+  staleTime: 60000,
+})
+const availableRoles = computed<Role[]>(() => rolesResult.value?.content ?? [])
+const roleOptions = computed(() => availableRoles.value.map(r => ({ label: r.name, value: r.id })))
 
 const { data: result, isLoading, isError, refetch } = useQuery({
   queryKey: computed(() => ['users', page.value]),
@@ -57,6 +66,7 @@ const statusOptions = computed(() => [
 // --- Invite User ---
 const showInviteDialog = ref(false)
 const isSubmitting = ref(false)
+const inviteRoleIds = ref<string[]>([])
 
 const inviteSchema = z.object({
   fullName: z.string().min(2, t('users.fullNameMin')),
@@ -75,13 +85,19 @@ const [invPassword, invPasswordAttrs] = inviteForm.defineField('password')
 
 function openInviteDialog() {
   inviteForm.resetForm()
+  inviteRoleIds.value = []
   showInviteDialog.value = true
 }
 
 const onInviteSubmit = inviteForm.handleSubmit(async (values) => {
   isSubmitting.value = true
   try {
-    await usersService.create(authStore.user?.tenantId || '', { fullName: values.fullName, email: values.email, password: values.password, roleIds: [] })
+    await usersService.create(authStore.user?.tenantId || '', {
+      fullName: values.fullName,
+      email: values.email,
+      password: values.password,
+      roleIds: inviteRoleIds.value,
+    })
     await queryClient.invalidateQueries({ queryKey: ['users'] })
     showInviteDialog.value = false
     toast.success(t('users.createSuccess'))
@@ -96,6 +112,7 @@ const onInviteSubmit = inviteForm.handleSubmit(async (values) => {
 const showEditDialog = ref(false)
 const editingUser = ref<User | null>(null)
 const isEditSubmitting = ref(false)
+const editRoleIds = ref<string[]>([])
 
 const editSchema = z.object({
   fullName: z.string().min(2, t('users.fullNameMin')),
@@ -116,6 +133,11 @@ const [editPassword, editPasswordAttrs] = editForm.defineField('password')
 
 function openEditDialog(user: User) {
   editingUser.value = user
+  // user.roles may be string[] (role names) or Role[] depending on backend response
+  // try to match by id first, fallback to name lookup
+  editRoleIds.value = availableRoles.value
+    .filter(r => (user.roles as string[]).includes(r.id) || (user.roles as string[]).includes(r.name))
+    .map(r => r.id)
   editForm.setValues({ fullName: user.fullName, email: user.email, status: user.status, password: '' })
   showEditDialog.value = true
 }
@@ -128,6 +150,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       fullName: values.fullName,
       email: values.email,
       status: values.status as any,
+      roleIds: editRoleIds.value,
       password: values.password || undefined,
     })
     await queryClient.invalidateQueries({ queryKey: ['users'] })
@@ -192,7 +215,15 @@ function confirmDeleteUser(user: User) {
           <Tag :severity="row.status === 'ACTIVE' ? 'success' : row.status === 'SUSPENDED' ? 'danger' : 'warn'" :value="statusOptions.find(o => o.value === row.status)?.label ?? row.status" />
         </template>
       </Column>
-      <Column :header="t('users.twoFaAdmin')" style="width: 130px">
+      <Column :header="t('users.roles')" style="min-width: 160px">
+        <template #body="{ data: row }: { data: User }">
+          <div class="flex flex-wrap gap-1">
+            <Tag v-for="role in (row.roles as string[])" :key="role" :value="role" severity="secondary" class="text-xs" />
+            <span v-if="!(row.roles as string[])?.length" class="text-xs text-[var(--text-muted)]">—</span>
+          </div>
+        </template>
+      </Column>
+      <Column :header="t('users.twoFaAdmin')" style="width: 90px">
         <template #body="{ data: row }: { data: User }">
           <div class="flex items-center gap-1.5">
             <Shield v-if="row.twoFactorEnabled" class="w-4 h-4 text-green-500" v-tooltip.top="t('users.twoFactorEnabled')" />
@@ -230,6 +261,9 @@ function confirmDeleteUser(user: User) {
       <FormField :label="t('users.password')" name="inv-password" :error="inviteForm.errors.value.password" required>
         <InputText v-model="invPassword" v-bind="invPasswordAttrs" type="password" :placeholder="t('users.passwordPlaceholder')" class="w-full" :disabled="isSubmitting" />
       </FormField>
+      <FormField :label="t('users.rolesLabel')" name="inv-roles">
+        <MultiSelect v-model="inviteRoleIds" :options="roleOptions" option-label="label" option-value="value" :placeholder="t('users.rolesPlaceholder')" display="chip" class="w-full" :disabled="isSubmitting" />
+      </FormField>
     </form>
     <template #footer>
       <div class="flex justify-end gap-2">
@@ -249,6 +283,10 @@ function confirmDeleteUser(user: User) {
       </FormField>
       <FormField :label="t('users.statusLabel')" name="edit-status">
         <Select v-model="editStatus" :options="statusOptions" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
+      </FormField>
+      <FormField :label="t('users.rolesLabel')" name="edit-roles">
+        <MultiSelect v-model="editRoleIds" :options="roleOptions" option-label="label" option-value="value" :placeholder="t('users.rolesPlaceholder')" display="chip" class="w-full" :disabled="isEditSubmitting" />
+        <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('users.rolesHint') }}</p>
       </FormField>
       <FormField :label="t('users.newPassword')" name="edit-password">
         <InputText v-model="editPassword" v-bind="editPasswordAttrs" type="password" :placeholder="t('users.newPasswordPlaceholder')" class="w-full" :disabled="isEditSubmitting" />

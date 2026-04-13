@@ -489,7 +489,10 @@
     "disableFailed": "No se pudo desactivar 2FA",
     "invalidCode": "Código inválido",
     "avatarFallback": "Usuario",
-    "passwordMinIfSet": "Mín. 8 caracteres si se establece"
+    "passwordMinIfSet": "Mín. 8 caracteres si se establece",
+    "rolesLabel": "Roles",
+    "rolesPlaceholder": "Seleccionar roles (opcional)",
+    "rolesHint": "Selecciona los roles para este usuario. Vacío mantiene los roles actuales."
   },
   "licenses": {
     "title": "Licencias",
