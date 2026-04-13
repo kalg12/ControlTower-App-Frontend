@@ -3,6 +3,7 @@ export interface AuditLog {
   tenantId: string
   userId?: string
   userName?: string
+  userEmail?: string
   action: string
   resourceType: string
   resourceId?: string

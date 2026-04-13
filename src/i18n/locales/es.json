@@ -26,7 +26,8 @@
     "ticketDetail": "Ticket",
     "clientDetail": "Cliente",
     "auditLog": "Auditoría",
-    "posSupport": "Soporte POS"
+    "posSupport": "Soporte POS",
+    "activity": "Actividad"
   },
   "common": {
     "save": "Guardar",
@@ -810,5 +811,21 @@
     "tabContacts": "Contactos",
     "tabTickets": "Tickets",
     "tabPipeline": "Pipeline"
+  },
+  "activity": {
+    "title": "Actividad de Usuarios",
+    "subtitle": "Monitoreo de navegación y actividad de empleados en Control Tower",
+    "activeUsers": "Usuarios activos (15 min)",
+    "totalEvents": "Eventos totales",
+    "uniqueUsers": "Usuarios únicos",
+    "pagesTracked": "Páginas rastreadas",
+    "filterUser": "Buscar por usuario…",
+    "filterByUser": "Filtrar por usuario",
+    "user": "Usuario",
+    "page": "Página",
+    "duration": "Duración",
+    "visitedAt": "Visitado",
+    "loadFailed": "No se pudo cargar la actividad. Revisa la conexión o los permisos.",
+    "noData": "No hay registros de actividad"
   }
 }

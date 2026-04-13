@@ -68,7 +68,8 @@ const adminItems = computed(() =>
     { to: '/tenants', label: t('nav.tenants'), icon: Building, permission: 'tenant:read' },
     { to: '/users', label: t('nav.users'), icon: Users, permission: 'user:read' },
     { to: '/roles', label: t('nav.roles'), icon: Shield, permission: 'user:read' },
-    { to: '/audit', label: t('nav.audit'), icon: ClipboardList, permission: 'audit:read' }
+    { to: '/audit', label: t('nav.audit'), icon: ClipboardList, permission: 'audit:read' },
+    { to: '/activity', label: t('nav.activity'), icon: Activity, permission: 'activity:read' }
   ])
 )
 

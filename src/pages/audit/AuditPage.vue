@@ -109,9 +109,12 @@ function onSearch() {
         </template>
       </Column>
 
-      <Column field="userName" header="User" style="min-width: 140px">
+      <Column field="userName" header="User" style="min-width: 160px">
         <template #body="{ data: row }: { data: AuditLog }">
-          <span class="text-[var(--text)]">{{ row.userName ?? row.userId ?? 'System' }}</span>
+          <div>
+            <span class="text-[var(--text)] font-medium">{{ row.userName ?? 'System' }}</span>
+            <span v-if="row.userEmail" class="block text-xs text-[var(--text-muted)]">{{ row.userEmail }}</span>
+          </div>
         </template>
       </Column>
 
@@ -135,7 +138,7 @@ function onSearch() {
 
       <Column field="details" header="Details" style="min-width: 200px">
         <template #body="{ data: row }: { data: AuditLog }">
-          <span class="text-[var(--text-muted)] text-xs line-clamp-1">{{ row.details ?? '—' }}</span>
+          <span class="text-[var(--text-muted)] text-xs line-clamp-1">{{ row.details ?? row.result ?? '—' }}</span>
         </template>
       </Column>
 
