@@ -1,193 +1,112 @@
 <script setup lang="ts">
-import { ref, reactive } from 'vue'
-import { useRouter, useRoute } from 'vue-router'
+import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
+import { useRouter } from 'vue-router'
+import { useForm } from 'vee-validate'
+import { toTypedSchema } from '@vee-validate/zod'
+import { z } from 'zod'
+import InputText from 'primevue/inputtext'
+import Password from 'primevue/password'
+import Button from 'primevue/button'
+import FormField from '@/components/ui/FormField.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
-import Input from '@/components/ui/Input.vue'
-import Button from '@/components/ui/Button.vue'
-import type { AxiosError } from 'axios'
 
+const { t } = useI18n()
 const router = useRouter()
-const route = useRoute()
 const authStore = useAuthStore()
 const toast = useToast()
 
-const form = reactive({
-  email: '',
-  password: '',
-  totpCode: ''
+const isSubmitting = ref(false)
+const isMfa = ref(false)
+
+const loginSchema = z.object({
+  email: z.string().email(t('auth.emailValid')),
+  password: z.string().min(6, t('auth.passwordMin')),
+  mfaCode: z.string().optional(),
 })
 
-const errors = reactive({
-  email: '',
-  password: '',
-  totpCode: '',
-  general: ''
+const loginForm = useForm({
+  validationSchema: toTypedSchema(loginSchema),
+  initialValues: { email: '', password: '', mfaCode: '' },
 })
 
-const showTotp = ref(false)
-/** Set when backend returns requiresMfa + mfaToken on first login step */
-const pendingMfaToken = ref<string | null>(null)
-const loading = ref(false)
+const [email, emailAttrs] = loginForm.defineField('email')
+const [password, passwordAttrs] = loginForm.defineField('password')
+const [mfaCode, mfaCodeAttrs] = loginForm.defineField('mfaCode')
 
-function validate(): boolean {
-  errors.email = ''
-  errors.password = ''
-  errors.general = ''
-
-  if (!form.email.trim()) {
-    errors.email = 'Email is required'
-    return false
-  }
-  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email)) {
-    errors.email = 'Enter a valid email address'
-    return false
-  }
-  if (!form.password) {
-    errors.password = 'Password is required'
-    return false
-  }
-  if (form.password.length < 6) {
-    errors.password = 'Password must be at least 6 characters'
-    return false
-  }
-  return true
-}
-
-async function handleLogin() {
-  errors.totpCode = ''
-  errors.general = ''
-
-  // Step 2: MFA code + temporary token from step 1
-  if (pendingMfaToken.value) {
-    if (!form.totpCode || form.totpCode.length !== 6) {
-      errors.totpCode = 'Enter the 6-digit code from your authenticator app'
-      return
-    }
-    loading.value = true
-    try {
-      await authStore.completeMfaLogin(pendingMfaToken.value, form.totpCode)
-      pendingMfaToken.value = null
-      toast.success('Welcome back!', `Signed in as ${authStore.user?.fullName}`)
-      const redirect = route.query.redirect as string | undefined
-      router.push(redirect ?? '/dashboard')
-    } catch (err) {
-      const axiosErr = err as AxiosError<{ message?: string }>
-      errors.general =
-        axiosErr.response?.data?.message ?? 'Invalid code or session expired. Try signing in again.'
-    } finally {
-      loading.value = false
-    }
-    return
-  }
-
-  if (!validate()) return
-
-  loading.value = true
-  errors.general = ''
-
+const onSubmit = loginForm.handleSubmit(async (values) => {
+  isSubmitting.value = true
   try {
-    const response = await authStore.login({
-      email: form.email,
-      password: form.password
-    })
-
-    if (response.requiresMfa && response.mfaToken) {
-      pendingMfaToken.value = response.mfaToken
-      showTotp.value = true
-      errors.general = 'Two-factor authentication is required. Enter the code from your app.'
+    if (isMfa.value && values.mfaCode) {
+      await authStore.verifyMfa(values.mfaCode)
+    } else {
+      await authStore.login({ email: values.email, password: values.password })
+    }
+    if (authStore.user?.twoFaEnabled && !isMfa.value) {
+      isMfa.value = true
+      isSubmitting.value = false
       return
     }
-
-    toast.success('Welcome back!', `Signed in as ${authStore.user?.fullName}`)
-    const redirect = route.query.redirect as string | undefined
-    router.push(redirect ?? '/dashboard')
-  } catch (err) {
-    const axiosErr = err as AxiosError<{ message?: string }>
-    const status = axiosErr.response?.status
-    const message = axiosErr.response?.data?.message ?? 'Login failed. Please try again.'
-
-    if (status === 401) {
-      errors.general = 'Invalid email or password.'
+    toast.success(t('auth.welcomeBack'))
+    const redirect = router.currentRoute.value.query.redirect as string
+    router.push(redirect || '/dashboard')
+  } catch (err: any) {
+    if (err?.response?.status === 401) {
+      toast.error(t('auth.invalidCredentials'))
+    } else if (err?.mfaRequired) {
+      isMfa.value = true
     } else {
-      errors.general = message
+      toast.error(t('auth.loginFailed'))
     }
   } finally {
-    loading.value = false
+    isSubmitting.value = false
   }
-}
+})
 </script>
 
 <template>
-  <div>
-    <div class="mb-8">
-      <h1 class="text-2xl font-bold text-[var(--text)] mb-1">Sign in</h1>
-      <p class="text-sm text-[var(--text-muted)]">Welcome back to Control Tower</p>
+  <div class="min-h-screen flex items-center justify-center bg-[var(--surface-ground)] px-4">
+    <div class="w-full max-w-md space-y-6">
+      <div class="text-center">
+        <h1 class="text-2xl font-bold text-[var(--text)]">{{ t('auth.signIn') }}</h1>
+        <p class="text-sm text-[var(--text-muted)] mt-1">{{ t('auth.welcomeBackDesc') }}</p>
+      </div>
+
+      <form class="space-y-4" @submit.prevent="onSubmit">
+        <template v-if="!isMfa">
+          <FormField :label="t('auth.emailLabel')" name="email" :error="loginForm.errors.value.email" required>
+            <InputText id="email" v-model="email" v-bind="emailAttrs" :placeholder="t('auth.emailPlaceholder')" class="w-full" :disabled="isSubmitting" />
+          </FormField>
+          <FormField :label="t('auth.passwordLabel')" name="password" :error="loginForm.errors.value.password" required>
+            <Password id="password" v-model="password" v-bind="passwordAttrs" :placeholder="t('auth.passwordPlaceholder')" :feedback="false" toggle-mask class="w-full" :disabled="isSubmitting" />
+          </FormField>
+        </template>
+
+        <template v-else>
+          <div class="text-center space-y-3">
+            <div class="w-16 h-16 rounded-full bg-[var(--primary)]/10 mx-auto flex items-center justify-center">
+              <Shield class="w-8 h-8 text-[var(--primary)]" />
+            </div>
+            <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('auth.mfaTitle') }}</h2>
+            <p class="text-sm text-[var(--text-muted)]">{{ t('auth.mfaDesc') }}</p>
+          </div>
+          <FormField :label="t('auth.mfaLabel')" name="mfaCode" :error="loginForm.errors.value.mfaCode" required>
+            <InputText id="mfaCode" v-model="mfaCode" v-bind="mfaCodeAttrs" placeholder="000000" maxlength="6" class="w-full text-center text-2xl tracking-widest" :disabled="isSubmitting" />
+          </FormField>
+        </template>
+
+        <Button type="submit" :label="isMfa ? t('auth.verifySignIn') : t('auth.signIn')" :loading="isSubmitting" class="w-full" />
+
+        <div v-if="!isMfa" class="text-center">
+          <RouterLink to="/forgot-password" class="text-sm text-[var(--primary)] hover:underline">{{ t('auth.forgotPassword') }}</RouterLink>
+        </div>
+      </form>
     </div>
-
-    <form class="space-y-4" @submit.prevent="handleLogin">
-      <Input
-        v-model="form.email"
-        label="Email address"
-        type="email"
-        placeholder="you@company.com"
-        :error="errors.email"
-        required
-        autocomplete="email"
-      />
-
-      <Input
-        v-model="form.password"
-        label="Password"
-        type="password"
-        placeholder="Enter your password"
-        :error="errors.password"
-        required
-        autocomplete="current-password"
-      />
-
-      <div v-if="showTotp">
-        <Input
-          v-model="form.totpCode"
-          label="Authenticator Code"
-          type="text"
-          placeholder="000000"
-          :error="errors.totpCode"
-          hint="Enter the 6-digit code from your authenticator app"
-          autocomplete="one-time-code"
-          maxlength="6"
-        />
-      </div>
-
-      <!-- Error message -->
-      <div
-        v-if="errors.general"
-        class="flex items-start gap-2 p-3 bg-red-50 dark:bg-red-950 border border-red-200 dark:border-red-900 rounded-[var(--radius)] text-sm text-red-700 dark:text-red-400"
-      >
-        <svg class="w-4 h-4 flex-shrink-0 mt-0.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-        {{ errors.general }}
-      </div>
-
-      <div class="flex items-center justify-between">
-        <RouterLink
-          to="/forgot-password"
-          class="text-xs text-[var(--primary)] hover:text-[var(--primary-hover)] font-medium transition-colors"
-        >
-          Forgot password?
-        </RouterLink>
-      </div>
-
-      <Button
-        type="submit"
-        variant="primary"
-        size="md"
-        full-width
-        :loading="loading"
-      >
-        {{ loading ? 'Signing in...' : pendingMfaToken ? 'Verify & sign in' : 'Sign in' }}
-      </Button>
-    </form>
   </div>
 </template>
+
+<script lang="ts">
+import Shield from 'lucide-vue-next'
+export default { components: { Shield } }
+</script>

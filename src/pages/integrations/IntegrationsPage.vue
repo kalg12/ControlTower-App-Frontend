@@ -1,137 +1,127 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
+import DataTable from 'primevue/datatable'
+import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
 import Select from 'primevue/select'
+import InputNumber from 'primevue/inputnumber'
+import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
-import Card from '@/components/ui/Card.vue'
+import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import { integrationsService } from '@/services/integrations.service'
 import { useToast } from '@/composables/useToast'
-import dayjs from 'dayjs'
-import relativeTime from 'dayjs/plugin/relativeTime'
 import type { Integration } from '@/types/integration'
-import { Plug, Clock } from 'lucide-vue-next'
 
-dayjs.extend(relativeTime)
-
+const { t } = useI18n()
 const queryClient = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
 
 const { data: result, isLoading, isError, refetch } = useQuery({
   queryKey: ['integrations'],
-  queryFn: () => integrationsService.list(),
-  staleTime: 30000
+  queryFn: () => integrationsService.list(0, 200),
+  staleTime: 30000,
 })
 
-const list = computed(() => result.value?.content ?? [])
+const integrations = computed(() => result.value?.content ?? [])
 
-function confirmToggleActive(integration: Integration) {
-  const activating = !integration.active
-  const label = integration.pullUrl ?? integration.id
+function confirmToggle(ep: Integration) {
+  const activating = !ep.active
   confirm.require({
-    message: activating
-      ? `Activate integration "${label}"?`
-      : `Deactivate integration "${label}"? Sync and heartbeats may stop until you activate it again.`,
-    header: activating ? 'Activate Integration' : 'Deactivate Integration',
+    message: activating ? t('integrations.activateConfirm', { name: ep.pullUrl || ep.id }) : t('integrations.deactivateConfirm', { name: ep.pullUrl || ep.id }),
+    header: activating ? t('integrations.activateTitle') : t('integrations.deactivateTitle'),
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
-    acceptProps: { label: activating ? 'Activate' : 'Deactivate', severity: activating ? 'success' : 'warn' },
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: activating ? t('common.activate') : t('common.deactivate'), severity: activating ? 'success' : 'warn' },
     accept: async () => {
       try {
-        if (integration.active) {
-          await integrationsService.deactivate(integration.id)
-          toast.success('Integration deactivated')
-        } else {
-          await integrationsService.activate(integration.id)
-          toast.success('Integration activated')
-        }
+        if (ep.active) await integrationsService.deactivate(ep.id)
+        else await integrationsService.activate(ep.id)
         await queryClient.invalidateQueries({ queryKey: ['integrations'] })
+        toast.success(activating ? t('integrations.activateSuccess') : t('integrations.deactivateSuccess'))
       } catch {
-        toast.error('Failed to update integration status')
+        toast.error(t('integrations.updateFailed'))
       }
     }
   })
 }
 
-function deleteIntegration(integration: Integration) {
+function confirmDelete(ep: Integration) {
   confirm.require({
-    message: `Remove integration endpoint "${integration.pullUrl ?? integration.id}"?`,
-    header: 'Remove Integration',
+    message: t('integrations.removeConfirm'),
+    header: t('integrations.removeTitle'),
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: 'Cancel', severity: 'secondary', outlined: true },
-    acceptProps: { label: 'Remove', severity: 'danger' },
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
     accept: async () => {
       try {
-        await integrationsService.delete(integration.id)
+        await integrationsService.delete(ep.id)
         await queryClient.invalidateQueries({ queryKey: ['integrations'] })
-        toast.success('Integration removed')
+        toast.success(t('integrations.removeSuccess'))
       } catch {
-        toast.error('Failed to remove integration')
+        toast.error(t('integrations.removeFailed'))
       }
     }
   })
 }
 
-// --- Create Integration Dialog ---
-const showCreateDialog = ref(false)
+// --- Register Dialog ---
+const showRegisterDialog = ref(false)
 const isSubmitting = ref(false)
 
-const endpointTypes = [
-  { label: 'POS System', value: 'POS' },
-  { label: 'Custom', value: 'CUSTOM' }
-]
-
-const schema = z.object({
-  type: z.enum(['POS', 'CUSTOM']),
-  pullUrl: z.string().url('Must be a valid URL').optional().or(z.literal('')),
+const registerSchema = z.object({
+  type: z.string().min(1),
+  pullUrl: z.string().url(t('integrations.validUrl')),
   apiKey: z.string().optional(),
   heartbeatIntervalSeconds: z.number().int().min(30).max(86400).default(300),
   contractVersion: z.string().optional(),
-  clientBranchId: z.string().uuid('Must be a valid UUID').optional().or(z.literal(''))
+  clientBranchId: z.string().optional(),
 })
 
-const { handleSubmit, errors, resetForm, defineField } = useForm({
-  validationSchema: toTypedSchema(schema),
-  initialValues: { type: 'POS', pullUrl: '', apiKey: '', heartbeatIntervalSeconds: 300, contractVersion: '', clientBranchId: '' }
+const registerForm = useForm({
+  validationSchema: toTypedSchema(registerSchema),
+  initialValues: { type: 'POS', pullUrl: '', apiKey: '', heartbeatIntervalSeconds: 300, contractVersion: '', clientBranchId: '' },
 })
 
-const [typeValue, typeAttrs] = defineField('type')
-const [pullUrlValue, pullUrlAttrs] = defineField('pullUrl')
-const [apiKeyValue, apiKeyAttrs] = defineField('apiKey')
-const [heartbeatValue, heartbeatAttrs] = defineField('heartbeatIntervalSeconds')
-const [contractValue, contractAttrs] = defineField('contractVersion')
-const [branchIdValue, branchIdAttrs] = defineField('clientBranchId')
+const [regType] = registerForm.defineField('type')
+const [regUrl, regUrlAttrs] = registerForm.defineField('pullUrl')
+const [regKey, regKeyAttrs] = registerForm.defineField('apiKey')
+const [regInterval] = registerForm.defineField('heartbeatIntervalSeconds')
 
-function openCreateDialog() {
-  resetForm()
-  showCreateDialog.value = true
+const typeOptions = computed(() => [
+  { label: t('integrations.posSystem'), value: 'POS' },
+  { label: t('integrations.custom'), value: 'CUSTOM' },
+])
+
+function openRegisterDialog() {
+  registerForm.resetForm()
+  showRegisterDialog.value = true
 }
 
-const onSubmit = handleSubmit(async (values) => {
+const onRegisterSubmit = registerForm.handleSubmit(async (values) => {
   isSubmitting.value = true
   try {
     await integrationsService.create({
-      type: values.type,
-      pullUrl: values.pullUrl || undefined,
+      type: values.type as any,
+      pullUrl: values.pullUrl,
       apiKey: values.apiKey || undefined,
       heartbeatIntervalSeconds: values.heartbeatIntervalSeconds,
       contractVersion: values.contractVersion || undefined,
-      clientBranchId: values.clientBranchId || undefined
+      clientBranchId: values.clientBranchId || undefined,
     })
     await queryClient.invalidateQueries({ queryKey: ['integrations'] })
-    showCreateDialog.value = false
-    toast.success('Integration registered')
+    showRegisterDialog.value = false
+    toast.success(t('integrations.registerSuccess'))
   } catch {
-    toast.error('Failed to register integration')
+    toast.error(t('integrations.registerFailed'))
   } finally {
     isSubmitting.value = false
   }
@@ -140,195 +130,83 @@ const onSubmit = handleSubmit(async (values) => {
 
 <template>
   <div class="space-y-4">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
+    <div class="flex items-start justify-between">
       <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">Integrations</h2>
-        <p class="text-sm text-[var(--text-muted)]">Registered POS and external system endpoints</p>
+        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('integrations.title') }}</h2>
+        <p class="text-sm text-[var(--text-muted)]">{{ t('integrations.subtitle') }}</p>
       </div>
-      <Button label="Register Endpoint" icon="pi pi-plus" @click="openCreateDialog" />
-    </div>
-
-    <!-- Error -->
-    <div v-if="isError && !isLoading" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
-      <span>Failed to load integrations. Check your connection or permissions.</span>
-      <Button label="Retry" size="small" severity="danger" text @click="refetch()" />
-    </div>
-
-    <!-- Loading skeleton -->
-    <div v-if="isLoading" class="space-y-3">
-      <div v-for="i in 3" :key="i" class="h-20 bg-[var(--surface-raised)] animate-pulse rounded-xl" />
-    </div>
-
-    <!-- Empty state -->
-    <div
-      v-else-if="list.length === 0"
-      class="flex flex-col items-center justify-center py-16 gap-4 text-center"
-    >
-      <div class="w-14 h-14 rounded-2xl bg-[var(--surface-raised)] flex items-center justify-center">
-        <Plug class="w-7 h-7 text-[var(--text-muted)]" />
+      <div class="flex gap-2">
+        <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
+        <Button :label="t('integrations.registerEndpoint')" icon="pi pi-plus" @click="openRegisterDialog" />
       </div>
-      <div>
-        <p class="font-semibold text-[var(--text)]">No integrations registered</p>
-        <p class="text-sm text-[var(--text-muted)] mt-0.5">Register a POS or custom system endpoint to start monitoring.</p>
-      </div>
-      <Button label="Register Endpoint" icon="pi pi-plus" @click="openCreateDialog" />
     </div>
 
-    <!-- Integration cards -->
-    <div v-else class="space-y-3">
-      <Card
-        v-for="integration in list"
-        :key="integration.id"
-        class="hover:border-[var(--primary)]/30 transition-colors"
-      >
-        <div class="flex items-start gap-4">
-          <!-- Icon -->
-          <div class="w-10 h-10 rounded-xl bg-[var(--primary)]/10 flex items-center justify-center flex-shrink-0">
-            <Plug class="w-5 h-5 text-[var(--primary)]" />
+    <div v-if="isError" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+      <span>{{ t('integrations.loadFailed') }}</span>
+      <Button :label="t('common.retry')" size="small" severity="danger" text @click="refetch()" />
+    </div>
+
+    <SkeletonTable v-else-if="isLoading" :rows="3" :cols="5" />
+
+    <DataTable v-else :value="integrations" striped-rows class="rounded-xl overflow-hidden">
+      <Column field="type" :header="t('integrations.type')" style="width: 100px">
+        <template #body="{ data: row }: { data: Integration }">
+          <Tag :value="row.type" severity="info" />
+        </template>
+      </Column>
+      <Column field="pullUrl" :header="t('integrations.pullUrl')" style="min-width: 240px">
+        <template #body="{ data: row }: { data: Integration }">
+          <span v-if="row.pullUrl" class="text-xs text-[var(--text-muted)] font-mono truncate block max-w-xs" :title="row.pullUrl">{{ row.pullUrl }}</span>
+          <span v-else class="text-xs text-red-400">{{ t('integrations.noPullUrl') }}</span>
+        </template>
+      </Column>
+      <Column field="heartbeatIntervalSeconds" :header="t('integrations.interval')" style="width: 100px">
+        <template #body="{ data: row }: { data: Integration }">
+          <span class="text-sm text-[var(--text-muted)]">{{ t('integrations.heartbeatEvery', { interval: row.heartbeatIntervalSeconds }) }}</span>
+        </template>
+      </Column>
+      <Column field="active" :header="t('integrations.status')" style="width: 100px">
+        <template #body="{ data: row }: { data: Integration }">
+          <Tag :severity="row.active ? 'success' : 'secondary'" :value="row.active ? t('health.active') : t('health.inactive')" />
+        </template>
+      </Column>
+      <Column :header="t('common.actions')" style="width: 130px">
+        <template #body="{ data: row }: { data: Integration }">
+          <div class="flex gap-1">
+            <Button :icon="row.active ? 'pi pi-pause' : 'pi pi-play'" :severity="row.active ? 'warn' : 'success'" text rounded size="small" v-tooltip.top="row.active ? t('integrations.deactivate') : t('integrations.activate')" @click="confirmToggle(row)" />
+            <Button icon="pi pi-trash" severity="danger" text rounded size="small" v-tooltip.top="t('integrations.remove')" @click="confirmDelete(row)" />
           </div>
-
-          <!-- Info -->
-          <div class="flex-1 min-w-0">
-            <div class="flex items-center gap-2 flex-wrap">
-              <span class="text-xs text-[var(--text-muted)] font-mono bg-[var(--surface-raised)] px-1.5 py-0.5 rounded">{{ integration.type }}</span>
-              <Tag :severity="integration.active ? 'success' : 'secondary'" :value="integration.active ? 'Active' : 'Inactive'" class="text-xs" />
-            </div>
-
-            <p v-if="integration.pullUrl" class="text-xs text-[var(--text-muted)] mt-1 truncate font-mono">{{ integration.pullUrl }}</p>
-            <p v-else class="text-xs text-[var(--text-muted)] mt-1 italic">No pull URL configured</p>
-
-            <div class="flex items-center gap-4 mt-2 text-xs text-[var(--text-muted)]">
-              <span class="flex items-center gap-1">
-                <Clock class="w-3 h-3" />
-                Heartbeat every {{ integration.heartbeatIntervalSeconds }}s
-              </span>
-              <span v-if="integration.contractVersion" class="font-mono">
-                v{{ integration.contractVersion }}
-              </span>
-              <span v-if="integration.clientBranchId" class="font-mono truncate max-w-[140px]">
-                Branch: {{ integration.clientBranchId }}
-              </span>
-            </div>
-          </div>
-
-          <!-- Actions -->
-          <div class="flex items-center gap-1 flex-shrink-0">
-            <Button
-              :icon="integration.active ? 'pi pi-pause' : 'pi pi-play'"
-              :severity="integration.active ? 'warn' : 'success'"
-              text
-              rounded
-              v-tooltip.top="integration.active ? 'Deactivate' : 'Activate'"
-              @click="confirmToggleActive(integration)"
-            />
-            <Button
-              icon="pi pi-trash"
-              severity="danger"
-              text
-              rounded
-              v-tooltip.top="'Remove'"
-              @click="deleteIntegration(integration)"
-            />
-          </div>
+        </template>
+      </Column>
+      <template #empty>
+        <div class="text-center py-10">
+          <p class="text-sm font-medium text-[var(--text)]">{{ t('integrations.noRows') }}</p>
+          <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('integrations.noRowsHint') }}</p>
         </div>
-      </Card>
-    </div>
+      </template>
+    </DataTable>
   </div>
 
-  <!-- Register Integration Dialog -->
-  <AppDialog
-    v-model:visible="showCreateDialog"
-    title="Register Integration Endpoint"
-    subtitle="Add a POS or custom system endpoint to start receiving heartbeats and events."
-    :loading="isSubmitting"
-  >
-    <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
-      <FormField label="Type" name="type" :error="errors.type" required>
-        <Select
-          id="int-type"
-          v-model="typeValue"
-          v-bind="typeAttrs"
-          :options="endpointTypes"
-          option-label="label"
-          option-value="value"
-          placeholder="Select type"
-          class="w-full"
-          :disabled="isSubmitting"
-        />
+  <!-- Register Dialog -->
+  <AppDialog v-model:visible="showRegisterDialog" :title="t('integrations.registerTitle')" :subtitle="t('integrations.registerSubtitle')" :loading="isSubmitting">
+    <form class="flex flex-col gap-4" @submit.prevent="onRegisterSubmit">
+      <FormField :label="t('integrations.type')" name="reg-type" :error="registerForm.errors.value.type" required>
+        <Select v-model="regType" :options="typeOptions" option-label="label" option-value="value" :placeholder="t('integrations.selectType')" class="w-full" :disabled="isSubmitting" />
       </FormField>
-
-      <FormField label="Pull URL" name="pullUrl" :error="errors.pullUrl">
-        <InputText
-          id="int-url"
-          v-model="pullUrlValue"
-          v-bind="pullUrlAttrs"
-          placeholder="https://pos-system.example.com/api/status"
-          class="w-full"
-          :disabled="isSubmitting"
-        />
+      <FormField :label="t('integrations.pullUrl')" name="reg-url" :error="registerForm.errors.value.pullUrl" required>
+        <InputText v-model="regUrl" v-bind="regUrlAttrs" placeholder="https://pos-system.example.com/api/status" class="w-full" :disabled="isSubmitting" />
       </FormField>
-
-      <FormField label="API Key (optional)" name="apiKey" :error="errors.apiKey">
-        <InputText
-          id="int-apikey"
-          v-model="apiKeyValue"
-          v-bind="apiKeyAttrs"
-          placeholder="Secret key for authentication"
-          class="w-full"
-          :disabled="isSubmitting"
-        />
+      <FormField :label="t('integrations.apiKey')" name="reg-key" :error="registerForm.errors.value.apiKey">
+        <InputText v-model="regKey" v-bind="regKeyAttrs" type="password" :placeholder="t('integrations.apiKeyHint')" class="w-full" :disabled="isSubmitting" />
       </FormField>
-
-      <FormField label="Heartbeat Interval (seconds)" name="heartbeatIntervalSeconds" :error="errors.heartbeatIntervalSeconds">
-        <InputNumber
-          id="int-heartbeat"
-          v-model="heartbeatValue"
-          v-bind="heartbeatAttrs"
-          :min="30"
-          :max="86400"
-          class="w-full"
-          :disabled="isSubmitting"
-        />
-      </FormField>
-
-      <FormField label="Contract Version (optional)" name="contractVersion" :error="errors.contractVersion">
-        <InputText
-          id="int-contract"
-          v-model="contractValue"
-          v-bind="contractAttrs"
-          placeholder="e.g. 1.0"
-          class="w-full"
-          :disabled="isSubmitting"
-        />
-      </FormField>
-
-      <FormField label="Branch ID (optional)" name="clientBranchId" :error="errors.clientBranchId">
-        <InputText
-          id="int-branch"
-          v-model="branchIdValue"
-          v-bind="branchIdAttrs"
-          placeholder="UUID of the associated branch"
-          class="w-full font-mono"
-          :disabled="isSubmitting"
-        />
+      <FormField :label="t('integrations.interval')" name="reg-interval" :error="registerForm.errors.value.heartbeatIntervalSeconds">
+        <InputNumber v-model="regInterval" :min="30" :max="86400" class="w-full" :disabled="isSubmitting" />
       </FormField>
     </form>
-
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button
-          label="Cancel"
-          severity="secondary"
-          outlined
-          :disabled="isSubmitting"
-          @click="showCreateDialog = false"
-        />
-        <Button
-          label="Register"
-          :loading="isSubmitting"
-          @click="onSubmit"
-        />
+        <Button :label="t('common.cancel')" severity="secondary" outlined :disabled="isSubmitting" @click="showRegisterDialog = false" />
+        <Button :label="t('integrations.register')" :loading="isSubmitting" @click="onRegisterSubmit" />
       </div>
     </template>
   </AppDialog>
