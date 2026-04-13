@@ -4,7 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
-import { useTheme } from '@/composables/useTheme'
+import { useThemeStore } from '@/stores/theme'
 import OverlayPanel from 'primevue/overlaypanel'
 import Badge from 'primevue/badge'
 import Button from 'primevue/button'
@@ -19,7 +19,7 @@ const { t, locale } = useI18n()
 const router = useRouter()
 const authStore = useAuthStore()
 const notifStore = useNotificationsStore()
-const { isDark, toggle: toggleTheme } = useTheme()
+const themeStore = useThemeStore()
 
 const userPanel = ref()
 const notifPanel = ref()
@@ -51,8 +51,8 @@ async function logout() {
 <template>
   <header class="flex items-center justify-between h-14 px-4 border-b border-[var(--border)] bg-[var(--surface)]">
     <div class="flex items-center gap-2">
-      <Button :icon="isDark ? 'pi pi-moon' : 'pi pi-sun'" severity="secondary" text rounded size="small"
-        :title="isDark ? t('header.darkMode') : t('header.lightMode')" @click="toggleTheme()" />
+      <Button :icon="themeStore.isDark ? 'pi pi-moon' : 'pi pi-sun'" severity="secondary" text rounded size="small"
+        :title="themeStore.isDark ? t('header.darkMode') : t('header.lightMode')" @click="themeStore.toggle()" />
       <Select v-model="locale" :options="locales" option-label="label" option-value="value" size="small" class="w-28"
         @change="(e: any) => switchLocale(e.value)" />
     </div>
