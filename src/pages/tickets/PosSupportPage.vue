@@ -14,7 +14,6 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import {
   Inbox,
-  Clock,
   CheckCircle2,
   AlertCircle,
   TrendingUp

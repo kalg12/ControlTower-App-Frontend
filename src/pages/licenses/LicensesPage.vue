@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
@@ -27,13 +27,9 @@ const { data: result, isLoading, isError, refetch } = useQuery({
 const licenses = computed(() => result.value?.content ?? [])
 const totalRecords = computed(() => result.value?.totalElements ?? 0)
 
-function formatDate(dateStr: string) {
-  return dayjs(dateStr).format('DD MMM YYYY')
-}
-
 function periodEndText(license: License) {
-  if (!license.periodEnd) return '—'
-  const diff = dayjs(license.periodEnd).diff(dayjs(), 'day')
+  if (!license.currentPeriodEnd) return '—'
+  const diff = dayjs(license.currentPeriodEnd).diff(dayjs(), 'day')
   if (diff < 0) return t('licenses.expiredAgo', { days: Math.abs(diff) })
   if (diff === 0) return t('licenses.expiresToday')
   return t('licenses.daysLeft', { days: diff })

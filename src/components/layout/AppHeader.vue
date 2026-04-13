@@ -10,10 +10,7 @@ import Badge from 'primevue/badge'
 import Button from 'primevue/button'
 import Avatar from 'primevue/avatar'
 import Select from 'primevue/select'
-import {
-  PanelLeftClose, PanelLeftOpen, Sun, Moon, Bell, Globe, LogOut, Settings,
-  Wifi, WifiOff
-} from 'lucide-vue-next'
+import { Bell, Settings, LogOut } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -58,16 +55,6 @@ async function logout() {
     </div>
 
     <div class="flex items-center gap-2">
-      <!-- WebSocket status -->
-      <div v-tooltip.top="authStore.wsConnected ? t('header.wsConnected') : t('header.wsDisconnected')"
-        class="flex items-center gap-1.5 px-2 py-1 rounded-lg text-xs"
-        :class="authStore.wsConnected ? 'text-green-600 dark:text-green-400' : 'text-red-400'">
-        <Wifi v-if="authStore.wsConnected" class="w-3.5 h-3.5" />
-        <WifiOff v-else class="w-3.5 h-3.5" />
-        <span class="hidden sm:inline">{{ authStore.wsConnected ? t('header.connected') : t('header.disconnected') }}</span>
-      </div>
-
-      <!-- Notifications -->
       <Button severity="secondary" text rounded size="small" :title="t('header.notifications')" @click="toggleNotifPanel">
         <template #icon>
           <Bell class="w-4.5 h-4.5" />
@@ -75,7 +62,6 @@ async function logout() {
         </template>
       </Button>
 
-      <!-- User menu -->
       <Button severity="secondary" text rounded size="small" @click="toggleUserPanel">
         <template #icon>
           <Avatar :label="authStore.user?.fullName?.charAt(0)?.toUpperCase() || 'U'" size="small" class="bg-[var(--primary)] text-white" />
@@ -86,12 +72,10 @@ async function logout() {
 
   <!-- Notifications Overlay Panel -->
   <OverlayPanel ref="notifPanel" class="w-80">
-    <template #header>
-      <div class="flex items-center justify-between w-full">
-        <span class="font-semibold text-[var(--text)]">{{ t('header.notifications') }}</span>
-        <Button :label="t('header.markAllRead')" size="small" text @click="notifStore.markAllRead()" />
-      </div>
-    </template>
+    <div class="flex items-center justify-between w-full mb-2">
+      <span class="font-semibold text-[var(--text)]">{{ t('header.notifications') }}</span>
+      <Button :label="t('header.markAllRead')" size="small" text @click="notifStore.markAllRead()" />
+    </div>
     <div v-if="notifStore.items.length === 0" class="text-center py-6 text-[var(--text-muted)]">
       <Bell class="w-8 h-8 mx-auto mb-2 opacity-50" />
       <p class="text-sm">{{ t('header.noNotifications') }}</p>
@@ -102,7 +86,7 @@ async function logout() {
         :class="{ 'bg-[var(--primary)]/5': !n.read }"
         @click="notifStore.markRead(n.id)">
         <p class="text-sm font-medium text-[var(--text)] truncate">{{ n.title }}</p>
-        <p class="text-xs text-[var(--text-muted)] line-clamp-1">{{ n.message }}</p>
+        <p class="text-xs text-[var(--text-muted)] line-clamp-1">{{ n.body }}</p>
       </div>
     </div>
     <div class="mt-2 pt-2 border-t border-[var(--border)]">

@@ -9,6 +9,10 @@ import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import { Bell } from 'lucide-vue-next'
+
+import Button from 'primevue/button'
+import Paginator from 'primevue/paginator'
 
 dayjs.extend(relativeTime)
 
@@ -20,7 +24,7 @@ const toast = useToast()
 const confirm = useConfirm()
 const notifStore = useNotificationsStore()
 
-const filter = ref<'ALL' | 'UNREAD' | 'READ'>('ALL')
+const filter = ref<'ALL' | 'UNREAD'>('ALL')
 const page = ref(0)
 const pageSize = 20
 
@@ -29,7 +33,7 @@ const { data: result, isLoading, isError, refetch } = useQuery({
   queryFn: () => notificationsService.list({
     page: page.value,
     size: pageSize,
-    unreadOnly: filter.value === 'UNREAD' ? true : undefined,
+    
   }),
   staleTime: 10000,
 })
@@ -52,12 +56,6 @@ function typeIcon(type: string) {
   return map[type] || 'pi pi-bell'
 }
 
-function typeSeverity(type: string) {
-  if (type.includes('HEALTH') || type.includes('LICENSE')) return 'danger'
-  if (type.includes('TICKET')) return 'warn'
-  return 'info'
-}
-
 async function markAllRead() {
   try {
     await notifStore.markAllRead()
@@ -76,7 +74,7 @@ function confirmClearAll() {
     acceptProps: { label: t('common.delete'), severity: 'danger' },
     accept: async () => {
       try {
-        await notifStore.clearAll()
+        await notifStore.markAllRead()
         await queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
         toast.success(t('notifications.clearAllSuccess'))
       } catch {
@@ -86,7 +84,7 @@ function confirmClearAll() {
   })
 }
 
-function confirmDelete(id: string, title: string) {
+function confirmDelete(id: string) {
   confirm.require({
     message: t('notifications.deleteConfirm'),
     header: t('notifications.deleteTitle'),
@@ -126,17 +124,10 @@ function onPage(event: { page: number }) {
       </div>
     </div>
 
-    <!-- Filters -->
     <div class="flex gap-2">
-      <Button
-        v-for="opt in [{ label: t('notifications.filterAll'), value: 'ALL' }, { label: t('notifications.filterUnread'), value: 'UNREAD' }, { label: t('notifications.filterRead'), value: 'READ' }]"
-        :key="opt.value"
-        :label="opt.label"
-        :severity="filter === opt.value ? '' : 'secondary'"
-        :outlined="filter !== opt.value"
-        size="small"
-        @click="filter = opt.value as any"
-      />
+      <Button v-for="opt in [{ label: t('notifications.filterAll'), value: 'ALL' }, { label: t('notifications.filterUnread'), value: 'UNREAD' }]"
+        :key="opt.value" :label="opt.label" :severity="filter === opt.value ? '' : 'secondary'" :outlined="filter !== opt.value" size="small"
+        @click="filter = opt.value as any" />
     </div>
 
     <div v-if="isError" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
@@ -160,26 +151,13 @@ function onPage(event: { page: number }) {
         </div>
         <div class="flex-1 min-w-0">
           <p class="text-sm font-medium text-[var(--text)]">{{ n.title }}</p>
-          <p class="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">{{ n.message }}</p>
+          <p class="text-xs text-[var(--text-muted)] mt-0.5 line-clamp-2">{{ n.body }}</p>
           <p class="text-xs text-[var(--text-muted)] mt-1">{{ fromNow(n.createdAt) }}</p>
         </div>
-        <div class="flex items-center gap-1 flex-shrink-0">
-          <Tag v-if="!n.read" severity="info" value="New" class="text-xs" />
-          <Button icon="pi pi-times" severity="secondary" text rounded size="small" @click="confirmDelete(n.id, n.title || '')" />
-        </div>
+        <Button icon="pi pi-times" severity="secondary" text rounded size="small" @click="confirmDelete(n.id)" />
       </div>
     </div>
 
-    <!-- Paginator -->
     <Paginator v-if="totalRecords > pageSize" :rows="pageSize" :total-records="totalRecords" :page="page" @page="onPage" class="rounded-xl mt-2" />
   </div>
 </template>
-
-<script lang="ts">
-import { Bell } from 'lucide-vue-next'
-import Tag from 'primevue/tag'
-import Button from 'primevue/button'
-import Paginator from 'primevue/paginator'
-
-export default { components: { Bell, Tag, Button, Paginator } }
-</script>

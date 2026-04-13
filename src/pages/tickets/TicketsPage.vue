@@ -205,8 +205,10 @@ const showCreateDialog = ref(false)
 const isSubmitting = ref(false)
 
 const createSchema = z.object({
-  title: z.string().min(3, 'Min 3 characters').max(200),
-  description: z.string().min(10, 'Min 10 characters')
+  title: z.string().min(3, t('tickets.titleMin')).max(200),
+  description: z.string().min(10, t('tickets.descMin')),
+  priority: z.string().min(1),
+  clientId: z.string().optional(),
 })
 
 const createForm = useForm({
@@ -230,7 +232,7 @@ const onSubmit = createForm.handleSubmit(async (values) => {
     await ticketsService.create({
       title: values.title,
       description: values.description,
-      priority: values.priority,
+      priority: values.priority as any,
       clientId: values.clientId || undefined
     })
     await queryClient.invalidateQueries({ queryKey: ['tickets'] })

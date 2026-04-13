@@ -108,7 +108,7 @@ function onSearch() {
       </Column>
       <Column field="details" :header="t('audit.details')" style="min-width: 200px">
         <template #body="{ data: row }: { data: AuditLog }">
-          <span class="text-[var(--text-muted)] text-xs line-clamp-1">{{ row.details ?? row.result ?? '—' }}</span>
+          <span class="text-[var(--text-muted)] text-xs line-clamp-1">{{ row.details ?? '—' }}</span>
         </template>
       </Column>
       <Column field="ipAddress" :header="t('audit.ip')" style="width: 130px">

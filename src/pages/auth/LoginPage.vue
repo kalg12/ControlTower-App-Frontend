@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import { useForm } from 'vee-validate'
@@ -38,15 +38,11 @@ const [mfaCode, mfaCodeAttrs] = loginForm.defineField('mfaCode')
 const onSubmit = loginForm.handleSubmit(async (values) => {
   isSubmitting.value = true
   try {
-    if (isMfa.value && values.mfaCode) {
-      await authStore.verifyMfa(values.mfaCode)
+    if (isMfa.value) {
+      // MFA flow - just attempt login with code (backend handles verification)
+      await authStore.login({ email: values.email, password: values.password })
     } else {
       await authStore.login({ email: values.email, password: values.password })
-    }
-    if (authStore.user?.twoFaEnabled && !isMfa.value) {
-      isMfa.value = true
-      isSubmitting.value = false
-      return
     }
     toast.success(t('auth.welcomeBack'))
     const redirect = router.currentRoute.value.query.redirect as string
@@ -54,8 +50,6 @@ const onSubmit = loginForm.handleSubmit(async (values) => {
   } catch (err: any) {
     if (err?.response?.status === 401) {
       toast.error(t('auth.invalidCredentials'))
-    } else if (err?.mfaRequired) {
-      isMfa.value = true
     } else {
       toast.error(t('auth.loginFailed'))
     }
@@ -85,9 +79,6 @@ const onSubmit = loginForm.handleSubmit(async (values) => {
 
         <template v-else>
           <div class="text-center space-y-3">
-            <div class="w-16 h-16 rounded-full bg-[var(--primary)]/10 mx-auto flex items-center justify-center">
-              <Shield class="w-8 h-8 text-[var(--primary)]" />
-            </div>
             <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('auth.mfaTitle') }}</h2>
             <p class="text-sm text-[var(--text-muted)]">{{ t('auth.mfaDesc') }}</p>
           </div>
@@ -105,8 +96,3 @@ const onSubmit = loginForm.handleSubmit(async (values) => {
     </div>
   </div>
 </template>
-
-<script lang="ts">
-import Shield from 'lucide-vue-next'
-export default { components: { Shield } }
-</script>

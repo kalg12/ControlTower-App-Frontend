@@ -19,7 +19,7 @@ export const crmService = {
       `/clients/${clientId}/interactions`,
       { params }
     )
-    return res.data
+    return (res.data as any).data || res.data
   },
 
   async logInteraction(
@@ -27,7 +27,7 @@ export const crmService = {
     data: CreateInteractionRequest
   ): Promise<ClientInteraction> {
     const res = await api.post<ClientInteraction>(`/clients/${clientId}/interactions`, data)
-    return res.data
+    return (res.data as any).data || res.data
   },
 
   async deleteInteraction(interactionId: string): Promise<void> {
@@ -44,7 +44,7 @@ export const crmService = {
       `/clients/${clientId}/opportunities`,
       { params }
     )
-    return res.data
+    return (res.data as any).data || res.data
   },
 
   async getAllOpportunities(
@@ -54,14 +54,14 @@ export const crmService = {
       '/clients/opportunities',
       { params }
     )
-    return res.data
+    return (res.data as any).data || res.data
   },
 
   async getActivePipeline(): Promise<ClientOpportunity[]> {
     const res = await api.get<{ success: boolean; data: ClientOpportunity[] }>(
       '/clients/opportunities/pipeline'
     )
-    return res.data
+    return (res.data as any).data || res.data
   },
 
   async createOpportunity(
@@ -69,7 +69,7 @@ export const crmService = {
     data: CreateOpportunityRequest
   ): Promise<ClientOpportunity> {
     const res = await api.post<ClientOpportunity>(`/clients/${clientId}/opportunities`, data)
-    return res.data
+    return (res.data as any).data || res.data
   },
 
   async updateOpportunity(
@@ -77,7 +77,7 @@ export const crmService = {
     data: UpdateOpportunityRequest
   ): Promise<ClientOpportunity> {
     const res = await api.put<ClientOpportunity>(`/clients/opportunities/${oppId}`, data)
-    return res.data
+    return (res.data as any).data || res.data
   },
 
   async deleteOpportunity(oppId: string): Promise<void> {

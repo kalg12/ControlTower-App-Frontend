@@ -17,7 +17,7 @@ const pageSize = 20
 
 const { data: result, isLoading, isError, refetch } = useQuery({
   queryKey: computed(() => ['billing', page.value]),
-  queryFn: () => billingService.list({ page: page.value, size: pageSize }),
+  queryFn: () => billingService.listEvents(page.value, pageSize),
   staleTime: 30000,
 })
 
@@ -60,9 +60,9 @@ function onPage(event: { page: number }) {
           <span class="text-sm text-[var(--text-muted)] font-mono">{{ formatDate(row.createdAt) }}</span>
         </template>
       </Column>
-      <Column field="type" :header="t('billing.event')" style="min-width: 180px">
+      <Column field="type" :header="t('billing.eventType')" style="min-width: 180px">
         <template #body="{ data: row }: { data: BillingEvent }">
-          <span class="text-sm font-medium text-[var(--text)]">{{ row.type }}</span>
+          <span class="text-sm font-medium text-[var(--text)]">{{ row.eventType }}</span>
         </template>
       </Column>
       <Column field="amount" :header="t('billing.amount')" style="width: 130px">

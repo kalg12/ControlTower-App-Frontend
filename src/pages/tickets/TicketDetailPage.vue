@@ -13,11 +13,11 @@ import { ticketsService } from '@/services/tickets.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import type { TicketStatus, TicketPriority, TicketCommentResponse } from '@/types/ticket'
 import { MessageSquare } from 'lucide-vue-next'
 import SourceBadge from '@/components/tickets/SourceBadge.vue'
 import PosContextPanel from '@/components/tickets/PosContextPanel.vue'
 import TicketChatPanel from '@/components/tickets/TicketChatPanel.vue'
+import type { TicketStatus, TicketPriority } from '@/types/ticket'
 import 'dayjs/locale/es'
 
 dayjs.extend(relativeTime)

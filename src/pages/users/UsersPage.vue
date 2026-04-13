@@ -11,29 +11,29 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
 import Select from 'primevue/select'
-import MultiSelect from 'primevue/multiselect'
 import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import { usersService } from '@/services/users.service'
+import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
-import type { User, UserRole } from '@/types/user'
+import type { User } from '@/types/user'
 import { Shield, ShieldOff } from 'lucide-vue-next'
 
 const { t } = useI18n()
+const authStore = useAuthStore()
 const queryClient = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
 
 const page = ref(0)
 const pageSize = 20
-const globalFilter = ref('')
 
 const { data: result, isLoading, isError, refetch } = useQuery({
   queryKey: computed(() => ['users', page.value]),
-  queryFn: () => usersService.list({ page: page.value, size: pageSize }),
+  queryFn: () => usersService.list({ tenantId: authStore.user?.tenantId || '', page: page.value, size: pageSize }),
   staleTime: 20000,
 })
 
@@ -57,25 +57,21 @@ const statusOptions = computed(() => [
 // --- Invite User ---
 const showInviteDialog = ref(false)
 const isSubmitting = ref(false)
-const roles = ref<UserRole[]>([])
-const isLoadingRoles = ref(false)
 
 const inviteSchema = z.object({
   fullName: z.string().min(2, t('users.fullNameMin')),
   email: z.string().email(t('users.emailValid')),
   password: z.string().min(8, t('users.passwordMin')),
-  roleId: z.string().optional(),
 })
 
 const inviteForm = useForm({
   validationSchema: toTypedSchema(inviteSchema),
-  initialValues: { fullName: '', email: '', password: '', roleId: '' },
+  initialValues: { fullName: '', email: '', password: '' },
 })
 
 const [invName, invNameAttrs] = inviteForm.defineField('fullName')
 const [invEmail, invEmailAttrs] = inviteForm.defineField('email')
 const [invPassword, invPasswordAttrs] = inviteForm.defineField('password')
-const [invRole] = inviteForm.defineField('roleId')
 
 function openInviteDialog() {
   inviteForm.resetForm()
@@ -85,12 +81,7 @@ function openInviteDialog() {
 const onInviteSubmit = inviteForm.handleSubmit(async (values) => {
   isSubmitting.value = true
   try {
-    await usersService.create({
-      fullName: values.fullName,
-      email: values.email,
-      password: values.password,
-      roleId: values.roleId || undefined,
-    })
+    await usersService.create(authStore.user?.tenantId || '', { fullName: values.fullName, email: values.email, password: values.password, roleIds: [] })
     await queryClient.invalidateQueries({ queryKey: ['users'] })
     showInviteDialog.value = false
     toast.success(t('users.createSuccess'))
@@ -111,29 +102,21 @@ const editSchema = z.object({
   email: z.string().email(t('users.emailValid')),
   status: z.string(),
   password: z.string().min(8, t('users.passwordMinIfSet')).optional().or(z.literal('')),
-  roleId: z.string().optional(),
 })
 
 const editForm = useForm({
   validationSchema: toTypedSchema(editSchema),
-  initialValues: { fullName: '', email: '', status: 'ACTIVE', password: '', roleId: '' },
+  initialValues: { fullName: '', email: '', status: 'ACTIVE', password: '' },
 })
 
 const [editName, editNameAttrs] = editForm.defineField('fullName')
 const [editEmail, editEmailAttrs] = editForm.defineField('email')
 const [editStatus] = editForm.defineField('status')
 const [editPassword, editPasswordAttrs] = editForm.defineField('password')
-const [editRole] = editForm.defineField('roleId')
 
 function openEditDialog(user: User) {
   editingUser.value = user
-  editForm.setValues({
-    fullName: user.fullName,
-    email: user.email,
-    status: user.status,
-    password: '',
-    roleId: user.roleId || '',
-  })
+  editForm.setValues({ fullName: user.fullName, email: user.email, status: user.status, password: '' })
   showEditDialog.value = true
 }
 
@@ -146,7 +129,6 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       email: values.email,
       status: values.status as any,
       password: values.password || undefined,
-      roleId: values.roleId || undefined,
     })
     await queryClient.invalidateQueries({ queryKey: ['users'] })
     showEditDialog.value = false
@@ -186,19 +168,17 @@ function confirmDeleteUser(user: User) {
         <p class="text-sm text-[var(--text-muted)]">{{ t('users.totalCount', { count: totalRecords }) }}</p>
       </div>
       <div class="flex flex-wrap gap-2">
-        <Button :aria-label="t('common.retry')" icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
+        <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
         <Button :label="t('users.inviteUser')" icon="pi pi-user-plus" @click="openInviteDialog" />
       </div>
     </div>
-
-    <InputText v-model="globalFilter" :placeholder="t('users.searchPlaceholder')" class="max-w-md w-full" />
 
     <div v-if="isError" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
       <span>{{ t('users.loadFailed') }}</span>
       <Button :label="t('common.retry')" size="small" severity="danger" text @click="refetch()" />
     </div>
 
-    <SkeletonTable v-else-if="isLoading" :rows="5" :cols="6" />
+    <SkeletonTable v-else-if="isLoading" :rows="5" :cols="5" />
 
     <DataTable v-else lazy :first="page * pageSize" :value="users" :loading="isLoading" :rows="pageSize" :total-records="totalRecords" paginator paginator-template="PrevPageLink PageLinks NextPageLink" striped-rows class="rounded-xl overflow-hidden" @page="onPage">
       <Column field="fullName" :header="t('users.user')" style="min-width: 180px">
@@ -207,35 +187,24 @@ function confirmDeleteUser(user: User) {
           <span class="block text-xs text-[var(--text-muted)]">{{ row.email }}</span>
         </template>
       </Column>
-
       <Column field="status" :header="t('users.status')" style="width: 130px">
         <template #body="{ data: row }: { data: User }">
           <Tag :severity="row.status === 'ACTIVE' ? 'success' : row.status === 'SUSPENDED' ? 'danger' : 'warn'" :value="statusOptions.find(o => o.value === row.status)?.label ?? row.status" />
         </template>
       </Column>
-
       <Column :header="t('users.twoFaAdmin')" style="width: 130px">
         <template #body="{ data: row }: { data: User }">
           <div class="flex items-center gap-1.5">
-            <Shield v-if="row.twoFaEnabled" class="w-4 h-4 text-green-500" v-tooltip.top="t('users.twoFaEnabled')" />
+            <Shield v-if="row.twoFactorEnabled" class="w-4 h-4 text-green-500" v-tooltip.top="t('users.twoFactorEnabled')" />
             <ShieldOff v-else class="w-4 h-4 text-red-400" v-tooltip.top="t('users.twoFaDisabled')" />
-            <Tag v-if="row.isSuperAdmin" value="SuperAdmin" severity="danger" class="text-xs" />
           </div>
         </template>
       </Column>
-
-      <Column field="roleName" :header="t('users.roles')" style="width: 140px">
-        <template #body="{ data: row }: { data: User }">
-          <span class="text-sm text-[var(--text-muted)]">{{ row.roleName ?? '—' }}</span>
-        </template>
-      </Column>
-
       <Column field="createdAt" :header="t('users.joined')" sortable style="width: 130px">
         <template #body="{ data: row }: { data: User }">
           <span class="text-[var(--text-muted)] text-sm">{{ formatDate(row.createdAt) }}</span>
         </template>
       </Column>
-
       <Column :header="t('common.actions')" style="width: 100px">
         <template #body="{ data: row }: { data: User }">
           <div class="flex gap-1">
@@ -244,38 +213,32 @@ function confirmDeleteUser(user: User) {
           </div>
         </template>
       </Column>
-
       <template #empty>
         <div class="text-center py-10 text-[var(--text-muted)]">{{ t('users.noRows') }}</div>
       </template>
     </DataTable>
   </div>
 
-  <!-- Invite Dialog -->
   <AppDialog v-model:visible="showInviteDialog" :title="t('users.inviteTitle')" :subtitle="t('users.inviteSubtitle')" :loading="isSubmitting">
     <form class="flex flex-col gap-4" @submit.prevent="onInviteSubmit">
       <FormField :label="t('users.fullName')" name="inv-name" :error="inviteForm.errors.value.fullName" required>
-        <InputText id="inv-name" v-model="invName" v-bind="invNameAttrs" :placeholder="t('users.fullNamePlaceholder')" class="w-full" :disabled="isSubmitting" />
+        <InputText v-model="invName" v-bind="invNameAttrs" :placeholder="t('users.fullNamePlaceholder')" class="w-full" :disabled="isSubmitting" />
       </FormField>
       <FormField :label="t('users.email')" name="inv-email" :error="inviteForm.errors.value.email" required>
-        <InputText id="inv-email" v-model="invEmail" v-bind="invEmailAttrs" :placeholder="t('users.emailPlaceholder')" class="w-full" :disabled="isSubmitting" />
+        <InputText v-model="invEmail" v-bind="invEmailAttrs" :placeholder="t('users.emailPlaceholder')" class="w-full" :disabled="isSubmitting" />
       </FormField>
       <FormField :label="t('users.password')" name="inv-password" :error="inviteForm.errors.value.password" required>
-        <InputText id="inv-password" v-model="invPassword" v-bind="invPasswordAttrs" type="password" :placeholder="t('users.passwordPlaceholder')" class="w-full" :disabled="isSubmitting" />
-      </FormField>
-      <FormField :label="t('users.role')" name="inv-role">
-        <Select v-model="invRole" :options="roles" option-label="name" option-value="id" :placeholder="t('users.rolePlaceholder')" class="w-full" :disabled="isSubmitting || isLoadingRoles" />
+        <InputText v-model="invPassword" v-bind="invPasswordAttrs" type="password" :placeholder="t('users.passwordPlaceholder')" class="w-full" :disabled="isSubmitting" />
       </FormField>
     </form>
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button :label="t('common.cancel')" severity="secondary" outlined :disabled="isSubmitting" @click="showInviteDialog = false" />
-        <Button :label="t('users.createUser')" :loading="isSubmitting" @click="onInviteSubmit" />
+        <Button :label="t('common.create')" :loading="isSubmitting" @click="onInviteSubmit" />
       </div>
     </template>
   </AppDialog>
 
-  <!-- Edit Dialog -->
   <AppDialog v-model:visible="showEditDialog" :title="t('users.editTitle')" :subtitle="t('users.editSubtitle')" :loading="isEditSubmitting">
     <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
       <FormField :label="t('users.fullName')" name="edit-name" :error="editForm.errors.value.fullName" required>
@@ -286,9 +249,6 @@ function confirmDeleteUser(user: User) {
       </FormField>
       <FormField :label="t('users.statusLabel')" name="edit-status">
         <Select v-model="editStatus" :options="statusOptions" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
-      </FormField>
-      <FormField :label="t('users.role')" name="edit-role">
-        <Select v-model="editRole" :options="roles" option-label="name" option-value="id" :placeholder="t('users.selectRoles')" class="w-full" :disabled="isEditSubmitting || isLoadingRoles" />
       </FormField>
       <FormField :label="t('users.newPassword')" name="edit-password">
         <InputText v-model="editPassword" v-bind="editPasswordAttrs" type="password" :placeholder="t('users.newPasswordPlaceholder')" class="w-full" :disabled="isEditSubmitting" />

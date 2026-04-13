@@ -28,11 +28,9 @@ import { crmService } from '@/services/crm.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
-import type { Client, ClientBranch, ClientContact, CreateContactRequest } from '@/types/client'
-import type { ClientInteraction, ClientOpportunity, InteractionType, OpportunityStage, OpportunitySource } from '@/types/client'
+import type { Client, ClientBranch, ClientContact, CreateContactRequest, ClientInteraction, ClientOpportunity, InteractionType, OpportunityStage } from '@/types/client'
 import {
-  Building2, Users, MapPin, Phone, Mail, Activity,
-  TrendingUp, DollarSign, Calendar, Clock, AlertTriangle
+  Users, Activity, TrendingUp, DollarSign
 } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
@@ -253,7 +251,6 @@ const [branchNameValue, branchNameAttrs] = branchForm.defineField('name')
 const [addressValue, addressAttrs] = branchForm.defineField('address')
 const [cityValue, cityAttrs] = branchForm.defineField('city')
 const [countryValue, countryAttrs] = branchForm.defineField('country')
-const [timezoneValue, timezoneAttrs] = branchForm.defineField('timezone')
 
 function openBranchDialog() {
   branchForm.resetForm()
@@ -296,7 +293,6 @@ const editBranchForm = useForm({
 const [ebName, ebNameAttrs] = editBranchForm.defineField('name')
 const [ebAddress, ebAddressAttrs] = editBranchForm.defineField('address')
 const [ebCity, ebCityAttrs] = editBranchForm.defineField('city')
-const [ebIsActive] = editBranchForm.defineField('isActive')
 
 function openEditBranchDialog(branch: ClientBranch) {
   editingBranch.value = branch
@@ -380,7 +376,6 @@ const [cfFullName, cfFullNameAttrs] = contactForm.defineField('fullName')
 const [cfEmail, cfEmailAttrs] = contactForm.defineField('email')
 const [cfPhone, cfPhoneAttrs] = contactForm.defineField('phone')
 const [cfRole] = contactForm.defineField('role')
-const [cfPrimary] = contactForm.defineField('primary')
 const [cfNotes, cfNotesAttrs] = contactForm.defineField('notes')
 
 function openAddContact() {
@@ -466,7 +461,7 @@ const interactionSchema = z.object({
   branchId: z.string().optional(),
   occurredAt: z.string().optional(),
   outcome: z.string().optional(),
-  durationMinutes: z.number().int().min(1).max(480).optional(),
+  durationMinutes: z.string().optional(),
 })
 
 const interactionForm = useForm({
@@ -478,7 +473,6 @@ const [intTitle, intTitleAttrs] = interactionForm.defineField('title')
 const [intDesc, intDescAttrs] = interactionForm.defineField('description')
 const [intType] = interactionForm.defineField('interactionType')
 const [intBranch] = interactionForm.defineField('branchId')
-const [intOccurred] = interactionForm.defineField('occurredAt')
 const [intOutcome, intOutcomeAttrs] = interactionForm.defineField('outcome')
 const [intDuration] = interactionForm.defineField('durationMinutes')
 
@@ -497,7 +491,7 @@ const onSubmitInteraction = interactionForm.handleSubmit(async (values) => {
       branchId: values.branchId || undefined,
       occurredAt: values.occurredAt || undefined,
       outcome: values.outcome || undefined,
-      durationMinutes: values.durationMinutes || undefined,
+      durationMinutes: values.durationMinutes ? parseInt(values.durationMinutes) : undefined,
     })
     await queryClient.invalidateQueries({ queryKey: ['interactions', id.value] })
     await queryClient.invalidateQueries({ queryKey: ['client', id.value] })
@@ -566,7 +560,7 @@ const currencyOptions = [
 const oppSchema = z.object({
   title: z.string().min(2, 'Min 2 characters'),
   description: z.string().optional(),
-  value: z.number().min(0).optional(),
+  value: z.string().optional(),
   currency: z.string().min(1),
   stage: z.string().min(1),
   expectedCloseDate: z.string().optional(),
@@ -599,7 +593,7 @@ function openEditOpp(opp: ClientOpportunity) {
   oppForm.setValues({
     title: opp.title,
     description: opp.description ?? '',
-    value: opp.value,
+    value: opp.value ? String(opp.value) : undefined,
     currency: opp.currency || 'MXN',
     stage: opp.stage,
     expectedCloseDate: opp.expectedCloseDate ? dayjs(opp.expectedCloseDate).format('YYYY-MM-DD') : '',
@@ -616,11 +610,10 @@ const onSubmitOpp = oppForm.handleSubmit(async (values) => {
       await crmService.updateOpportunity(editingOpp.value.id, {
         title: values.title,
         description: values.description || undefined,
-        value: values.value,
+        value: values.value ? parseFloat(values.value) : undefined,
         currency: values.currency,
         stage: values.stage as OpportunityStage,
         expectedCloseDate: values.expectedCloseDate ? new Date(values.expectedCloseDate).toISOString() : undefined,
-        source: (values.source || undefined) as OpportunitySource | undefined,
         lossReason: values.lossReason || undefined,
       })
       toast.success(t('crm.oppUpdated'))
@@ -628,11 +621,10 @@ const onSubmitOpp = oppForm.handleSubmit(async (values) => {
       await crmService.createOpportunity(id.value, {
         title: values.title,
         description: values.description || undefined,
-        value: values.value,
+        value: values.value ? parseFloat(values.value) : undefined,
         currency: values.currency,
         stage: values.stage as OpportunityStage,
         expectedCloseDate: values.expectedCloseDate ? new Date(values.expectedCloseDate).toISOString() : undefined,
-        source: (values.source || undefined) as OpportunitySource | undefined,
       })
       toast.success(t('crm.oppCreated'))
     }
@@ -1228,7 +1220,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
           <Select v-model="intBranch" :options="branches ?? []" option-label="name" option-value="id" :placeholder="t('crm.branch')" class="w-full" :disabled="isSubmittingInteraction" />
         </FormField>
         <FormField :label="t('crm.durationMinutes')" name="int-duration">
-          <InputText v-model="intDuration" type="number" min="1" max="480" class="w-full" :disabled="isSubmittingInteraction" />
+          <InputText v-model="intDuration" placeholder="60" class="w-full" :disabled="isSubmittingInteraction" />
         </FormField>
       </div>
       <FormField :label="t('crm.outcome')" name="int-outcome">
@@ -1254,7 +1246,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
       </FormField>
       <div class="grid grid-cols-2 gap-3">
         <FormField :label="t('crm.value')" name="opp-value">
-          <InputText v-model="oppValue" type="number" min="0" class="w-full" :disabled="isSubmittingOpp" />
+          <InputText v-model="oppValue" placeholder="0" class="w-full" :disabled="isSubmittingOpp" />
         </FormField>
         <FormField :label="t('crm.currency')" name="opp-currency">
           <Select v-model="oppCurrency" :options="currencyOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmittingOpp" />
