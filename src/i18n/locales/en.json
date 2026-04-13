@@ -848,5 +848,21 @@
     "tabContacts": "Contacts",
     "tabTickets": "Tickets",
     "tabPipeline": "Pipeline"
+  },
+  "activity": {
+    "title": "User Activity",
+    "subtitle": "Navigation and activity monitoring of employees in Control Tower",
+    "activeUsers": "Active users (15 min)",
+    "totalEvents": "Total events",
+    "uniqueUsers": "Unique users",
+    "pagesTracked": "Pages tracked",
+    "filterUser": "Search by user…",
+    "filterByUser": "Filter by user",
+    "user": "User",
+    "page": "Page",
+    "duration": "Duration",
+    "visitedAt": "Visited",
+    "loadFailed": "Could not load activity. Check your connection or permissions.",
+    "noData": "No activity records"
   }
 }
