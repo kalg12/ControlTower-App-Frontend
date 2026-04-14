@@ -37,7 +37,7 @@ export const activityService = {
     size?: number
   }): Promise<PaginatedResponse<UserActivity>> {
     const res = await api.get<PaginatedResponse<UserActivity>>('/activity', { params })
-    return (res.data as any).data || res.data
+    return res.data
   },
 
   async myActivity(params?: {
@@ -45,11 +45,11 @@ export const activityService = {
     size?: number
   }): Promise<PaginatedResponse<UserActivity>> {
     const res = await api.get<PaginatedResponse<UserActivity>>('/activity/me', { params })
-    return (res.data as any).data || res.data
+    return res.data
   },
 
   async activeUsers(): Promise<number> {
-    const res = await api.get<{ success: boolean; data: number }>('/activity/active-users')
-    return (res.data as any).data || res.data
+    const res = await api.get<number>('/activity/active-users')
+    return res.data
   },
 }
