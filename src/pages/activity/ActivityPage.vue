@@ -5,13 +5,12 @@ import { useQuery } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import DatePicker from 'primevue/datepicker'
 import {
-  Users, Activity, Zap, BarChart2, Navigation, Layout, SquarePlus,
-  ArrowRightLeft, Trash2, CheckSquare, Send, Megaphone, MessageSquare,
-  ChevronLeft, ChevronRight
+  Users, Activity, BarChart2, Navigation, Layout, SquarePlus,
+  ArrowRightLeft, Trash2, CheckSquare, Send, Megaphone,
+  MessageSquare, ChevronLeft, ChevronRight, Zap, Clock
 } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import AppAvatar from '@/components/ui/Avatar.vue'
-import EmptyState from '@/components/ui/EmptyState.vue'
 import { activityService } from '@/services/activity.service'
 import type { UserActivity, ActivityEventType } from '@/services/activity.service'
 import dayjs from 'dayjs'
@@ -21,11 +20,11 @@ import 'dayjs/locale/es'
 dayjs.extend(relativeTime)
 
 const { t, locale } = useI18n()
-dayjs.locale(locale.value === 'es' ? 'es' : 'en')
+watch(locale, (loc) => dayjs.locale(loc === 'es' ? 'es' : 'en'), { immediate: true })
 
 // ── State ─────────────────────────────────────────────────────────
 const page = ref(0)
-const PAGE_SIZE = 30
+const PAGE_SIZE = 40
 const dateFrom = ref<Date | null>(null)
 const dateTo = ref<Date | null>(null)
 const activeTab = ref<'all' | 'navigation' | 'action'>('all')
@@ -58,7 +57,6 @@ const { data: result, isLoading, isError, refetch } = useQuery({
   staleTime: 20_000,
 })
 
-// Sidebar data: today's full feed (no type filter)
 const { data: todayResult } = useQuery({
   queryKey: ['activity-today'],
   queryFn: () => activityService.query({
@@ -84,6 +82,7 @@ const groupedLogs = computed(() => {
     map.get(key)!.push(log)
   }
   return Array.from(map.entries()).map(([key, items]) => ({
+    key,
     label: formatDayLabel(key),
     items,
   }))
@@ -101,6 +100,7 @@ const liveUsers = computed(() => {
 })
 
 const todayUniqueUsers = computed(() => new Set(todayLogs.value.map(l => l.userId)).size)
+const todayActionCount = computed(() => todayLogs.value.filter(l => l.eventType === 'ACTION').length)
 
 const topPages = computed(() => {
   const freq = new Map<string, number>()
@@ -132,7 +132,7 @@ function formatDayLabel(dateKey: string): string {
   const today = dayjs().startOf('day')
   if (d.isSame(today, 'day')) return t('activity.today')
   if (d.isSame(today.subtract(1, 'day'), 'day')) return t('activity.yesterday')
-  return d.format('D MMM YYYY')
+  return d.format('dddd, D MMM')
 }
 
 function formatTime(dateStr: string): string {
@@ -147,25 +147,43 @@ function formatDuration(s?: number): string {
   return rem > 0 ? `${m}m ${rem}s` : `${m}m`
 }
 
-interface ActionMeta { icon: unknown; color: string; bg: string; label: string }
+interface ActionMeta { icon: unknown; color: string; dot: string; badgeBg: string; badgeText: string; label: string }
+
+const ACTION_MAP: Record<string, Omit<ActionMeta, 'label'>> = {
+  BOARD_CREATED:      { icon: Layout,        color: 'text-violet-500', dot: 'bg-violet-500', badgeBg: 'bg-violet-100 dark:bg-violet-950', badgeText: 'text-violet-600 dark:text-violet-300' },
+  BOARD_DELETED:      { icon: Trash2,         color: 'text-red-400',   dot: 'bg-red-400',    badgeBg: 'bg-red-100 dark:bg-red-950',       badgeText: 'text-red-600 dark:text-red-300' },
+  CARD_CREATED:       { icon: SquarePlus,     color: 'text-violet-500', dot: 'bg-violet-500', badgeBg: 'bg-violet-100 dark:bg-violet-950', badgeText: 'text-violet-600 dark:text-violet-300' },
+  CARD_MOVED:         { icon: ArrowRightLeft, color: 'text-indigo-500', dot: 'bg-indigo-500', badgeBg: 'bg-indigo-100 dark:bg-indigo-950', badgeText: 'text-indigo-600 dark:text-indigo-300' },
+  CARD_DELETED:       { icon: Trash2,         color: 'text-red-400',   dot: 'bg-red-400',    badgeBg: 'bg-red-100 dark:bg-red-950',       badgeText: 'text-red-600 dark:text-red-300' },
+  CHECKLIST_TOGGLED:  { icon: CheckSquare,    color: 'text-violet-400', dot: 'bg-violet-400', badgeBg: 'bg-violet-100 dark:bg-violet-950', badgeText: 'text-violet-600 dark:text-violet-300' },
+  CAMPAIGN_CREATED:   { icon: Megaphone,      color: 'text-emerald-500',dot: 'bg-emerald-500',badgeBg: 'bg-emerald-100 dark:bg-emerald-950',badgeText: 'text-emerald-600 dark:text-emerald-300' },
+  CAMPAIGN_SENT:      { icon: Send,           color: 'text-emerald-500',dot: 'bg-emerald-500',badgeBg: 'bg-emerald-100 dark:bg-emerald-950',badgeText: 'text-emerald-600 dark:text-emerald-300' },
+  CAMPAIGN_DELETED:   { icon: Trash2,         color: 'text-red-400',   dot: 'bg-red-400',    badgeBg: 'bg-red-100 dark:bg-red-950',       badgeText: 'text-red-600 dark:text-red-300' },
+  INTERACTION_LOGGED: { icon: MessageSquare,  color: 'text-orange-500', dot: 'bg-orange-500', badgeBg: 'bg-orange-100 dark:bg-orange-950', badgeText: 'text-orange-600 dark:text-orange-300' },
+}
+
+const NAV_META: Omit<ActionMeta, 'label'> = {
+  icon: Navigation,
+  color: 'text-blue-400',
+  dot: 'bg-slate-300 dark:bg-slate-600',
+  badgeBg: 'bg-slate-100 dark:bg-slate-800',
+  badgeText: 'text-slate-500 dark:text-slate-400',
+}
 
 function getMeta(log: UserActivity): ActionMeta {
   if (log.eventType === 'NAVIGATION') {
-    return { icon: Navigation, color: 'text-slate-500', bg: 'bg-slate-100 dark:bg-slate-800', label: t('activity.navigation') }
+    return { ...NAV_META, label: t('activity.navigation') }
   }
-  const map: Record<string, ActionMeta> = {
-    BOARD_CREATED:     { icon: Layout,         color: 'text-violet-500',  bg: 'bg-violet-100 dark:bg-violet-950', label: t('activity.actions.boardCreated') },
-    BOARD_DELETED:     { icon: Trash2,          color: 'text-violet-400',  bg: 'bg-violet-100 dark:bg-violet-950', label: t('activity.actions.boardDeleted') },
-    CARD_CREATED:      { icon: SquarePlus,      color: 'text-violet-500',  bg: 'bg-violet-100 dark:bg-violet-950', label: t('activity.actions.cardCreated') },
-    CARD_MOVED:        { icon: ArrowRightLeft,  color: 'text-violet-500',  bg: 'bg-violet-100 dark:bg-violet-950', label: t('activity.actions.cardMoved') },
-    CARD_DELETED:      { icon: Trash2,          color: 'text-violet-400',  bg: 'bg-violet-100 dark:bg-violet-950', label: t('activity.actions.cardDeleted') },
-    CHECKLIST_TOGGLED: { icon: CheckSquare,     color: 'text-violet-400',  bg: 'bg-violet-100 dark:bg-violet-950', label: t('activity.actions.checklistToggled') },
-    CAMPAIGN_CREATED:  { icon: Megaphone,       color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-950', label: t('activity.actions.campaignCreated') },
-    CAMPAIGN_SENT:     { icon: Send,            color: 'text-emerald-500', bg: 'bg-emerald-100 dark:bg-emerald-950', label: t('activity.actions.campaignSent') },
-    CAMPAIGN_DELETED:  { icon: Trash2,          color: 'text-emerald-400', bg: 'bg-emerald-100 dark:bg-emerald-950', label: t('activity.actions.campaignDeleted') },
-    INTERACTION_LOGGED:{ icon: MessageSquare,   color: 'text-orange-500',  bg: 'bg-orange-100 dark:bg-orange-950', label: t('activity.actions.interactionLogged') },
+  const base = ACTION_MAP[log.actionName ?? ''] ?? {
+    icon: Zap, color: 'text-blue-500', dot: 'bg-blue-500',
+    badgeBg: 'bg-blue-100 dark:bg-blue-950', badgeText: 'text-blue-600 dark:text-blue-300',
   }
-  return map[log.actionName ?? ''] ?? { icon: Zap, color: 'text-blue-500', bg: 'bg-blue-100 dark:bg-blue-950', label: log.actionName?.replace(/_/g, ' ') ?? 'Action' }
+  const labelKey = `activity.actions.${camelCase(log.actionName ?? '')}`
+  return { ...base, label: t(labelKey, log.actionName?.replace(/_/g, ' ') ?? 'Action') }
+}
+
+function camelCase(s: string): string {
+  return s.toLowerCase().replace(/_([a-z])/g, (_, c: string) => c.toUpperCase())
 }
 
 function getLabel(log: UserActivity): string {
@@ -183,75 +201,85 @@ function clearFilters() {
 </script>
 
 <template>
-  <div class="space-y-5">
+  <div class="space-y-6">
 
-    <!-- Header -->
-    <div class="flex items-center justify-between">
+    <!-- ── Header ──────────────────────────────────────────────── -->
+    <div class="flex items-center justify-between gap-4">
       <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('activity.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('activity.subtitle') }}</p>
+        <h1 class="text-xl font-semibold text-[var(--text)]">{{ t('activity.title') }}</h1>
+        <p class="text-sm text-[var(--text-muted)] mt-0.5">{{ t('activity.subtitle') }}</p>
       </div>
-      <Button icon="pi pi-refresh" severity="secondary" outlined :loading="isLoading" @click="refetch()" />
+      <Button
+        icon="pi pi-refresh"
+        severity="secondary"
+        outlined
+        size="small"
+        :loading="isLoading"
+        @click="refetch()"
+      />
     </div>
 
-    <!-- Stats row -->
-    <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
-      <Card>
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-green-50 dark:bg-green-950 flex items-center justify-center shrink-0">
-            <Users class="w-4.5 h-4.5 text-green-500" />
-          </div>
-          <div>
-            <p class="text-xs text-[var(--text-muted)]">{{ t('activity.activeUsers') }}</p>
-            <p class="text-xl font-bold text-green-500">{{ activeUsersCount ?? liveUsers.length }}</p>
+    <!-- ── Stats ────────────────────────────────────────────────── -->
+    <div class="grid grid-cols-2 lg:grid-cols-4 gap-3">
+      <!-- Active now -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-4">
+        <div class="flex items-start justify-between mb-3">
+          <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">{{ t('activity.activeUsers') }}</p>
+          <div class="w-8 h-8 rounded-lg bg-green-50 dark:bg-green-950/60 flex items-center justify-center">
+            <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
           </div>
         </div>
-      </Card>
-      <Card>
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-blue-50 dark:bg-blue-950 flex items-center justify-center shrink-0">
-            <Activity class="w-4.5 h-4.5 text-blue-500" />
-          </div>
-          <div>
-            <p class="text-xs text-[var(--text-muted)]">{{ t('activity.eventsToday') }}</p>
-            <p class="text-xl font-bold text-[var(--text)]">{{ todayLogs.length }}</p>
-          </div>
-        </div>
-      </Card>
-      <Card>
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-violet-50 dark:bg-violet-950 flex items-center justify-center shrink-0">
-            <Users class="w-4.5 h-4.5 text-violet-500" />
-          </div>
-          <div>
-            <p class="text-xs text-[var(--text-muted)]">{{ t('activity.uniqueUsersToday') }}</p>
-            <p class="text-xl font-bold text-[var(--text)]">{{ todayUniqueUsers }}</p>
+        <p class="text-2xl font-bold text-[var(--text)]">{{ activeUsersCount ?? liveUsers.length }}</p>
+        <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('activity.last15min') }}</p>
+      </div>
+
+      <!-- Events today -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-4">
+        <div class="flex items-start justify-between mb-3">
+          <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">{{ t('activity.eventsToday') }}</p>
+          <div class="w-8 h-8 rounded-lg bg-blue-50 dark:bg-blue-950/60 flex items-center justify-center">
+            <Activity class="w-4 h-4 text-blue-500" />
           </div>
         </div>
-      </Card>
-      <Card>
-        <div class="flex items-center gap-3">
-          <div class="w-9 h-9 rounded-lg bg-amber-50 dark:bg-amber-950 flex items-center justify-center shrink-0">
-            <BarChart2 class="w-4.5 h-4.5 text-amber-500" />
-          </div>
-          <div>
-            <p class="text-xs text-[var(--text-muted)]">{{ t('activity.totalEvents') }}</p>
-            <p class="text-xl font-bold text-[var(--text)]">{{ totalRecords }}</p>
+        <p class="text-2xl font-bold text-[var(--text)]">{{ todayLogs.length }}</p>
+        <p class="text-xs text-[var(--text-muted)] mt-1">{{ todayActionCount }} {{ t('activity.actions') }}</p>
+      </div>
+
+      <!-- Unique users -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-4">
+        <div class="flex items-start justify-between mb-3">
+          <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">{{ t('activity.uniqueUsersToday') }}</p>
+          <div class="w-8 h-8 rounded-lg bg-violet-50 dark:bg-violet-950/60 flex items-center justify-center">
+            <Users class="w-4 h-4 text-violet-500" />
           </div>
         </div>
-      </Card>
+        <p class="text-2xl font-bold text-[var(--text)]">{{ todayUniqueUsers }}</p>
+        <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('activity.uniqueDesc') }}</p>
+      </div>
+
+      <!-- Total in view -->
+      <div class="bg-[var(--surface)] border border-[var(--border)] rounded-[var(--radius)] p-4">
+        <div class="flex items-start justify-between mb-3">
+          <p class="text-xs font-medium text-[var(--text-muted)] uppercase tracking-wide">{{ t('activity.totalEvents') }}</p>
+          <div class="w-8 h-8 rounded-lg bg-amber-50 dark:bg-amber-950/60 flex items-center justify-center">
+            <BarChart2 class="w-4 h-4 text-amber-500" />
+          </div>
+        </div>
+        <p class="text-2xl font-bold text-[var(--text)]">{{ totalRecords }}</p>
+        <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('activity.allTime') }}</p>
+      </div>
     </div>
 
-    <!-- Filter bar -->
+    <!-- ── Filters ───────────────────────────────────────────────── -->
     <div class="flex flex-wrap items-center gap-2">
-      <!-- Segmented tabs -->
-      <div class="flex rounded-lg border border-[var(--border)] overflow-hidden text-sm bg-[var(--surface)]">
+      <!-- Tabs -->
+      <div class="flex items-center bg-[var(--surface)] border border-[var(--border)] rounded-lg p-0.5 gap-0.5">
         <button
           v-for="tab in (['all', 'navigation', 'action'] as const)"
           :key="tab"
-          class="px-3.5 py-1.5 font-medium transition-colors"
+          class="px-3 py-1.5 text-sm font-medium rounded-md transition-colors"
           :class="activeTab === tab
-            ? 'bg-[var(--primary)] text-white'
+            ? 'bg-[var(--primary)] text-white shadow-sm'
             : 'text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-hover)]'"
           @click="activeTab = tab"
         >
@@ -259,186 +287,205 @@ function clearFilters() {
         </button>
       </div>
 
-      <DatePicker
-        v-model="dateFrom"
-        :placeholder="t('audit.filterFrom')"
-        show-icon
-        date-format="dd M yy"
-        class="flex-1 min-w-[140px]"
-      />
-      <DatePicker
-        v-model="dateTo"
-        :placeholder="t('audit.filterTo')"
-        show-icon
-        date-format="dd M yy"
-        class="flex-1 min-w-[140px]"
-      />
+      <div class="flex flex-1 items-center gap-2 min-w-0">
+        <DatePicker
+          v-model="dateFrom"
+          :placeholder="t('audit.filterFrom')"
+          show-icon
+          date-format="dd M yy"
+          class="flex-1 min-w-[130px]"
+        />
+        <DatePicker
+          v-model="dateTo"
+          :placeholder="t('audit.filterTo')"
+          show-icon
+          date-format="dd M yy"
+          class="flex-1 min-w-[130px]"
+        />
+      </div>
+
       <button
         v-if="hasActiveFilters"
-        class="flex items-center gap-1 px-3 py-1.5 text-sm text-[var(--text-muted)] rounded-lg border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors"
+        class="flex items-center gap-1.5 px-3 py-2 text-xs font-medium text-[var(--text-muted)] rounded-lg border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors whitespace-nowrap"
         @click="clearFilters"
       >
-        <span>{{ t('audit.clearFilters') }}</span>
+        {{ t('audit.clearFilters') }}
       </button>
     </div>
 
-    <!-- Error banner -->
+    <!-- ── Error ─────────────────────────────────────────────────── -->
     <div
       v-if="isError"
-      class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between gap-3"
+      class="flex items-center justify-between gap-4 rounded-lg border border-red-200 dark:border-red-900 bg-red-50 dark:bg-red-950/30 px-4 py-3"
     >
-      <span>{{ t('activity.loadFailed') }}</span>
+      <p class="text-sm text-red-600 dark:text-red-400">{{ t('activity.loadFailed') }}</p>
       <Button :label="t('common.retry')" size="small" severity="danger" text @click="refetch()" />
     </div>
 
-    <!-- Two-column layout -->
-    <div class="flex gap-5 items-start">
+    <!-- ── Main content ──────────────────────────────────────────── -->
+    <div class="flex gap-6 items-start">
 
-      <!-- ── Timeline (left) ───────────────────────────────────── -->
-      <div class="flex-1 min-w-0 space-y-1">
+      <!-- Timeline -->
+      <div class="flex-1 min-w-0">
 
-        <!-- Loading skeleton -->
-        <template v-if="isLoading && !result">
-          <div v-for="i in 10" :key="i" class="flex gap-3 px-3 py-3 animate-pulse">
-            <div class="w-9 h-9 rounded-full bg-[var(--surface-hover)] shrink-0" />
-            <div class="flex-1 space-y-2 pt-1">
-              <div class="h-3 rounded bg-[var(--surface-hover)] w-1/4" />
-              <div class="h-3 rounded bg-[var(--surface-hover)] w-1/2" />
+        <!-- Skeleton -->
+        <div v-if="isLoading && !result" class="space-y-0">
+          <div v-for="i in 12" :key="i" class="flex gap-3 py-3 animate-pulse">
+            <div class="w-8 h-8 rounded-full bg-[var(--surface-hover)] shrink-0" />
+            <div class="flex-1 pt-1 space-y-2">
+              <div class="h-3 bg-[var(--surface-hover)] rounded w-1/3" />
+              <div class="h-3 bg-[var(--surface-hover)] rounded w-2/3" />
             </div>
           </div>
-        </template>
+        </div>
 
-        <!-- Empty state -->
-        <EmptyState
-          v-else-if="!isLoading && logs.length === 0"
-          :title="t('activity.noData')"
-          :description="hasActiveFilters ? t('activity.noDataFiltered') : undefined"
-        >
-          <template #icon><Activity class="w-6 h-6" /></template>
-        </EmptyState>
+        <!-- Empty -->
+        <div v-else-if="!isLoading && logs.length === 0" class="flex flex-col items-center justify-center py-20 text-center">
+          <div class="w-14 h-14 rounded-full bg-[var(--surface-hover)] flex items-center justify-center mb-4">
+            <Activity class="w-7 h-7 text-[var(--text-muted)]" />
+          </div>
+          <p class="text-sm font-medium text-[var(--text)]">{{ t('activity.noData') }}</p>
+          <p v-if="hasActiveFilters" class="text-xs text-[var(--text-muted)] mt-1 max-w-xs">{{ t('activity.noDataFiltered') }}</p>
+        </div>
 
-        <!-- Day groups -->
-        <template v-else>
-          <div v-for="group in groupedLogs" :key="group.label" class="space-y-0.5">
-            <!-- Day header -->
-            <div class="flex items-center gap-3 px-3 py-2">
-              <span class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-wide">{{ group.label }}</span>
+        <!-- Feed -->
+        <div v-else class="space-y-8">
+          <div v-for="group in groupedLogs" :key="group.key">
+
+            <!-- Day label -->
+            <div class="flex items-center gap-3 mb-3">
+              <span class="text-xs font-semibold text-[var(--text-muted)] uppercase tracking-widest">{{ group.label }}</span>
               <div class="flex-1 h-px bg-[var(--border)]" />
               <span class="text-xs text-[var(--text-muted)]">{{ group.items.length }}</span>
             </div>
 
-            <!-- Events -->
-            <div
-              v-for="log in group.items"
-              :key="log.id"
-              class="flex items-start gap-3 px-3 py-2.5 rounded-lg hover:bg-[var(--surface-hover)] transition-colors group cursor-default"
-            >
-              <!-- User avatar -->
-              <AppAvatar :name="log.userName || '?'" size="sm" class="shrink-0 mt-0.5" />
+            <!-- Events list with connecting line -->
+            <div class="relative">
+              <!-- Vertical connector line -->
+              <div class="absolute left-[15px] top-4 bottom-4 w-px bg-[var(--border)]" />
 
-              <!-- Action icon -->
-              <div
-                class="w-7 h-7 rounded-md flex items-center justify-center shrink-0 mt-0.5"
-                :class="getMeta(log).bg"
-              >
-                <component :is="getMeta(log).icon" class="w-3.5 h-3.5" :class="getMeta(log).color" />
-              </div>
+              <div class="space-y-1">
+                <div
+                  v-for="log in group.items"
+                  :key="log.id"
+                  class="relative flex items-start gap-3 pl-2 pr-3 py-2.5 rounded-xl hover:bg-[var(--surface-hover)] transition-colors cursor-default group"
+                >
+                  <!-- Dot on the line -->
+                  <div
+                    class="relative z-10 w-4 h-4 rounded-full border-2 border-[var(--surface)] flex items-center justify-center shrink-0 mt-1"
+                    :class="getMeta(log).dot"
+                  />
 
-              <!-- Content -->
-              <div class="flex-1 min-w-0">
-                <div class="flex flex-wrap items-center gap-x-2 gap-y-0.5">
-                  <span class="text-sm font-medium text-[var(--text)]">{{ log.userName }}</span>
-                  <span
-                    class="text-[11px] px-1.5 py-0.5 rounded-full font-medium leading-none"
-                    :class="log.eventType === 'NAVIGATION'
-                      ? 'bg-slate-100 dark:bg-slate-800 text-slate-500 dark:text-slate-400'
-                      : 'bg-violet-100 dark:bg-violet-950 text-violet-600 dark:text-violet-400'"
-                  >{{ getMeta(log).label }}</span>
-                  <span v-if="log.eventType === 'NAVIGATION' && log.durationSeconds" class="text-xs text-[var(--text-muted)]">
-                    {{ formatDuration(log.durationSeconds) }}
-                  </span>
-                  <span v-if="log.eventType === 'ACTION' && log.entityType" class="text-xs text-[var(--text-muted)]">
-                    {{ log.entityType }}
-                  </span>
+                  <!-- User avatar -->
+                  <AppAvatar :name="log.userName || '?'" size="sm" class="shrink-0 mt-0" />
+
+                  <!-- Content -->
+                  <div class="flex-1 min-w-0">
+                    <div class="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+                      <span class="text-sm font-semibold text-[var(--text)]">{{ log.userName }}</span>
+                      <!-- Badge -->
+                      <span
+                        class="inline-flex items-center gap-1 text-[11px] font-medium px-1.5 py-0.5 rounded-full leading-none"
+                        :class="[getMeta(log).badgeBg, getMeta(log).badgeText]"
+                      >
+                        <component :is="getMeta(log).icon" class="w-3 h-3" />
+                        {{ getMeta(log).label }}
+                      </span>
+                    </div>
+                    <p class="text-xs text-[var(--text-muted)] mt-0.5 truncate">{{ getLabel(log) }}</p>
+
+                    <!-- Meta chips -->
+                    <div class="flex items-center gap-3 mt-1">
+                      <span v-if="log.eventType === 'NAVIGATION' && log.durationSeconds" class="flex items-center gap-1 text-[11px] text-[var(--text-muted)]">
+                        <Clock class="w-3 h-3" />
+                        {{ formatDuration(log.durationSeconds) }}
+                      </span>
+                      <span v-if="log.eventType === 'ACTION' && log.entityType" class="text-[11px] text-[var(--text-muted)]">
+                        {{ log.entityType }}
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Timestamp -->
+                  <time class="text-xs text-[var(--text-muted)] shrink-0 mt-1 tabular-nums opacity-0 group-hover:opacity-100 transition-opacity">
+                    {{ formatTime(log.visitedAt) }}
+                  </time>
                 </div>
-                <p class="text-xs text-[var(--text-muted)] truncate mt-0.5">{{ getLabel(log) }}</p>
               </div>
-
-              <!-- Time -->
-              <span class="text-xs text-[var(--text-muted)] shrink-0 mt-1 tabular-nums">{{ formatTime(log.visitedAt) }}</span>
             </div>
           </div>
 
           <!-- Pagination -->
-          <div class="flex items-center justify-between pt-3 px-3">
-            <span class="text-xs text-[var(--text-muted)]">
+          <div class="flex items-center justify-between pt-2 border-t border-[var(--border)]">
+            <p class="text-xs text-[var(--text-muted)]">
               {{ t('activity.pageOf', { current: page + 1, total: Math.max(totalPages, 1) }) }}
-              &mdash; {{ totalRecords }} {{ t('activity.totalEventsLabel') }}
-            </span>
+              <span class="mx-1">·</span>
+              {{ totalRecords.toLocaleString() }} {{ t('activity.totalEventsLabel') }}
+            </p>
             <div class="flex gap-1">
               <button
-                class="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                class="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 :disabled="page === 0"
                 @click="page--"
               >
-                <ChevronLeft class="w-4 h-4 text-[var(--text-muted)]" />
+                <ChevronLeft class="w-4 h-4" />
               </button>
               <button
-                class="p-1.5 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                class="w-8 h-8 flex items-center justify-center rounded-lg border border-[var(--border)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)] transition-colors disabled:opacity-30 disabled:cursor-not-allowed"
                 :disabled="page >= totalPages - 1"
                 @click="page++"
               >
-                <ChevronRight class="w-4 h-4 text-[var(--text-muted)]" />
+                <ChevronRight class="w-4 h-4" />
               </button>
             </div>
           </div>
-        </template>
+        </div>
       </div>
 
-      <!-- ── Sidebar (right, sticky) ───────────────────────────── -->
-      <aside class="hidden lg:flex flex-col gap-4 w-64 shrink-0 sticky top-4">
+      <!-- ── Sidebar ────────────────────────────────────────────── -->
+      <aside class="hidden lg:flex flex-col gap-4 w-60 xl:w-64 shrink-0 sticky top-4">
 
-        <!-- Live users now -->
+        <!-- Live right now -->
         <Card>
           <template #header>
             <span class="text-sm font-semibold text-[var(--text)]">{{ t('activity.liveUsers') }}</span>
-            <div class="flex items-center gap-1.5 text-xs text-green-500 font-medium">
-              <span class="w-2 h-2 rounded-full bg-green-500 animate-pulse" />
-              {{ t('activity.live') }}
+            <div class="flex items-center gap-1.5">
+              <span class="w-1.5 h-1.5 rounded-full bg-green-500 animate-pulse" />
+              <span class="text-xs font-medium text-green-500">{{ t('activity.live') }}</span>
             </div>
           </template>
-          <div v-if="liveUsers.length === 0" class="text-xs text-[var(--text-muted)] text-center py-3">
+          <div v-if="liveUsers.length === 0" class="text-xs text-[var(--text-muted)] text-center py-4">
             {{ t('activity.noLiveUsers') }}
           </div>
-          <div v-else class="space-y-2.5">
+          <div v-else class="space-y-3">
             <div v-for="u in liveUsers.slice(0, 6)" :key="u.email" class="flex items-center gap-2.5">
               <div class="relative shrink-0">
                 <AppAvatar :name="u.name" size="sm" />
                 <span class="absolute -bottom-0.5 -right-0.5 w-2.5 h-2.5 rounded-full bg-green-500 border-2 border-[var(--surface)]" />
               </div>
               <div class="min-w-0">
-                <p class="text-xs font-medium text-[var(--text)] truncate">{{ u.name }}</p>
+                <p class="text-xs font-medium text-[var(--text)] truncate leading-tight">{{ u.name }}</p>
                 <p class="text-[11px] text-[var(--text-muted)] truncate">{{ u.email }}</p>
               </div>
             </div>
           </div>
         </Card>
 
-        <!-- Top pages today -->
+        <!-- Top pages -->
         <Card>
           <template #header>
             <span class="text-sm font-semibold text-[var(--text)]">{{ t('activity.topPagesToday') }}</span>
           </template>
-          <div v-if="topPages.length === 0" class="text-xs text-[var(--text-muted)] text-center py-3">—</div>
+          <div v-if="topPages.length === 0" class="text-xs text-[var(--text-muted)] text-center py-4">—</div>
           <div v-else class="space-y-3">
-            <div v-for="p in topPages" :key="p.label" class="space-y-1">
-              <div class="flex justify-between items-center gap-2 text-xs">
-                <span class="text-[var(--text)] truncate">{{ p.label }}</span>
-                <span class="text-[var(--text-muted)] tabular-nums shrink-0">{{ p.count }}</span>
+            <div v-for="p in topPages" :key="p.label">
+              <div class="flex justify-between items-baseline text-xs mb-1">
+                <span class="text-[var(--text)] truncate max-w-[150px] xl:max-w-[170px]">{{ p.label }}</span>
+                <span class="text-[var(--text-muted)] tabular-nums ml-2 shrink-0">{{ p.count }}</span>
               </div>
-              <div class="h-1.5 rounded-full bg-[var(--surface-hover)] overflow-hidden">
+              <div class="h-1 rounded-full bg-[var(--border)]">
                 <div
-                  class="h-full rounded-full bg-blue-500"
+                  class="h-full rounded-full bg-blue-500 transition-all duration-500"
                   :style="{ width: `${Math.round((p.count / maxPageCount) * 100)}%` }"
                 />
               </div>
@@ -446,16 +493,16 @@ function clearFilters() {
           </div>
         </Card>
 
-        <!-- Top users today -->
+        <!-- Top users -->
         <Card>
           <template #header>
             <span class="text-sm font-semibold text-[var(--text)]">{{ t('activity.topUsersToday') }}</span>
           </template>
-          <div v-if="topUsers.length === 0" class="text-xs text-[var(--text-muted)] text-center py-3">—</div>
-          <div v-else class="space-y-2.5">
-            <div v-for="(u, i) in topUsers" :key="u.name" class="flex items-center gap-2.5">
-              <span class="text-xs font-semibold text-[var(--text-muted)] w-4 tabular-nums shrink-0">{{ i + 1 }}</span>
-              <AppAvatar :name="u.name" size="sm" />
+          <div v-if="topUsers.length === 0" class="text-xs text-[var(--text-muted)] text-center py-4">—</div>
+          <div v-else class="space-y-3">
+            <div v-for="(u, i) in topUsers" :key="u.name" class="flex items-center gap-2">
+              <span class="text-xs font-bold text-[var(--text-muted)] w-4 shrink-0 tabular-nums">{{ i + 1 }}</span>
+              <AppAvatar :name="u.name" size="sm" class="shrink-0" />
               <span class="text-xs text-[var(--text)] flex-1 truncate">{{ u.name }}</span>
               <span class="text-xs font-semibold text-[var(--text-muted)] shrink-0 tabular-nums">{{ u.count }}</span>
             </div>
@@ -464,5 +511,6 @@ function clearFilters() {
 
       </aside>
     </div>
+
   </div>
 </template>

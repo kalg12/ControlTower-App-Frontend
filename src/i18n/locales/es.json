@@ -906,6 +906,10 @@
     "pageOf": "Página {current} de {total}",
     "totalEventsLabel": "eventos",
     "noDataFiltered": "Intenta limpiar los filtros para ver toda la actividad.",
+    "last15min": "en los últimos 15 min",
+    "actions": "acciones hoy",
+    "uniqueDesc": "usuarios activos hoy",
+    "allTime": "registros totales",
     "tab": {
       "all": "Todos",
       "navigation": "Navegación",

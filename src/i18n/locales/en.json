@@ -897,6 +897,10 @@
     "pageOf": "Page {current} of {total}",
     "totalEventsLabel": "events",
     "noDataFiltered": "Try clearing the filters to see all activity.",
+    "last15min": "in the last 15 min",
+    "actions": "actions today",
+    "uniqueDesc": "active users today",
+    "allTime": "total records",
     "tab": {
       "all": "All",
       "navigation": "Navigation",
