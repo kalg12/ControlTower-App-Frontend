@@ -631,7 +631,20 @@
     "checkNowSuccess": "Health check triggered",
     "checkNowFailed": "Could not trigger health check",
     "intervalHint": "How often to poll the endpoint. Min 30s, max 86400s (24h).",
-    "status": "Status"
+    "status": "Status",
+    "editTitle": "Edit Integration",
+    "editSubtitle": "Update the endpoint settings. Leave API key blank to keep the current one.",
+    "editSuccess": "Integration updated",
+    "validUrl": "Must be a valid URL (https://...)",
+    "filterAll": "All",
+    "filterPos": "POS",
+    "filterCustom": "Custom",
+    "apiKeyKeepHint": "Leave blank to keep current key",
+    "contractVersionPlaceholder": "e.g. v1.2",
+    "createdAt": "Created",
+    "totalLabel": "Total",
+    "activeLabel": "Active",
+    "inactiveLabel": "Inactive"
   },
   "audit": {
     "title": "Audit Log",
@@ -898,14 +911,6 @@
     "totalEventsLabel": "events",
     "noDataFiltered": "Try clearing the filters to see all activity.",
     "last15min": "in the last 15 min",
-    "actions": "actions today",
-    "uniqueDesc": "active users today",
-    "allTime": "total records",
-    "tab": {
-      "all": "All",
-      "navigation": "Navigation",
-      "action": "Actions"
-    },
     "actions": {
       "boardCreated": "Board created",
       "boardDeleted": "Board deleted",
@@ -917,6 +922,13 @@
       "campaignSent": "Campaign sent",
       "campaignDeleted": "Campaign deleted",
       "interactionLogged": "Interaction logged"
+    },
+    "uniqueDesc": "active users today",
+    "allTime": "total records",
+    "tab": {
+      "all": "All",
+      "navigation": "Navigation",
+      "action": "Actions"
     }
   }
 }

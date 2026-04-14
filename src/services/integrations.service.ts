@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { Integration, CreateIntegrationRequest } from '@/types/integration'
+import type { Integration, CreateIntegrationRequest, UpdateIntegrationRequest } from '@/types/integration'
 import type { PaginatedResponse } from '@/types/api'
 
 export const integrationsService = {
@@ -12,6 +12,11 @@ export const integrationsService = {
 
   async create(data: CreateIntegrationRequest): Promise<Integration> {
     const res = await api.post<Integration>('/integrations', data)
+    return res.data
+  },
+
+  async update(id: string, data: UpdateIntegrationRequest): Promise<Integration> {
+    const res = await api.put<Integration>(`/integrations/${id}`, data)
     return res.data
   },
 

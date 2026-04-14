@@ -20,3 +20,12 @@ export interface CreateIntegrationRequest {
   heartbeatIntervalSeconds?: number
   contractVersion?: string
 }
+
+export interface UpdateIntegrationRequest {
+  pullUrl?: string
+  apiKey?: string
+  heartbeatIntervalSeconds?: number
+  contractVersion?: string
+  clientBranchId?: string
+  metadata?: Record<string, unknown>
+}
