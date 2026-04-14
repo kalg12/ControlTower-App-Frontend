@@ -871,9 +871,11 @@
   },
   "activity": {
     "title": "User Activity",
-    "subtitle": "Navigation and activity monitoring of employees in Control Tower",
+    "subtitle": "Navigation and action monitoring of all users in Control Tower",
     "activeUsers": "Active users (15 min)",
     "totalEvents": "Total events",
+    "eventsToday": "Events today",
+    "uniqueUsersToday": "Unique users today",
     "uniqueUsers": "Unique users",
     "pagesTracked": "Pages tracked",
     "filterUser": "Search by user…",
@@ -883,6 +885,32 @@
     "duration": "Duration",
     "visitedAt": "Visited",
     "loadFailed": "Could not load activity. Check your connection or permissions.",
-    "noData": "No activity records"
+    "noData": "No activity records found",
+    "today": "Today",
+    "yesterday": "Yesterday",
+    "navigation": "Navigation",
+    "live": "Live",
+    "liveUsers": "Active right now",
+    "noLiveUsers": "No users active in the last 15 min",
+    "topPagesToday": "Top pages today",
+    "topUsersToday": "Most active users today",
+    "pageOf": "Page {current} of {total}",
+    "tab": {
+      "all": "All",
+      "navigation": "Navigation",
+      "action": "Actions"
+    },
+    "actions": {
+      "boardCreated": "Board created",
+      "boardDeleted": "Board deleted",
+      "cardCreated": "Card created",
+      "cardMoved": "Card moved",
+      "cardDeleted": "Card deleted",
+      "checklistToggled": "Checklist item",
+      "campaignCreated": "Campaign created",
+      "campaignSent": "Campaign sent",
+      "campaignDeleted": "Campaign deleted",
+      "interactionLogged": "Interaction logged"
+    }
   }
 }

@@ -1,11 +1,18 @@
 import api from '@/services/api'
 import type { PaginatedResponse } from '@/types/api'
 
+export type ActivityEventType = 'NAVIGATION' | 'ACTION'
+
 export interface UserActivity {
   id: string
   userId: string
   userName: string
   userEmail: string
+  eventType: ActivityEventType
+  actionName?: string
+  entityType?: string
+  entityId?: string
+  description?: string
   routePath: string
   pageTitle?: string
   durationSeconds?: number
@@ -31,6 +38,7 @@ export const activityService = {
 
   async query(params?: {
     userId?: string
+    eventType?: ActivityEventType
     from?: string
     to?: string
     page?: number

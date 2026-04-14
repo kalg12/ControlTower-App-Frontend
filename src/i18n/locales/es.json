@@ -880,9 +880,11 @@
   },
   "activity": {
     "title": "Actividad de Usuarios",
-    "subtitle": "Monitoreo de navegación y actividad de empleados en Control Tower",
+    "subtitle": "Monitoreo de navegación y acciones de todos los usuarios en Control Tower",
     "activeUsers": "Usuarios activos (15 min)",
     "totalEvents": "Eventos totales",
+    "eventsToday": "Eventos hoy",
+    "uniqueUsersToday": "Usuarios únicos hoy",
     "uniqueUsers": "Usuarios únicos",
     "pagesTracked": "Páginas rastreadas",
     "filterUser": "Buscar por usuario…",
@@ -892,6 +894,32 @@
     "duration": "Duración",
     "visitedAt": "Visitado",
     "loadFailed": "No se pudo cargar la actividad. Revisa la conexión o los permisos.",
-    "noData": "No hay registros de actividad"
+    "noData": "No se encontraron registros de actividad",
+    "today": "Hoy",
+    "yesterday": "Ayer",
+    "navigation": "Navegación",
+    "live": "En vivo",
+    "liveUsers": "Activos ahora mismo",
+    "noLiveUsers": "Sin usuarios activos en los últimos 15 min",
+    "topPagesToday": "Páginas más visitadas hoy",
+    "topUsersToday": "Usuarios más activos hoy",
+    "pageOf": "Página {current} de {total}",
+    "tab": {
+      "all": "Todos",
+      "navigation": "Navegación",
+      "action": "Acciones"
+    },
+    "actions": {
+      "boardCreated": "Tablero creado",
+      "boardDeleted": "Tablero eliminado",
+      "cardCreated": "Tarjeta creada",
+      "cardMoved": "Tarjeta movida",
+      "cardDeleted": "Tarjeta eliminada",
+      "checklistToggled": "Checklist",
+      "campaignCreated": "Campaña creada",
+      "campaignSent": "Campaña enviada",
+      "campaignDeleted": "Campaña eliminada",
+      "interactionLogged": "Interacción registrada"
+    }
   }
 }
