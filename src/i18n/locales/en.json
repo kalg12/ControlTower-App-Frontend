@@ -895,6 +895,8 @@
     "topPagesToday": "Top pages today",
     "topUsersToday": "Most active users today",
     "pageOf": "Page {current} of {total}",
+    "totalEventsLabel": "events",
+    "noDataFiltered": "Try clearing the filters to see all activity.",
     "tab": {
       "all": "All",
       "navigation": "Navigation",

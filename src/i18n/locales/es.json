@@ -904,6 +904,8 @@
     "topPagesToday": "Páginas más visitadas hoy",
     "topUsersToday": "Usuarios más activos hoy",
     "pageOf": "Página {current} de {total}",
+    "totalEventsLabel": "eventos",
+    "noDataFiltered": "Intenta limpiar los filtros para ver toda la actividad.",
     "tab": {
       "all": "Todos",
       "navigation": "Navegación",
