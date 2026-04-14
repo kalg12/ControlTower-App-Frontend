@@ -33,7 +33,7 @@ const { data: result, isLoading, isError, refetch } = useQuery({
   queryFn: () => notificationsService.list({
     page: page.value,
     size: pageSize,
-    
+    unread: filter.value === 'UNREAD' ? true : undefined,
   }),
   staleTime: 10000,
 })
@@ -59,6 +59,7 @@ function typeIcon(type: string) {
 async function markAllRead() {
   try {
     await notifStore.markAllRead()
+    await queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
     toast.success(t('notifications.markAllSuccess'))
   } catch {
     toast.error(t('notifications.markAllFailed'))
@@ -74,7 +75,7 @@ function confirmClearAll() {
     acceptProps: { label: t('common.delete'), severity: 'danger' },
     accept: async () => {
       try {
-        await notifStore.markAllRead()
+        await notifStore.removeAll()
         await queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
         toast.success(t('notifications.clearAllSuccess'))
       } catch {
@@ -95,6 +96,7 @@ function confirmDelete(id: string) {
       try {
         await notifStore.remove(id)
         await queryClient.invalidateQueries({ queryKey: ['notifications-list'] })
+        notifStore.fetch()
         toast.success(t('notifications.deleteSuccess'))
       } catch {
         toast.error(t('notifications.deleteFailed'))

@@ -39,6 +39,12 @@ export const useNotificationsStore = defineStore('notifications', () => {
     items.value = items.value.filter(n => n.id !== id)
   }
 
+  async function removeAll() {
+    await notificationsService.removeAll()
+    items.value = []
+    totalElements.value = 0
+  }
+
   // Auto-fetch on store creation if token exists
   if (localStorage.getItem('accessToken')) {
     fetch()
@@ -52,6 +58,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     fetch,
     markRead,
     markAllRead,
-    remove
+    remove,
+    removeAll
   }
 })

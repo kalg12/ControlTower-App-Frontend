@@ -11,7 +11,7 @@ export interface Notification {
 }
 
 export interface NotificationFilters {
-  read?: boolean
+  unread?: boolean
   type?: string
   page?: number
   size?: number
