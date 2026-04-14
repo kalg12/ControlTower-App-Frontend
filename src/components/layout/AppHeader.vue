@@ -8,8 +8,8 @@ import { useThemeStore } from '@/stores/theme'
 import OverlayPanel from 'primevue/overlaypanel'
 import Badge from 'primevue/badge'
 import Button from 'primevue/button'
-import Avatar from 'primevue/avatar'
 import Select from 'primevue/select'
+import Avatar from '@/components/ui/Avatar.vue'
 import { Bell, Settings, LogOut } from 'lucide-vue-next'
 
 const { t, locale } = useI18n()
@@ -55,18 +55,22 @@ async function logout() {
     </div>
 
     <div class="flex items-center gap-2">
-      <Button severity="secondary" text rounded size="small" :title="t('header.notifications')" @click="toggleNotifPanel">
-        <template #icon>
-          <Bell class="w-4.5 h-4.5" />
-          <Badge v-if="notifStore.unreadCount > 0" :value="notifStore.unreadCount" severity="danger" class="absolute -top-1 -right-1" />
-        </template>
-      </Button>
+      <div class="relative">
+        <Button severity="secondary" text rounded size="small" :title="t('header.notifications')" @click="toggleNotifPanel">
+          <template #icon>
+            <Bell class="w-4 h-4" />
+          </template>
+        </Button>
+        <Badge v-if="notifStore.unreadCount > 0" :value="notifStore.unreadCount" severity="danger" class="absolute -top-1 -right-1 z-10 pointer-events-none" />
+      </div>
 
-      <Button severity="secondary" text rounded size="small" @click="toggleUserPanel">
-        <template #icon>
-          <Avatar :label="authStore.user?.fullName?.charAt(0)?.toUpperCase() || 'U'" size="small" class="bg-[var(--primary)] text-white" />
-        </template>
-      </Button>
+      <button
+        class="rounded-full hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
+        :title="authStore.user?.fullName || 'Usuario'"
+        @click="toggleUserPanel"
+      >
+        <Avatar :name="authStore.user?.fullName || 'Usuario'" size="sm" />
+      </button>
     </div>
   </header>
 

@@ -4,6 +4,7 @@ import { useI18n } from 'vue-i18n'
 import { useQuery } from '@tanstack/vue-query'
 import { useForm } from 'vee-validate'
 import Card from '@/components/ui/Card.vue'
+import Avatar from '@/components/ui/Avatar.vue'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -77,9 +78,7 @@ async function saveNotifSettings() {
         <TabPanel value="profile">
           <Card>
             <div class="flex items-center gap-4 mb-6">
-              <div class="w-16 h-16 rounded-full bg-[var(--primary)] text-white flex items-center justify-center text-xl font-semibold">
-                {{ authStore.user?.fullName?.charAt(0)?.toUpperCase() || t('settings.avatarFallback') }}
-              </div>
+              <Avatar :name="authStore.user?.fullName || t('settings.avatarFallback')" size="lg" />
               <div>
                 <h3 class="text-lg font-semibold text-[var(--text)]">{{ authStore.user?.fullName }}</h3>
                 <p class="text-sm text-[var(--text-muted)]">{{ authStore.user?.email }}</p>
@@ -101,7 +100,7 @@ async function saveNotifSettings() {
                   <p class="text-sm font-medium text-[var(--text)]">{{ t('settings.darkMode') }}</p>
                   <p class="text-xs text-[var(--text-muted)]">{{ t('settings.darkModeHint') }}</p>
                 </div>
-                <Button :icon="themeStore.isDark ? 'pi pi-moon' : 'pi pi-sun'" severity="secondary" outlined @click="themeStore.toggle()" />
+                <ToggleSwitch v-model="themeStore.isDark" />
               </div>
             </Card>
           </div>
