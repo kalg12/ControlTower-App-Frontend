@@ -19,6 +19,7 @@ import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import { integrationsService } from '@/services/integrations.service'
 import { useToast } from '@/composables/useToast'
 import type { Integration } from '@/types/integration'
+import { Link2, Plug } from 'lucide-vue-next'
 
 const { t } = useI18n()
 const queryClient = useQueryClient()
@@ -71,6 +72,20 @@ function confirmDelete(ep: Integration) {
       }
     }
   })
+}
+
+const checkingNow = ref<string | null>(null)
+async function checkNow(ep: Integration) {
+  checkingNow.value = ep.id
+  try {
+    await integrationsService.checkNow(ep.id)
+    toast.success(t('integrations.checkNowSuccess'))
+    setTimeout(() => queryClient.invalidateQueries({ queryKey: ['integrations'] }), 2000)
+  } catch {
+    toast.error(t('integrations.checkNowFailed'))
+  } finally {
+    checkingNow.value = null
+  }
 }
 
 // --- Register Dialog ---
@@ -148,6 +163,18 @@ const onRegisterSubmit = registerForm.handleSubmit(async (values) => {
 
     <SkeletonTable v-else-if="isLoading" :rows="3" :cols="5" />
 
+    <!-- Empty state -->
+    <div v-else-if="integrations.length === 0" class="rounded-xl border border-dashed border-[var(--border)] bg-[var(--surface)] py-16 flex flex-col items-center gap-4 text-center">
+      <div class="w-14 h-14 rounded-2xl bg-[var(--primary)]/10 flex items-center justify-center">
+        <Plug class="w-7 h-7 text-[var(--primary)]" />
+      </div>
+      <div>
+        <h3 class="text-base font-semibold text-[var(--text)]">{{ t('integrations.noRows') }}</h3>
+        <p class="text-sm text-[var(--text-muted)] mt-1 max-w-sm">{{ t('integrations.noRowsHint') }}</p>
+      </div>
+      <Button :label="t('integrations.registerEndpoint')" icon="pi pi-plus" @click="openRegisterDialog" />
+    </div>
+
     <DataTable v-else :value="integrations" striped-rows class="rounded-xl overflow-hidden">
       <Column field="type" :header="t('integrations.type')" style="width: 100px">
         <template #body="{ data: row }: { data: Integration }">
@@ -156,11 +183,14 @@ const onRegisterSubmit = registerForm.handleSubmit(async (values) => {
       </Column>
       <Column field="pullUrl" :header="t('integrations.pullUrl')" style="min-width: 240px">
         <template #body="{ data: row }: { data: Integration }">
-          <span v-if="row.pullUrl" class="text-xs text-[var(--text-muted)] font-mono truncate block max-w-xs" :title="row.pullUrl">{{ row.pullUrl }}</span>
-          <span v-else class="text-xs text-red-400">{{ t('integrations.noPullUrl') }}</span>
+          <div class="flex items-center gap-2">
+            <Link2 v-if="row.pullUrl" class="w-3.5 h-3.5 text-[var(--text-muted)] shrink-0" />
+            <span v-if="row.pullUrl" class="text-xs text-[var(--text-muted)] font-mono truncate block max-w-xs" :title="row.pullUrl">{{ row.pullUrl }}</span>
+            <span v-else class="text-xs text-red-400">{{ t('integrations.noPullUrl') }}</span>
+          </div>
         </template>
       </Column>
-      <Column field="heartbeatIntervalSeconds" :header="t('integrations.interval')" style="width: 100px">
+      <Column field="heartbeatIntervalSeconds" :header="t('integrations.interval')" style="width: 120px">
         <template #body="{ data: row }: { data: Integration }">
           <span class="text-sm text-[var(--text-muted)]">{{ t('integrations.heartbeatEvery', { interval: row.heartbeatIntervalSeconds }) }}</span>
         </template>
@@ -170,20 +200,40 @@ const onRegisterSubmit = registerForm.handleSubmit(async (values) => {
           <Tag :severity="row.active ? 'success' : 'secondary'" :value="row.active ? t('health.active') : t('health.inactive')" />
         </template>
       </Column>
-      <Column :header="t('common.actions')" style="width: 130px">
+      <Column :header="t('common.actions')" style="width: 160px">
         <template #body="{ data: row }: { data: Integration }">
           <div class="flex gap-1">
-            <Button :icon="row.active ? 'pi pi-pause' : 'pi pi-play'" :severity="row.active ? 'warn' : 'success'" text rounded size="small" v-tooltip.top="row.active ? t('integrations.deactivate') : t('integrations.activate')" @click="confirmToggle(row)" />
-            <Button icon="pi pi-trash" severity="danger" text rounded size="small" v-tooltip.top="t('integrations.remove')" @click="confirmDelete(row)" />
+            <Button
+              icon="pi pi-bolt"
+              severity="info"
+              text
+              rounded
+              size="small"
+              v-tooltip.top="t('integrations.checkNow')"
+              :loading="checkingNow === row.id"
+              @click="checkNow(row)"
+            />
+            <Button
+              :icon="row.active ? 'pi pi-pause' : 'pi pi-play'"
+              :severity="row.active ? 'warn' : 'success'"
+              text
+              rounded
+              size="small"
+              v-tooltip.top="row.active ? t('integrations.deactivate') : t('integrations.activate')"
+              @click="confirmToggle(row)"
+            />
+            <Button
+              icon="pi pi-trash"
+              severity="danger"
+              text
+              rounded
+              size="small"
+              v-tooltip.top="t('integrations.remove')"
+              @click="confirmDelete(row)"
+            />
           </div>
         </template>
       </Column>
-      <template #empty>
-        <div class="text-center py-10">
-          <p class="text-sm font-medium text-[var(--text)]">{{ t('integrations.noRows') }}</p>
-          <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('integrations.noRowsHint') }}</p>
-        </div>
-      </template>
     </DataTable>
   </div>
 
@@ -201,6 +251,7 @@ const onRegisterSubmit = registerForm.handleSubmit(async (values) => {
       </FormField>
       <FormField :label="t('integrations.interval')" name="reg-interval" :error="registerForm.errors.value.heartbeatIntervalSeconds">
         <InputNumber v-model="regInterval" :min="30" :max="86400" class="w-full" :disabled="isSubmitting" />
+        <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('integrations.intervalHint') }}</p>
       </FormField>
     </form>
     <template #footer>

@@ -626,7 +626,12 @@
     "removeConfirm": "Remove this integration endpoint?",
     "removeTitle": "Remove Integration",
     "removeSuccess": "Integration removed",
-    "removeFailed": "Could not remove integration"
+    "removeFailed": "Could not remove integration",
+    "checkNow": "Check now",
+    "checkNowSuccess": "Health check triggered",
+    "checkNowFailed": "Could not trigger health check",
+    "intervalHint": "How often to poll the endpoint. Min 30s, max 86400s (24h).",
+    "status": "Status"
   },
   "audit": {
     "title": "Audit Log",

@@ -575,7 +575,12 @@
     "removeConfirm": "¿Eliminar el endpoint de integración?",
     "removeTitle": "Eliminar Integración",
     "removeSuccess": "Integración eliminada",
-    "removeFailed": "No se pudo eliminar la integración"
+    "removeFailed": "No se pudo eliminar la integración",
+    "checkNow": "Verificar ahora",
+    "checkNowSuccess": "Verificación de salud activada",
+    "checkNowFailed": "No se pudo activar la verificación",
+    "intervalHint": "Con qué frecuencia sondear el endpoint. Mín 30s, máx 86400s (24h).",
+    "status": "Estado"
   },
   "audit": {
     "title": "Registro de Auditoría",
