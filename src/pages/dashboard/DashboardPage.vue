@@ -10,6 +10,7 @@ import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import Card from '@/components/ui/Card.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import type { ApexOptions } from 'apexcharts'
 import {
   Building2,
@@ -153,7 +154,10 @@ function formatNow() {
     <template v-if="!isLoading">
       <!-- Header row: last updated + refresh -->
       <div class="flex items-center justify-between">
-        <p class="text-xs text-[var(--text-placeholder)]">{{ t('dashboard.updated') }} {{ formatNow() }}</p>
+        <div class="flex items-center gap-2">
+          <p class="text-xs text-[var(--text-placeholder)]">{{ t('dashboard.updated') }} {{ formatNow() }}</p>
+          <PageInfoButton :title="t('nav.dashboard')" :description="t('pageInfo.dashboard')" />
+        </div>
         <button
           class="flex items-center gap-1.5 text-xs text-[var(--text-muted)] hover:text-[var(--text)] transition-colors px-2.5 py-1.5 rounded-md hover:bg-[var(--surface-raised)]"
           :class="isFetching ? 'opacity-50 pointer-events-none' : ''"
