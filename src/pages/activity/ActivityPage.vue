@@ -11,6 +11,7 @@ import {
 } from 'lucide-vue-next'
 import Card from '@/components/ui/Card.vue'
 import AppAvatar from '@/components/ui/Avatar.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { activityService } from '@/services/activity.service'
 import type { UserActivity, ActivityEventType } from '@/services/activity.service'
 import dayjs from 'dayjs'
@@ -205,9 +206,12 @@ function clearFilters() {
 
     <!-- ── Header ──────────────────────────────────────────────── -->
     <div class="flex items-center justify-between gap-4">
-      <div>
-        <h1 class="text-xl font-semibold text-[var(--text)]">{{ t('activity.title') }}</h1>
-        <p class="text-sm text-[var(--text-muted)] mt-0.5">{{ t('activity.subtitle') }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h1 class="text-xl font-semibold text-[var(--text)]">{{ t('activity.title') }}</h1>
+          <p class="text-sm text-[var(--text-muted)] mt-0.5">{{ t('activity.subtitle') }}</p>
+        </div>
+        <PageInfoButton :title="t('activity.title')" :description="t('pageInfo.activity')" />
       </div>
       <Button
         icon="pi pi-refresh"
