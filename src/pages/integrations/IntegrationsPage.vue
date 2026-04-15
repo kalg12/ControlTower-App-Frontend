@@ -21,6 +21,7 @@ import { integrationsService } from '@/services/integrations.service'
 import { useToast } from '@/composables/useToast'
 import type { Integration } from '@/types/integration'
 import { Plug, Link2, Copy, Check, Pencil, Zap, Play, Pause, Trash2 } from 'lucide-vue-next'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 
 const { t } = useI18n()
 const queryClient = useQueryClient()
@@ -261,9 +262,12 @@ function formatDate(iso: string) {
 
     <!-- Header -->
     <div class="flex items-start justify-between gap-4">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('integrations.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('integrations.subtitle') }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('integrations.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">{{ t('integrations.subtitle') }}</p>
+        </div>
+        <PageInfoButton :title="t('integrations.title')" :description="t('pageInfo.integrations')" />
       </div>
       <div class="flex items-center gap-2 shrink-0">
         <Button
