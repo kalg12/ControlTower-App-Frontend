@@ -6,6 +6,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Button from 'primevue/button'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { billingService } from '@/services/billing.service'
 import dayjs from 'dayjs'
 import type { BillingEvent } from '@/types/billing'
@@ -40,9 +41,12 @@ function onPage(event: { page: number }) {
 <template>
   <div class="space-y-4">
     <div class="flex items-start justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('billing.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('billing.subtitle') }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('billing.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">{{ t('billing.subtitle') }}</p>
+        </div>
+        <PageInfoButton :title="t('billing.title')" :description="t('pageInfo.billing')" />
       </div>
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
