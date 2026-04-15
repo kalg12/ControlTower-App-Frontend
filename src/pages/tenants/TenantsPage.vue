@@ -14,6 +14,7 @@ import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { tenantsService } from '@/services/tenants.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
@@ -163,9 +164,12 @@ function confirmSuspend(tenant: Tenant) {
 <template>
   <div class="space-y-4">
     <div class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('tenants.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('tenants.totalCount', { count: totalRecords }) }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('tenants.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">{{ t('tenants.totalCount', { count: totalRecords }) }}</p>
+        </div>
+        <PageInfoButton :title="t('tenants.title')" :description="t('pageInfo.tenants')" />
       </div>
       <div class="flex flex-wrap gap-2">
         <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
