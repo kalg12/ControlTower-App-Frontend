@@ -11,5 +11,10 @@ export const qk = {
   notes: (linkedTo?: string, linkedId?: string) => ['notes', linkedTo ?? '', linkedId ?? ''] as const,
   ticket: (id: string) => ['ticket', id] as const,
   tickets: (filters?: string) => ['tickets', filters ?? ''] as const,
-  ticketAttachments: (ticketId: string) => ['ticket-attachments', ticketId] as const
+  ticketAttachments: (ticketId: string) => ['ticket-attachments', ticketId] as const,
+  timeSummary: (entityType: string, entityId: string) => ['time-summary', entityType, entityId] as const,
+  timeEntries: (entityType: string, entityId: string) => ['time-entries', entityType, entityId] as const,
+  activeTimer: () => ['time-active'] as const,
+  slaConfig: () => ['sla-config'] as const,
+  timeAnalytics: (from?: string, to?: string) => ['time-analytics', from ?? '', to ?? ''] as const,
 }
