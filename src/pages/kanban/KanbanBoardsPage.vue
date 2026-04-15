@@ -15,6 +15,7 @@ import type { BoardVisibility } from '@/types/kanban'
 import { LayoutGrid, Pencil, Trash2 } from 'lucide-vue-next'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { useAuthStore } from '@/stores/auth'
 
 const { t } = useI18n()
@@ -134,6 +135,7 @@ function confirmDeleteBoard(id: string) {
         <h1 class="text-2xl font-semibold text-[var(--text)] flex items-center gap-2">
           <LayoutGrid class="w-7 h-7 text-[var(--primary)]" />
           {{ t('kanban.title') }}
+          <PageInfoButton :title="t('kanban.title')" :description="t('pageInfo.kanban')" />
         </h1>
         <p class="text-sm text-[var(--text-muted)] mt-1">{{ t('kanban.subtitle') }}</p>
       </div>
