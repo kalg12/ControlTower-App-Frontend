@@ -10,6 +10,7 @@ import DatePicker from 'primevue/datepicker'
 import Button from 'primevue/button'
 import { auditService } from '@/services/audit.service'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import dayjs from 'dayjs'
 import type { AuditLog } from '@/types/audit'
 
@@ -93,9 +94,12 @@ const expandedRows = ref<Record<string, boolean>>({})
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('audit.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('audit.totalCount', { count: totalRecords }) }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('audit.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">{{ t('audit.totalCount', { count: totalRecords }) }}</p>
+        </div>
+        <PageInfoButton :title="t('audit.title')" :description="t('pageInfo.audit')" />
       </div>
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
