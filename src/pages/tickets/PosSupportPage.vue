@@ -7,6 +7,7 @@ import { ticketsService } from '@/services/tickets.service'
 import Card from '@/components/ui/Card.vue'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -71,9 +72,12 @@ function goToTicket(id: string) {
 
 <template>
   <div class="p-6 space-y-6">
-    <div>
-      <h1 class="text-xl font-semibold text-[var(--text)]">{{ t('posSupport.title') }}</h1>
-      <p class="text-sm text-[var(--text-muted)] mt-0.5">{{ t('posSupport.subtitle') }}</p>
+    <div class="flex items-start gap-2">
+      <div>
+        <h1 class="text-xl font-semibold text-[var(--text)]">{{ t('posSupport.title') }}</h1>
+        <p class="text-sm text-[var(--text-muted)] mt-0.5">{{ t('posSupport.subtitle') }}</p>
+      </div>
+      <PageInfoButton :title="t('posSupport.title')" :description="t('pageInfo.posSupport')" class="mt-1" />
     </div>
 
     <!-- Stats cards -->
