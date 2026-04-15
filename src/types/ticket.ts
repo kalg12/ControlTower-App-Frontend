@@ -25,13 +25,17 @@ export interface Ticket {
   assigneeName?: string
   labels?: string[]
   commentsCount?: number
+  estimatedMinutes?: number | null
   source?: TicketSource
   sourceRefId?: string
   posContext?: PosContext
   createdAt: string
   updatedAt: string
   resolvedAt?: string
+  /** @deprecated use slaDueAt. Kept for backward compat. */
   slaDeadline?: string
+  slaDueAt?: string | null
+  slaBreached?: boolean | null
 }
 
 export interface CreateTicketRequest {
@@ -41,6 +45,7 @@ export interface CreateTicketRequest {
   clientId?: string
   assigneeId?: string
   tags?: string[]
+  estimatedMinutes?: number | null
 }
 
 export interface UpdateTicketRequest {

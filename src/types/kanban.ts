@@ -23,6 +23,7 @@ export interface KanbanCard {
   position: number
   labels?: string[] | null
   checklist?: ChecklistItem[]
+  estimatedMinutes?: number | null
   createdAt?: string
   updatedAt?: string
 }
@@ -67,6 +68,7 @@ export interface CardRequest {
   dueDate?: string
   priority?: CardPriority
   position?: number
+  estimatedMinutes?: number | null
 }
 
 export interface MoveCardRequest {
@@ -81,6 +83,7 @@ export interface CardUpdateRequest {
   assigneeId?: string | null
   dueDate?: string | null
   priority: CardPriority
+  estimatedMinutes?: number | null
 }
 
 export type BoardListResponse = PaginatedResponse<KanbanBoard>
