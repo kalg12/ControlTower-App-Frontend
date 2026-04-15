@@ -17,6 +17,7 @@ import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { ticketsService } from '@/services/tickets.service'
 import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
@@ -289,9 +290,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
   <div class="space-y-4">
     <!-- Header -->
     <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('tickets.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} {{ t('tickets.totalCount') }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('tickets.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} {{ t('tickets.totalCount') }}</p>
+        </div>
+        <PageInfoButton :title="t('tickets.title')" :description="t('pageInfo.tickets')" />
       </div>
       <div class="flex gap-2">
         <Button
