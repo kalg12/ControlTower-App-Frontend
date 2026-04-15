@@ -10,6 +10,7 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { Bell } from 'lucide-vue-next'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 
 import Button from 'primevue/button'
 import Paginator from 'primevue/paginator'
@@ -113,11 +114,14 @@ function onPage(event: { page: number }) {
 <template>
   <div class="space-y-4">
     <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('notifications.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">
-          {{ notifStore.unreadCount > 0 ? t('notifications.unreadCount', { count: notifStore.unreadCount }) : t('notifications.allCaughtUp') }}
-        </p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('notifications.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">
+            {{ notifStore.unreadCount > 0 ? t('notifications.unreadCount', { count: notifStore.unreadCount }) : t('notifications.allCaughtUp') }}
+          </p>
+        </div>
+        <PageInfoButton :title="t('notifications.title')" :description="t('pageInfo.notifications')" />
       </div>
       <div class="flex gap-2">
         <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
