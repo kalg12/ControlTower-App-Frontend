@@ -18,6 +18,7 @@ import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { CheckCircle, AlertTriangle, XCircle } from 'lucide-vue-next'
 import { useConfirm } from 'primevue/useconfirm'
 import { healthService } from '@/services/health.service'
@@ -324,9 +325,12 @@ const branchOptions = computed(() => {
 <template>
   <div class="space-y-5">
     <div class="flex items-center justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('health.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('health.subtitle') }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('health.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">{{ t('health.subtitle') }}</p>
+        </div>
+        <PageInfoButton :title="t('health.title')" :description="t('pageInfo.health')" />
       </div>
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
