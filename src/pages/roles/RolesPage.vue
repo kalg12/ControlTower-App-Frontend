@@ -14,6 +14,7 @@ import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import type { Role } from '@/types/user'
 import { Shield } from 'lucide-vue-next'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -118,6 +119,7 @@ async function savePermissions() {
       <h1 class="text-xl font-semibold text-[var(--text)] flex items-center gap-2">
         <Shield class="w-6 h-6 text-[var(--primary)]" />
         {{ t('rolesPage.title') }}
+        <PageInfoButton :title="t('rolesPage.title')" :description="t('pageInfo.roles')" />
       </h1>
       <p class="text-sm text-[var(--text-muted)] mt-1">{{ t('rolesPage.subtitle') }}</p>
     </div>
