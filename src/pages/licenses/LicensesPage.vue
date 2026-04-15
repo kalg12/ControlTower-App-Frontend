@@ -8,6 +8,7 @@ import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { licensesService } from '@/services/licenses.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
@@ -92,9 +93,12 @@ function confirmCancel(license: License) {
 <template>
   <div class="space-y-4">
     <div class="flex items-start justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('licenses.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('licenses.totalCount', { count: totalRecords }) }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('licenses.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">{{ t('licenses.totalCount', { count: totalRecords }) }}</p>
+        </div>
+        <PageInfoButton :title="t('licenses.title')" :description="t('pageInfo.licenses')" />
       </div>
       <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
     </div>
