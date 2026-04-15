@@ -5,6 +5,7 @@ import { useQuery } from '@tanstack/vue-query'
 import { useForm } from 'vee-validate'
 import Card from '@/components/ui/Card.vue'
 import Avatar from '@/components/ui/Avatar.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -64,9 +65,12 @@ async function saveNotifSettings() {
 
 <template>
   <div class="space-y-6">
-    <div>
-      <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('settings.title') }}</h2>
-      <p class="text-sm text-[var(--text-muted)]">{{ t('settings.subtitle') }}</p>
+    <div class="flex items-center gap-2">
+      <div>
+        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('settings.title') }}</h2>
+        <p class="text-sm text-[var(--text-muted)]">{{ t('settings.subtitle') }}</p>
+      </div>
+      <PageInfoButton :title="t('settings.title')" :description="t('pageInfo.settings')" />
     </div>
     <Tabs v-model:value="activeTab">
       <TabList class="flex gap-1 rounded-xl bg-[var(--surface)] p-1">
