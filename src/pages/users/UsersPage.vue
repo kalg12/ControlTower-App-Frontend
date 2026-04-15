@@ -16,6 +16,7 @@ import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { usersService, rolesService } from '@/services/users.service'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
@@ -186,9 +187,12 @@ function confirmDeleteUser(user: User) {
 <template>
   <div class="space-y-4">
     <div class="flex flex-wrap items-start justify-between gap-3">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('users.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('users.totalCount', { count: totalRecords }) }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('users.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">{{ t('users.totalCount', { count: totalRecords }) }}</p>
+        </div>
+        <PageInfoButton :title="t('users.title')" :description="t('pageInfo.users')" />
       </div>
       <div class="flex flex-wrap gap-2">
         <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
