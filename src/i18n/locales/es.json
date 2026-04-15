@@ -929,5 +929,26 @@
       "navigation": "Navegación",
       "action": "Acciones"
     }
+  },
+  "pageInfo": {
+    "dashboard": "Resumen de las métricas clave de tu organización: tickets abiertos, usuarios activos, salud del sistema, licencias y actividad reciente. Tu centro de control en tiempo real.",
+    "tickets": "Gestiona los tickets de soporte de tu equipo o clientes. Crea, asigna, filtra y da seguimiento a incidencias durante todo su ciclo de vida.",
+    "posSupport": "Puente entre tus terminales POS y Control Tower. Recibe tickets de soporte y mensajes de chat originados en los sistemas punto de venta.",
+    "clients": "Módulo CRM para gestionar cuentas de clientes, contactos, interacciones y oportunidades de venta. Lleva el ciclo de vida completo del cliente en un solo lugar.",
+    "kanban": "Tableros visuales de gestión de proyectos. Organiza el trabajo en columnas, mueve tarjetas por etapas y da seguimiento con listas de verificación.",
+    "kanbanBoard": "Vista del tablero Kanban activo. Arrastra tarjetas entre columnas, agrega listas, asigna miembros y gestiona el flujo de trabajo de este tablero.",
+    "workHub": "Hub de tareas personal. Ve todas las tarjetas Kanban asignadas a ti en todos los tableros, organizadas por prioridad y fecha límite.",
+    "health": "Monitorea la salud operativa de sucursales POS y sistemas integrados. Consulta tiempo de actividad, tiempos de respuesta y alertas activas.",
+    "licenses": "Administra licencias de software emitidas para tu organización o clientes. Controla activaciones, fechas de vencimiento y uso.",
+    "billing": "Consulta facturas, planes de suscripción e historial de pagos de tu organización.",
+    "integrations": "Configura conexiones con sistemas externos como endpoints POS y webhooks. Gestiona claves de API, intervalos de sondeo y enrutamiento de eventos.",
+    "campaigns": "Crea y envía campañas de correo o notificaciones push a tu base de clientes. Gestiona plantillas, audiencias y estado de entrega.",
+    "tenants": "Vista de super-administrador de todas las organizaciones (tenants) del sistema. Crea, configura y gestiona cuentas de tenant.",
+    "users": "Administra las cuentas de usuario de tu organización. Invita miembros, asigna roles y controla el acceso.",
+    "roles": "Define roles personalizados y permisos granulares. Controla exactamente qué puede ver y hacer cada rol en Control Tower.",
+    "audit": "Registro inmutable de cada acción significativa en el sistema: quién hizo qué y cuándo. Usado para cumplimiento normativo y auditorías de seguridad.",
+    "activity": "Línea de tiempo de eventos de navegación y acciones en la aplicación por usuarios de tu organización. Útil para entender patrones de uso.",
+    "notifications": "Tu bandeja de notificaciones personal. Mantente informado sobre actualizaciones de tickets, alertas del sistema, menciones y otros eventos.",
+    "settings": "Configura tu perfil, preferencias de visualización, tema y ajustes de notificaciones."
   }
 }

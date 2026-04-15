@@ -930,5 +930,26 @@
       "navigation": "Navigation",
       "action": "Actions"
     }
+  },
+  "pageInfo": {
+    "dashboard": "Overview of your organization's key metrics: open tickets, active users, system health, licenses, and recent activity. Your real-time command center.",
+    "tickets": "Manage support tickets raised by your team or customers. Create, assign, filter, and track issues through their full lifecycle.",
+    "posSupport": "Bridge between your POS terminals and Control Tower. Receive support tickets and chat messages triggered from point-of-sale systems.",
+    "clients": "CRM module for managing client accounts, contacts, interactions, and sales opportunities. Track the full customer lifecycle in one place.",
+    "kanban": "Visual project management boards. Organize work into columns, move cards through stages, and track progress with checklists and comments.",
+    "kanbanBoard": "Active Kanban board view. Drag cards between columns, add checklists, assign members, and manage this board's workflow.",
+    "workHub": "Personal task hub. See every Kanban card assigned to you across all boards, organized by priority and due date.",
+    "health": "Monitor the operational health of POS branches and integrated systems. View uptime, response times, and active alerts.",
+    "licenses": "Manage software licenses issued to your organization or clients. Track activations, expiry dates, and usage.",
+    "billing": "View invoices, subscription plans, and payment history for your organization.",
+    "integrations": "Configure external system connections such as POS endpoints and webhooks. Manage API keys, polling intervals, and event routing.",
+    "campaigns": "Create and send email or push notification campaigns to your client base. Manage templates, audiences, and track delivery status.",
+    "tenants": "Super-admin view of all organizations (tenants) in the system. Create, configure, and manage tenant accounts.",
+    "users": "Manage user accounts within your organization. Invite members, assign roles, activate or deactivate access.",
+    "roles": "Define custom roles and granular permissions. Control exactly what each role can see and do within Control Tower.",
+    "audit": "Immutable log of every significant action in the system — who did what and when. Used for compliance, security review, and traceability.",
+    "activity": "Timeline of navigation events and in-app actions by users in your organization. Useful for understanding usage patterns and engagement.",
+    "notifications": "Your personal notification inbox. Stay informed about ticket updates, system alerts, mentions, and other important events.",
+    "settings": "Configure your profile, display preferences, theme, and notification settings."
   }
 }
