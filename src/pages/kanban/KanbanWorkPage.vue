@@ -14,6 +14,7 @@ import { kanbanService } from '@/services/kanban.service'
 import { usersService } from '@/services/users.service'
 import type { KanbanColumnKind, KanbanWorkItem } from '@/types/kanban'
 import { ClipboardList } from 'lucide-vue-next'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -92,6 +93,7 @@ function prioritySeverity(p: string): 'success' | 'warn' | 'danger' | 'secondary
         <h1 class="text-xl font-semibold text-[var(--text)] flex items-center gap-2">
           <ClipboardList class="w-6 h-6 text-[var(--primary)]" />
           {{ t('kanban.workHubTitle') }}
+          <PageInfoButton :title="t('kanban.workHubTitle')" :description="t('pageInfo.workHub')" />
         </h1>
         <p class="text-sm text-[var(--text-muted)] mt-1">{{ t('kanban.workHubSubtitle') }}</p>
       </div>
