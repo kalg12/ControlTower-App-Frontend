@@ -16,6 +16,7 @@ import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
+import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { campaignsService } from '@/services/campaigns.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
@@ -141,9 +142,12 @@ function confirmDelete(c: Campaign) {
 <template>
   <div class="space-y-4">
     <div class="flex items-start justify-between">
-      <div>
-        <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('campaigns.title') }}</h2>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('campaigns.totalCount', { count: totalRecords }) }}</p>
+      <div class="flex items-center gap-2">
+        <div>
+          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('campaigns.title') }}</h2>
+          <p class="text-sm text-[var(--text-muted)]">{{ t('campaigns.totalCount', { count: totalRecords }) }}</p>
+        </div>
+        <PageInfoButton :title="t('campaigns.title')" :description="t('pageInfo.campaigns')" />
       </div>
       <div class="flex gap-2">
         <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
