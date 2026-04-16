@@ -10,7 +10,9 @@ import Badge from 'primevue/badge'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import Avatar from '@/components/ui/Avatar.vue'
-import { Bell, Settings, LogOut } from 'lucide-vue-next'
+import { Bell, Settings, LogOut, Search } from 'lucide-vue-next'
+
+const emit = defineEmits<{ 'toggle-sidebar': []; 'toggle-collapse': []; 'open-search': [] }>()
 
 const { t, locale } = useI18n()
 const router = useRouter()
@@ -48,6 +50,15 @@ async function logout() {
 <template>
   <header class="flex items-center justify-between h-14 px-4 border-b border-[var(--border)] bg-[var(--surface)]">
     <div class="flex items-center gap-2">
+      <!-- Global search hint -->
+      <button
+        class="hidden sm:flex items-center gap-2 px-3 py-1.5 rounded-lg bg-[var(--surface-raised)] border border-[var(--border)] text-xs text-[var(--text-muted)] hover:border-[var(--primary)] transition-colors"
+        @click="$emit('open-search')"
+      >
+        <Search class="w-3.5 h-3.5" />
+        <span>{{ t('search.placeholder') }}</span>
+        <kbd class="ml-2 font-mono bg-[var(--surface)] px-1.5 py-0.5 rounded text-[10px]">⌘K</kbd>
+      </button>
       <Button :icon="themeStore.isDark ? 'pi pi-moon' : 'pi pi-sun'" severity="secondary" text rounded size="small"
         :title="themeStore.isDark ? t('header.darkMode') : t('header.lightMode')" @click="themeStore.toggle()" />
       <Select v-model="locale" :options="locales" option-label="label" option-value="value" size="small" class="w-28"

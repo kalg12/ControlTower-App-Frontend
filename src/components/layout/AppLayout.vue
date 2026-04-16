@@ -3,12 +3,14 @@ import { ref, onMounted, onUnmounted } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
+import CommandPalette from '@/components/search/CommandPalette.vue'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useWebSocket } from '@/composables/useWebSocket'
 
 const route = useRoute()
 const sidebarOpen = ref(false)
 const sidebarCollapsed = ref(false)
+const commandPaletteOpen = ref(false)
 
 const { connect, disconnect } = useWebSocket()
 onMounted(connect)
@@ -21,6 +23,16 @@ function toggleSidebar() {
 function closeSidebar() {
   sidebarOpen.value = false
 }
+
+function handleGlobalKeydown(e: KeyboardEvent) {
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault()
+    commandPaletteOpen.value = !commandPaletteOpen.value
+  }
+}
+
+onMounted(() => document.addEventListener('keydown', handleGlobalKeydown))
+onUnmounted(() => document.removeEventListener('keydown', handleGlobalKeydown))
 </script>
 
 <template>
@@ -52,7 +64,7 @@ function closeSidebar() {
 
     <!-- Main content -->
     <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
-      <AppHeader @toggle-sidebar="toggleSidebar" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" />
+      <AppHeader @toggle-sidebar="toggleSidebar" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" @open-search="commandPaletteOpen = true" />
 
       <main class="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--bg-subtle)]">
         <RouterView :key="route.path" />
@@ -60,4 +72,5 @@ function closeSidebar() {
     </div>
   </div>
   <ConfirmDialog />
+  <CommandPalette v-model:open="commandPaletteOpen" />
 </template>

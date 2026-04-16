@@ -29,7 +29,9 @@
     "posSupport": "Soporte POS",
     "activity": "Actividad",
     "reports": "Reportes",
-    "knowledgeBase": "Base de Conocimiento"
+    "knowledgeBase": "Base de Conocimiento",
+    "myWork": "Mi Trabajo",
+    "templates": "Plantillas"
   },
   "common": {
     "save": "Guardar",
@@ -328,7 +330,26 @@
     "deleteConfirm": "Esta acción no se puede deshacer. ¿Eliminar este ticket?",
     "deleteHeader": "Eliminar ticket",
     "slaMet": "SLA cumplido",
-    "slaBreached": "SLA incumplido"
+    "slaBreached": "SLA incumplido",
+    "escalated": "Escalado",
+    "mergeTicket": "Fusionar ticket",
+    "mergeHint": "Introduce el ID del ticket destino. Todos los comentarios, notas y registros de tiempo se moverán a ese ticket y este será eliminado.",
+    "mergeTargetId": "ID del ticket destino",
+    "mergeConfirm": "Fusionar y eliminar",
+    "mergeSuccess": "Ticket fusionado correctamente",
+    "mergeFailed": "No se pudo fusionar el ticket",
+    "csatTitle": "Satisfacción del cliente",
+    "csatSend": "Enviar encuesta",
+    "csatSent": "Encuesta enviada",
+    "csatFailed": "No se pudo enviar la encuesta",
+    "csatNone": "Aún no se ha enviado una encuesta a este ticket.",
+    "csatStatus": "Estado",
+    "csatResponded": "Respondida",
+    "csatPending": "Pendiente",
+    "csatRating": "Calificación",
+    "csatComment": "Comentario",
+    "csatLink": "Enlace de encuesta",
+    "csatOpen": "Abrir encuesta"
   },
   "health": {
     "title": "Monitoreo de Salud",
@@ -1000,5 +1021,42 @@
       "tagsPlaceholder": "facturación, configuración, pos (separadas por coma)",
       "content": "Contenido"
     }
+  },
+  "search": {
+    "placeholder": "Buscar tickets, clientes, KB...",
+    "typeToSearch": "Escribe al menos 2 caracteres para buscar",
+    "noResults": "Sin resultados",
+    "select": "seleccionar",
+    "close": "cerrar"
+  },
+  "myWork": {
+    "title": "Mi Trabajo",
+    "subtitle": "Tickets asignados a ti",
+    "open": "Abiertos",
+    "inProgress": "En progreso",
+    "waiting": "En espera",
+    "slaRisk": "SLA en riesgo",
+    "noTickets": "Sin tickets"
+  },
+  "templates": {
+    "title": "Plantillas de Respuesta",
+    "subtitle": "Respuestas rápidas para agentes",
+    "new": "Nueva plantilla",
+    "edit": "Editar plantilla",
+    "created": "Plantilla creada",
+    "updated": "Plantilla actualizada",
+    "deleted": "Plantilla eliminada",
+    "saveFailed": "No se pudo guardar la plantilla",
+    "deleteConfirm": "¿Eliminar esta plantilla?",
+    "empty": "Sin plantillas",
+    "allCategories": "Todas las categorías",
+    "name": "Nombre",
+    "namePlaceholder": "Ej: Saludo inicial",
+    "body": "Contenido",
+    "bodyPlaceholder": "Hola, gracias por contactarnos...",
+    "category": "Categoría",
+    "categoryPlaceholder": "Ej: Saludos, Cierre",
+    "shortcut": "Atajo",
+    "insertTemplate": "Insertar plantilla"
   }
 }

@@ -29,7 +29,9 @@
     "posSupport": "POS Support",
     "activity": "Activity",
     "reports": "Reports",
-    "knowledgeBase": "Knowledge Base"
+    "knowledgeBase": "Knowledge Base",
+    "myWork": "My Work",
+    "templates": "Templates"
   },
   "common": {
     "save": "Save",
@@ -375,7 +377,26 @@
     "deleteConfirm": "This action cannot be undone. Delete this ticket?",
     "deleteHeader": "Delete ticket",
     "slaMet": "SLA met",
-    "slaBreached": "SLA breached"
+    "slaBreached": "SLA breached",
+    "escalated": "Escalated",
+    "mergeTicket": "Merge ticket",
+    "mergeHint": "Enter the target ticket ID. All comments, notes, and time entries will be moved to that ticket and this one will be deleted.",
+    "mergeTargetId": "Target ticket ID",
+    "mergeConfirm": "Merge and delete",
+    "mergeSuccess": "Ticket merged successfully",
+    "mergeFailed": "Could not merge ticket",
+    "csatTitle": "Customer satisfaction",
+    "csatSend": "Send survey",
+    "csatSent": "Survey sent",
+    "csatFailed": "Could not send survey",
+    "csatNone": "No survey has been sent for this ticket yet.",
+    "csatStatus": "Status",
+    "csatResponded": "Responded",
+    "csatPending": "Pending",
+    "csatRating": "Rating",
+    "csatComment": "Comment",
+    "csatLink": "Survey link",
+    "csatOpen": "Open survey"
   },
   "health": {
     "title": "Health Monitoring",
@@ -1001,5 +1022,42 @@
       "tagsPlaceholder": "billing, setup, pos (comma-separated)",
       "content": "Content"
     }
+  },
+  "search": {
+    "placeholder": "Search tickets, clients, KB...",
+    "typeToSearch": "Type at least 2 characters to search",
+    "noResults": "No results found",
+    "select": "select",
+    "close": "close"
+  },
+  "myWork": {
+    "title": "My Work",
+    "subtitle": "Tickets assigned to you",
+    "open": "Open",
+    "inProgress": "In Progress",
+    "waiting": "Waiting",
+    "slaRisk": "SLA at Risk",
+    "noTickets": "No tickets"
+  },
+  "templates": {
+    "title": "Response Templates",
+    "subtitle": "Canned replies for support agents",
+    "new": "New template",
+    "edit": "Edit template",
+    "created": "Template created",
+    "updated": "Template updated",
+    "deleted": "Template deleted",
+    "saveFailed": "Could not save template",
+    "deleteConfirm": "Delete this template?",
+    "empty": "No templates yet",
+    "allCategories": "All categories",
+    "name": "Name",
+    "namePlaceholder": "e.g. Initial greeting",
+    "body": "Content",
+    "bodyPlaceholder": "Hello, thank you for contacting us...",
+    "category": "Category",
+    "categoryPlaceholder": "e.g. Greetings, Closing",
+    "shortcut": "Shortcut",
+    "insertTemplate": "Insert template"
   }
 }
