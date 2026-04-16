@@ -23,7 +23,8 @@ import {
   BarChart3,
   BookOpen,
   Briefcase,
-  FileText
+  FileText,
+  DollarSign
 } from 'lucide-vue-next'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useAuthStore } from '@/stores/auth'
@@ -62,6 +63,7 @@ const mainItems = computed(() =>
     { to: '/health', label: t('nav.health'), icon: Activity, permission: 'health:read' },
     { to: '/licenses', label: t('nav.licenses'), icon: CreditCard, permission: 'license:read' },
     { to: '/billing', label: t('nav.billing'), icon: Receipt, permission: 'billing:read' },
+    { to: '/finance', label: t('nav.finance'), icon: DollarSign, permission: 'finance:read' },
     { to: '/integrations', label: t('nav.integrations'), icon: Plug, permission: 'integration:read' },
     { to: '/campaigns', label: t('nav.campaigns'), icon: Megaphone, permission: 'campaign:read' },
     { to: '/reports', label: t('nav.reports'), icon: BarChart3, permission: 'report:read' },

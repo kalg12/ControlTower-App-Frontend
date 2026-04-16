@@ -171,6 +171,12 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.billing', permission: 'billing:read' }
     },
     {
+      path: '/finance',
+      name: 'finance',
+      component: () => import('@/pages/finance/FinancePage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.finance', permission: 'finance:read' }
+    },
+    {
       path: '/integrations',
       name: 'integrations',
       component: () => import('@/pages/integrations/IntegrationsPage.vue'),
