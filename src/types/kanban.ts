@@ -17,7 +17,7 @@ export interface KanbanCard {
   columnId?: string
   title: string
   description?: string | null
-  assigneeId?: string | null
+  assigneeIds?: string[]
   dueDate?: string | null
   priority: CardPriority
   position: number
@@ -64,7 +64,7 @@ export interface CardRequest {
   columnId: string
   title: string
   description?: string
-  assigneeId?: string
+  assigneeIds?: string[]
   dueDate?: string
   priority?: CardPriority
   position?: number
@@ -80,7 +80,7 @@ export interface MoveCardRequest {
 export interface CardUpdateRequest {
   title: string
   description?: string
-  assigneeId?: string | null
+  assigneeIds?: string[]
   dueDate?: string | null
   priority: CardPriority
   estimatedMinutes?: number | null

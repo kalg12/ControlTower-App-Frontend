@@ -9,6 +9,7 @@ import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
+import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
 import Checkbox from 'primevue/checkbox'
 import Skeleton from 'primevue/skeleton'
@@ -81,7 +82,7 @@ const cardTitle = ref('')
 const cardDesc = ref('')
 const cardDue = ref<string | null>(null)
 const cardPriority = ref<CardPriority>('MEDIUM')
-const cardAssignee = ref<string | null>(null)
+const cardAssignees = ref<string[]>([])
 const cardEstimatedMinutes = ref<number | null>(null)
 const savingCard = ref(false)
 
@@ -91,7 +92,7 @@ const detailTitle = ref('')
 const detailDesc = ref('')
 const detailDue = ref('')
 const detailPriority = ref<CardPriority>('MEDIUM')
-const detailAssignee = ref<string | null>(null)
+const detailAssignees = ref<string[]>([])
 const detailEstimatedMinutes = ref<number | null>(null)
 const savingCardDetail = ref(false)
 
@@ -164,7 +165,7 @@ function openAddCard(columnId: string) {
   cardDesc.value = ''
   cardDue.value = null
   cardPriority.value = 'MEDIUM'
-  cardAssignee.value = null
+  cardAssignees.value = []
   cardEstimatedMinutes.value = null
   showCardDialog.value = true
 }
@@ -184,7 +185,7 @@ async function submitCard() {
         description: cardDesc.value.trim() || undefined,
         dueDate: cardDue.value || undefined,
         priority: cardPriority.value,
-        assigneeId: cardAssignee.value || undefined,
+        assigneeIds: cardAssignees.value.length > 0 ? cardAssignees.value : undefined,
         position: pos,
         estimatedMinutes: cardEstimatedMinutes.value ?? undefined
       },
@@ -243,7 +244,7 @@ function openCard(c: KanbanCard) {
   detailDesc.value = c.description ?? ''
   detailDue.value = c.dueDate ? formatDue(c.dueDate) : ''
   detailPriority.value = c.priority
-  detailAssignee.value = c.assigneeId ?? null
+  detailAssignees.value = c.assigneeIds ?? []
   detailEstimatedMinutes.value = c.estimatedMinutes ?? null
   showCardDetail.value = true
 }
@@ -294,7 +295,7 @@ async function submitCardDetail() {
         description: detailDesc.value.trim() || undefined,
         dueDate: detailDue.value.trim() ? detailDue.value : null,
         priority: detailPriority.value,
-        assigneeId: detailAssignee.value ?? null,
+        assigneeIds: detailAssignees.value,
         estimatedMinutes: detailEstimatedMinutes.value ?? null
       }
     })
@@ -506,12 +507,29 @@ function formatDue(d: string | null | undefined): string {
             >
               <p class="font-medium text-sm text-[var(--text)] line-clamp-2">{{ card.title }}</p>
               <p v-if="card.description" class="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">{{ card.description }}</p>
-              <div class="flex flex-wrap gap-1 mt-2">
-                <Tag v-if="card.priority" severity="warn" class="text-[10px]">{{ priorityLabel(card.priority) }}</Tag>
-                <Tag v-if="card.dueDate" severity="info" class="text-[10px]">{{ formatDue(card.dueDate) }}</Tag>
-                <Tag v-if="card.estimatedMinutes" severity="secondary" class="text-[10px]">
-                  ⏱ {{ card.estimatedMinutes >= 60 ? `${Math.floor(card.estimatedMinutes / 60)}h` : `${card.estimatedMinutes}m` }}
-                </Tag>
+              <div class="flex items-center justify-between gap-1 mt-2">
+                <div class="flex flex-wrap gap-1">
+                  <Tag v-if="card.priority" severity="warn" class="text-[10px]">{{ priorityLabel(card.priority) }}</Tag>
+                  <Tag v-if="card.dueDate" severity="info" class="text-[10px]">{{ formatDue(card.dueDate) }}</Tag>
+                  <Tag v-if="card.estimatedMinutes" severity="secondary" class="text-[10px]">
+                    ⏱ {{ card.estimatedMinutes >= 60 ? `${Math.floor(card.estimatedMinutes / 60)}h` : `${card.estimatedMinutes}m` }}
+                  </Tag>
+                </div>
+                <!-- Stacked assignee avatars -->
+                <div v-if="card.assigneeIds && card.assigneeIds.length > 0" class="flex -space-x-1.5 flex-shrink-0">
+                  <div
+                    v-for="(uid, idx) in card.assigneeIds.slice(0, 3)"
+                    :key="uid"
+                    :style="{ zIndex: 3 - idx }"
+                    class="w-5 h-5 rounded-full bg-[var(--primary)] border border-[var(--surface)] flex items-center justify-center text-[8px] font-bold text-white"
+                    :title="uid"
+                  >
+                    {{ assigneeSelectOptions.find(o => o.value === uid)?.label?.[0]?.toUpperCase() ?? '?' }}
+                  </div>
+                  <div v-if="card.assigneeIds.length > 3" class="w-5 h-5 rounded-full bg-gray-400 border border-[var(--surface)] flex items-center justify-center text-[8px] font-bold text-white">
+                    +{{ card.assigneeIds.length - 3 }}
+                  </div>
+                </div>
               </div>
             </button>
           </template>
@@ -552,16 +570,16 @@ function formatDue(d: string | null | undefined): string {
           </div>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('kanban.assignee') }}</label>
-          <Select
-            v-model="cardAssignee"
+          <label class="text-sm font-medium">{{ t('kanban.assignees') }}</label>
+          <MultiSelect
+            v-model="cardAssignees"
             :options="assigneeSelectOptions"
             option-label="label"
             option-value="value"
             :placeholder="t('kanban.unassigned')"
-            show-clear
             class="w-full"
             filter
+            :max-selected-labels="3"
           />
         </div>
         <div class="flex flex-col gap-1">
@@ -638,16 +656,16 @@ function formatDue(d: string | null | undefined): string {
           </div>
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('kanban.assignee') }}</label>
-          <Select
-            v-model="detailAssignee"
+          <label class="text-sm font-medium">{{ t('kanban.assignees') }}</label>
+          <MultiSelect
+            v-model="detailAssignees"
             :options="assigneeSelectOptions"
             option-label="label"
             option-value="value"
             :placeholder="t('kanban.unassigned')"
-            show-clear
             class="w-full"
             filter
+            :max-selected-labels="3"
             :disabled="!canWriteKanban"
           />
         </div>

@@ -154,6 +154,7 @@
     "cardTitle": "Título",
     "cardDescription": "Descripción",
     "assignee": "Asignado",
+    "assignees": "Asignados",
     "unassigned": "Sin asignar",
     "dueDate": "Fecha límite",
     "priority": "Prioridad",
