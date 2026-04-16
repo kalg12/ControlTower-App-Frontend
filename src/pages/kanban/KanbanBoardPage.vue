@@ -82,6 +82,7 @@ const cardDesc = ref('')
 const cardDue = ref<string | null>(null)
 const cardPriority = ref<CardPriority>('MEDIUM')
 const cardAssignee = ref<string | null>(null)
+const cardEstimatedMinutes = ref<number | null>(null)
 const savingCard = ref(false)
 
 const selectedCard = ref<KanbanCard | null>(null)
@@ -164,6 +165,7 @@ function openAddCard(columnId: string) {
   cardDue.value = null
   cardPriority.value = 'MEDIUM'
   cardAssignee.value = null
+  cardEstimatedMinutes.value = null
   showCardDialog.value = true
 }
 
@@ -183,7 +185,8 @@ async function submitCard() {
         dueDate: cardDue.value || undefined,
         priority: cardPriority.value,
         assigneeId: cardAssignee.value || undefined,
-        position: pos
+        position: pos,
+        estimatedMinutes: cardEstimatedMinutes.value ?? undefined
       },
       boardId: board.value.id
     })
@@ -506,6 +509,9 @@ function formatDue(d: string | null | undefined): string {
               <div class="flex flex-wrap gap-1 mt-2">
                 <Tag v-if="card.priority" severity="warn" class="text-[10px]">{{ priorityLabel(card.priority) }}</Tag>
                 <Tag v-if="card.dueDate" severity="info" class="text-[10px]">{{ formatDue(card.dueDate) }}</Tag>
+                <Tag v-if="card.estimatedMinutes" severity="secondary" class="text-[10px]">
+                  ⏱ {{ card.estimatedMinutes >= 60 ? `${Math.floor(card.estimatedMinutes / 60)}h` : `${card.estimatedMinutes}m` }}
+                </Tag>
               </div>
             </button>
           </template>
@@ -557,6 +563,10 @@ function formatDue(d: string | null | undefined): string {
             class="w-full"
             filter
           />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Tiempo estimado (min)</label>
+          <InputText v-model.number="cardEstimatedMinutes" type="number" min="1" placeholder="ej. 90" class="w-full" />
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <Button :label="t('common.cancel')" severity="secondary" outlined @click="showCardDialog = false" />
@@ -640,6 +650,10 @@ function formatDue(d: string | null | undefined): string {
             filter
             :disabled="!canWriteKanban"
           />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Tiempo estimado (min)</label>
+          <InputText v-model.number="detailEstimatedMinutes" type="number" min="1" placeholder="ej. 90" class="w-full" :readonly="!canWriteKanban" />
         </div>
         <div v-if="canWriteKanban" class="flex justify-end gap-2">
           <Button
