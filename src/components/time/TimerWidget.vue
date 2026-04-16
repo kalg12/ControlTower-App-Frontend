@@ -1,18 +1,21 @@
 <script setup lang="ts">
 import { computed, onUnmounted, watch } from 'vue'
+import { useQueryClient } from '@tanstack/vue-query'
 import { useTimerStore } from '@/stores/timer'
 import { useTimeTrackingMutations, useActiveTimer } from '@/queries/time-tracking'
 import { useToast } from '@/composables/useToast'
 import type { TimeEntityType } from '@/types/time-tracking'
 import { PlayIcon, PauseIcon, StopCircleIcon, TimerIcon } from 'lucide-vue-next'
+import { qk } from '@/queries/keys'
 
 const props = defineProps<{
   entityType: TimeEntityType
   entityId: string
 }>()
 
-const toast  = useToast()
-const timer  = useTimerStore()
+const toast       = useToast()
+const timer       = useTimerStore()
+const queryClient = useQueryClient()
 const { startTimer, stopTimer } = useTimeTrackingMutations()
 const { data: activeTimerData, isLoading: loadingActive } = useActiveTimer()
 
@@ -45,8 +48,17 @@ async function handleStop() {
     })
     timer.syncFromServer(null)
     toast.success(`Tiempo registrado: ${stopped.minutes} min`)
-  } catch {
-    toast.error('No se pudo detener el cronómetro')
+  } catch (err: any) {
+    const status = err?.response?.status
+    if (status === 400 || status === 404) {
+      // Timer was already stopped on the server (stale localStorage entry).
+      // Re-sync so the UI reflects reality.
+      queryClient.invalidateQueries({ queryKey: qk.activeTimer() })
+      timer.syncFromServer(null)
+      toast.warning('El cronómetro ya fue detenido')
+    } else {
+      toast.error('No se pudo detener el cronómetro')
+    }
   }
 }
 
@@ -85,7 +97,7 @@ onUnmounted(() => {
       <button v-if="isThisActive"
               class="inline-flex items-center gap-1 rounded px-2 py-1 text-xs font-medium
                      bg-red-600 text-white hover:bg-red-700 disabled:opacity-50 transition-colors"
-              :disabled="stopTimer.isPending.value"
+              :disabled="stopTimer.isPending.value || loadingActive"
               @click="handleStop">
         <StopCircleIcon class="h-3 w-3" />
         Detener

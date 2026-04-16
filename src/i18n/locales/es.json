@@ -326,7 +326,9 @@
     "commentSuccess": "Comentario agregado",
     "commentFailed": "No se pudo agregar el comentario",
     "deleteConfirm": "Esta acción no se puede deshacer. ¿Eliminar este ticket?",
-    "deleteHeader": "Eliminar ticket"
+    "deleteHeader": "Eliminar ticket",
+    "slaMet": "SLA cumplido",
+    "slaBreached": "SLA incumplido"
   },
   "health": {
     "title": "Monitoreo de Salud",

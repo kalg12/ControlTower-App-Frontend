@@ -13,7 +13,7 @@ import { ticketsService } from '@/services/tickets.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { MessageSquare, TimerIcon } from 'lucide-vue-next'
+import { MessageSquare, TimerIcon, ShieldCheckIcon, ShieldAlertIcon } from 'lucide-vue-next'
 import SourceBadge from '@/components/tickets/SourceBadge.vue'
 import PosContextPanel from '@/components/tickets/PosContextPanel.vue'
 import TicketChatPanel from '@/components/tickets/TicketChatPanel.vue'
@@ -304,12 +304,19 @@ function fromNow(dateStr: string) {
             <span class="text-[var(--text)]">{{ formatDate(ticket.updatedAt) }}</span>
           </div>
           <!-- SLA countdown (inline in metadata) -->
-          <div v-if="ticket.slaDueAt" class="pt-1">
+          <div v-if="ticket.slaDueAt && !['RESOLVED', 'CLOSED'].includes(ticket.status)" class="pt-1">
             <SlaCountdown
               :due-at="ticket.slaDueAt"
               :created-at="ticket.createdAt"
               :breached="ticket.slaBreached"
             />
+          </div>
+          <!-- Static SLA result for terminal statuses -->
+          <div v-else-if="ticket.slaDueAt && ['RESOLVED', 'CLOSED'].includes(ticket.status)" class="pt-1 flex items-center gap-1.5 text-sm font-medium"
+               :class="ticket.slaBreached ? 'text-red-500' : 'text-green-600 dark:text-green-400'">
+            <ShieldCheckIcon v-if="!ticket.slaBreached" class="h-4 w-4" />
+            <ShieldAlertIcon v-else class="h-4 w-4" />
+            <span>{{ ticket.slaBreached ? t('ticketDetail.slaBreached') : t('ticketDetail.slaMet') }}</span>
           </div>
           <div v-else-if="ticket.slaDeadline" class="flex justify-between text-sm">
             <span class="text-[var(--text-muted)]">{{ t('ticketDetail.slaDeadline') }}</span>

@@ -373,7 +373,9 @@
     "commentSuccess": "Comment added",
     "commentFailed": "Could not add comment",
     "deleteConfirm": "This action cannot be undone. Delete this ticket?",
-    "deleteHeader": "Delete ticket"
+    "deleteHeader": "Delete ticket",
+    "slaMet": "SLA met",
+    "slaBreached": "SLA breached"
   },
   "health": {
     "title": "Health Monitoring",
