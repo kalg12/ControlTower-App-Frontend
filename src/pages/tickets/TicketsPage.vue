@@ -157,6 +157,34 @@ function formatDate(dateStr: string) {
   return dayjs(dateStr).format('DD MMM YYYY')
 }
 
+/** Returns SLA chip info for display in the tickets list. */
+function slaChip(ticket: Ticket): { label: string; cls: string; tooltip: string } | null {
+  const dueAt = ticket.slaDueAt ?? ticket.slaDeadline
+  if (!dueAt) return null
+
+  const now      = Date.now()
+  const dueMs    = new Date(dueAt).getTime()
+  const totalMs  = dueMs - new Date(ticket.createdAt).getTime()
+  const elapsedMs = now - new Date(ticket.createdAt).getTime()
+  const pct      = Math.min(Math.round((elapsedMs / Math.max(totalMs, 1)) * 100), 100)
+  const overdue  = now > dueMs || !!ticket.slaBreached
+
+  const remainMs   = dueMs - now
+  const hoursLeft  = Math.floor(Math.abs(remainMs) / 3_600_000)
+  const minsLeft   = Math.floor((Math.abs(remainMs) % 3_600_000) / 60_000)
+  const timeLabel  = overdue
+    ? `Vencido hace ${hoursLeft}h ${minsLeft}m`
+    : `Vence en ${hoursLeft}h ${minsLeft}m`
+
+  let cls = 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+  if (overdue)     cls = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+  else if (pct >= 90) cls = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+  else if (pct >= 75) cls = 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400'
+  else if (pct >= 50) cls = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
+
+  return { label: `${pct}%`, cls, tooltip: timeLabel }
+}
+
 function onPage(event: { page: number; rows?: number }) {
   page.value = event.page
   if (event.rows != null && event.rows !== pageSize.value) {
@@ -389,6 +417,20 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       <Column field="priority" :header="t('tickets.priority')" style="width: 110px">
         <template #body="{ data: row }: { data: Ticket }">
           <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
+        </template>
+      </Column>
+
+      <Column header="SLA" style="width: 90px">
+        <template #body="{ data: row }: { data: Ticket }">
+          <span
+            v-if="slaChip(row)"
+            v-tooltip.top="slaChip(row)!.tooltip"
+            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold cursor-default"
+            :class="slaChip(row)!.cls"
+          >
+            {{ slaChip(row)!.label }}
+          </span>
+          <span v-else class="text-muted-foreground text-xs">—</span>
         </template>
       </Column>
 
