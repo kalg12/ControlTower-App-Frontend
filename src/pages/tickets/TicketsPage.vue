@@ -14,6 +14,7 @@ import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
+import { AlertTriangle } from 'lucide-vue-next'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import SkeletonTable from '@/components/ui/SkeletonTable.vue'
@@ -516,9 +517,14 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         </template>
       </Column>
 
-      <Column field="priority" :header="t('tickets.priority')" style="width: 110px">
+      <Column field="priority" :header="t('tickets.priority')" style="width: 130px">
         <template #body="{ data: row }: { data: Ticket }">
-          <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
+          <div class="flex items-center gap-1.5">
+            <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
+            <span v-if="(row as any).escalatedAt" v-tooltip.top="t('ticketDetail.escalated')" class="text-orange-500">
+              <AlertTriangle class="w-3.5 h-3.5" />
+            </span>
+          </div>
         </template>
       </Column>
 

@@ -2,18 +2,22 @@
 import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute, useRouter } from 'vue-router'
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
 import Skeleton from 'primevue/skeleton'
 import Tag from 'primevue/tag'
 import Select from 'primevue/select'
 import Textarea from 'primevue/textarea'
 import Button from 'primevue/button'
+import Dialog from 'primevue/dialog'
+import InputText from 'primevue/inputtext'
 import { ticketsService } from '@/services/tickets.service'
+import { csatService } from '@/services/csat.service'
 import { useToast } from '@/composables/useToast'
+import { qk } from '@/queries/keys'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { MessageSquare, TimerIcon, ShieldCheckIcon, ShieldAlertIcon } from 'lucide-vue-next'
+import { MessageSquare, TimerIcon, ShieldCheckIcon, ShieldAlertIcon, GitMerge, Star, Send, AlertTriangle } from 'lucide-vue-next'
 import SourceBadge from '@/components/tickets/SourceBadge.vue'
 import PosContextPanel from '@/components/tickets/PosContextPanel.vue'
 import TicketChatPanel from '@/components/tickets/TicketChatPanel.vue'
@@ -146,6 +150,44 @@ function confirmDelete() {
   })
 }
 
+// ── Merge ─────────────────────────────────────────────────────────────
+const mergeDialogOpen = ref(false)
+const mergeTargetId = ref('')
+const mergeMutation = useMutation({
+  mutationFn: () => ticketsService.merge(id.value, mergeTargetId.value.trim()),
+  onSuccess: () => {
+    queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    toast.success(t('ticketDetail.mergeSuccess'))
+    mergeDialogOpen.value = false
+    router.push('/tickets')
+  },
+  onError: () => toast.error(t('ticketDetail.mergeFailed'))
+})
+
+// ── CSAT ──────────────────────────────────────────────────────────────
+const csatSending = ref(false)
+async function sendCsat() {
+  csatSending.value = true
+  try {
+    await csatService.createOrGet(id.value)
+    toast.success(t('ticketDetail.csatSent'))
+    queryClient.invalidateQueries({ queryKey: qk.csatTicket(id.value) })
+  } catch {
+    toast.error(t('ticketDetail.csatFailed'))
+  } finally {
+    csatSending.value = false
+  }
+}
+
+const { data: csatList } = useQuery({
+  queryKey: computed(() => qk.csatTicket(id.value)),
+  queryFn: () => csatService.listByTicket(id.value),
+  staleTime: 30_000,
+  enabled: computed(() => !!id.value)
+})
+
+const latestCsat = computed(() => csatList.value?.[0] ?? null)
+
 const commentText = ref('')
 const isSubmittingComment = ref(false)
 
@@ -204,6 +246,7 @@ function fromNow(dateStr: string) {
           :disabled="isChangingStatus"
           @change="(e: { value: TicketStatus }) => onStatusChange(e.value)"
         />
+        <Button icon="pi pi-code-branch" severity="secondary" outlined v-tooltip.top="t('ticketDetail.mergeTicket')" @click="mergeDialogOpen = true" />
         <Button icon="pi pi-trash" severity="danger" outlined v-tooltip.top="t('ticketDetail.deleteTicket')" @click="confirmDelete" />
       </div>
     </div>
@@ -247,6 +290,10 @@ function fromNow(dateStr: string) {
           <Tag :severity="statusSeverity(ticket.status)" :value="ticket.status.replace(/_/g, ' ')" />
           <Tag :severity="prioritySeverity(ticket.priority)" :value="ticket.priority" />
           <SourceBadge v-if="ticket.source" :source="ticket.source" />
+          <!-- Escalation badge -->
+          <span v-if="(ticket as any).escalatedAt" class="inline-flex items-center gap-1 text-xs font-semibold px-2 py-0.5 rounded-full bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400">
+            <AlertTriangle class="w-3 h-3" />{{ t('ticketDetail.escalated') }}
+          </span>
         </div>
         <p class="text-[var(--text)] whitespace-pre-wrap">{{ ticket.description }}</p>
         <PosContextPanel v-if="ticket.source === 'POS' && ticket.posContext" :ctx="ticket.posContext" class="mt-4" />
@@ -400,6 +447,72 @@ function fromNow(dateStr: string) {
         <TimerWidget entity-type="TICKET" :entity-id="ticket.id" />
         <TimeEntriesList entity-type="TICKET" :entity-id="ticket.id" />
       </div>
+
+      <!-- CSAT panel -->
+      <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 space-y-4">
+        <div class="flex items-center justify-between">
+          <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide flex items-center gap-2">
+            <Star class="w-4 h-4" />
+            {{ t('ticketDetail.csatTitle') }}
+          </h2>
+          <Button
+            :label="t('ticketDetail.csatSend')"
+            size="small"
+            severity="secondary"
+            :loading="csatSending"
+            :disabled="!!latestCsat"
+            @click="sendCsat"
+          />
+        </div>
+        <div v-if="!latestCsat" class="text-sm text-[var(--text-muted)]">{{ t('ticketDetail.csatNone') }}</div>
+        <div v-else class="flex items-center gap-4 flex-wrap">
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs text-[var(--text-muted)]">{{ t('ticketDetail.csatStatus') }}</span>
+            <span class="text-sm font-medium" :class="latestCsat.respondedAt ? 'text-green-600 dark:text-green-400' : 'text-[var(--text-muted)]'">
+              {{ latestCsat.respondedAt ? t('ticketDetail.csatResponded') : t('ticketDetail.csatPending') }}
+            </span>
+          </div>
+          <div v-if="latestCsat.rating" class="flex flex-col gap-0.5">
+            <span class="text-xs text-[var(--text-muted)]">{{ t('ticketDetail.csatRating') }}</span>
+            <div class="flex gap-0.5">
+              <Star v-for="n in 5" :key="n" :class="['w-4 h-4', n <= latestCsat.rating! ? 'text-yellow-400 fill-yellow-400' : 'text-gray-300']" />
+            </div>
+          </div>
+          <div v-if="latestCsat.comment" class="flex-1 min-w-32">
+            <span class="text-xs text-[var(--text-muted)]">{{ t('ticketDetail.csatComment') }}</span>
+            <p class="text-sm text-[var(--text)] italic">"{{ latestCsat.comment }}"</p>
+          </div>
+          <div class="flex flex-col gap-0.5">
+            <span class="text-xs text-[var(--text-muted)]">{{ t('ticketDetail.csatLink') }}</span>
+            <a :href="`/survey/${latestCsat.token}`" target="_blank" class="text-xs text-[var(--primary)] hover:underline flex items-center gap-1">
+              <Send class="w-3 h-3" />{{ t('ticketDetail.csatOpen') }}
+            </a>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
+
+  <!-- Merge Dialog -->
+  <Dialog v-model:visible="mergeDialogOpen" :header="t('ticketDetail.mergeTicket')" modal class="w-full max-w-md">
+    <div class="space-y-4 pt-2">
+      <p class="text-sm text-[var(--text-muted)]">{{ t('ticketDetail.mergeHint') }}</p>
+      <div>
+        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">{{ t('ticketDetail.mergeTargetId') }}</label>
+        <InputText v-model="mergeTargetId" class="w-full" placeholder="UUID del ticket destino" />
+      </div>
+    </div>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button :label="t('common.cancel')" severity="secondary" text @click="mergeDialogOpen = false" />
+        <Button
+          :label="t('ticketDetail.mergeConfirm')"
+          severity="danger"
+          :disabled="!mergeTargetId.trim()"
+          :loading="mergeMutation.isPending.value"
+          @click="mergeMutation.mutate()"
+        />
+      </div>
+    </template>
+  </Dialog>
 </template>
