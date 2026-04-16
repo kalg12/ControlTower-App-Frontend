@@ -22,6 +22,7 @@ import TimerWidget from '@/components/time/TimerWidget.vue'
 import TimeEntriesList from '@/components/time/TimeEntriesList.vue'
 import ClientContextCard from '@/components/clients/ClientContextCard.vue'
 import NotesPanel from '@/components/notes/NotesPanel.vue'
+import { useUsers } from '@/queries/users'
 import type { TicketStatus, TicketPriority } from '@/types/ticket'
 import 'dayjs/locale/es'
 
@@ -79,6 +80,48 @@ async function onStatusChange(newStatus: TicketStatus) {
     selectedStatus.value = ticket.value.status
   } finally {
     isChangingStatus.value = false
+  }
+}
+
+// ── Assignee ──────────────────────────────────────────────────────────
+const { data: usersPage } = useUsers(200)
+const users = computed(() => usersPage.value?.content ?? [])
+const selectedAssignee = ref<string | null>(null)
+const isChangingAssignee = ref(false)
+
+watch(ticket, (val) => {
+  if (val) selectedAssignee.value = val.assigneeId ?? null
+}, { immediate: true })
+
+async function onAssigneeChange(assigneeId: string | null) {
+  if (!ticket.value) return
+  isChangingAssignee.value = true
+  try {
+    if (assigneeId) {
+      await ticketsService.assign(id.value, assigneeId)
+    }
+    await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
+    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    toast.success('Agente asignado')
+  } catch {
+    toast.error('No se pudo cambiar el agente')
+    selectedAssignee.value = ticket.value.assigneeId ?? null
+  } finally {
+    isChangingAssignee.value = false
+  }
+}
+
+async function autoAssign() {
+  isChangingAssignee.value = true
+  try {
+    const res = await ticketsService.autoAssign(id.value)
+    selectedAssignee.value = res.assigneeId ?? null
+    await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
+    toast.success(`Auto-asignado a ${res.assigneeName ?? res.assigneeId}`)
+  } catch {
+    toast.error('No se pudo auto-asignar')
+  } finally {
+    isChangingAssignee.value = false
   }
 }
 
@@ -225,9 +268,31 @@ function fromNow(dateStr: string) {
             <span class="text-[var(--text-muted)]">{{ t('ticketDetail.priority') }}</span>
             <Tag :severity="prioritySeverity(ticket.priority)" :value="ticket.priority" />
           </div>
-          <div class="flex justify-between text-sm">
-            <span class="text-[var(--text-muted)]">{{ t('ticketDetail.assignee') }}</span>
-            <span class="text-[var(--text)]">{{ ticket.assigneeName ?? ticket.assigneeId ?? '—' }}</span>
+          <div class="flex items-center justify-between text-sm gap-2">
+            <span class="text-[var(--text-muted)] shrink-0">{{ t('ticketDetail.assignee') }}</span>
+            <div class="flex items-center gap-1">
+              <Select
+                v-model="selectedAssignee"
+                :options="users"
+                option-label="fullName"
+                option-value="id"
+                placeholder="Sin asignar"
+                class="w-40 text-xs"
+                :disabled="isChangingAssignee"
+                show-clear
+                @change="(e: { value: string | null }) => onAssigneeChange(e.value)"
+              />
+              <Button
+                icon="pi pi-bolt"
+                severity="secondary"
+                text
+                rounded
+                size="small"
+                v-tooltip.top="'Auto-asignar al agente con menor carga'"
+                :loading="isChangingAssignee"
+                @click="autoAssign"
+              />
+            </div>
           </div>
           <div class="flex justify-between text-sm">
             <span class="text-[var(--text-muted)]">{{ t('ticketDetail.created') }}</span>

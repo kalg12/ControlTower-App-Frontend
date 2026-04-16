@@ -58,6 +58,11 @@ export const ticketsService = {
     return res.data
   },
 
+  async autoAssign(id: string): Promise<Ticket> {
+    const res = await api.post<Ticket>(`/tickets/${id}/auto-assign`)
+    return res.data
+  },
+
   async getComments(id: string): Promise<TicketCommentResponse[]> {
     const res = await api.get<TicketCommentResponse[]>(`/tickets/${id}/comments`)
     return res.data

@@ -39,7 +39,19 @@ export const usersService = {
 
   async delete(id: string): Promise<void> {
     await api.delete(`/users/${id}`)
+  },
+
+  async workload(): Promise<UserWorkload[]> {
+    const res = await api.get<UserWorkload[]>('/users/workload')
+    return res.data
   }
+}
+
+export interface UserWorkload {
+  id: string
+  fullName: string
+  email: string
+  openTickets: number
 }
 
 /** Roles & permissions — GET /api/v1/roles (paginated), GET /api/v1/permissions */

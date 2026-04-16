@@ -21,6 +21,7 @@ import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 import { ticketsService } from '@/services/tickets.service'
 import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
+import { useUsers } from '@/queries/users'
 import dayjs from 'dayjs'
 import type { Ticket, TicketStatus, TicketPriority, TicketSource } from '@/types/ticket'
 import SourceBadge from '@/components/tickets/SourceBadge.vue'
@@ -206,6 +207,71 @@ function onSearch() {
   }, 400)
 }
 
+// ── Bulk actions ──────────────────────────────────────────────────────
+const selectedTickets = ref<Ticket[]>([])
+const bulkAssigneeId = ref<string | null>(null)
+const bulkStatus = ref<TicketStatus | null>(null)
+const isBulkProcessing = ref(false)
+
+const { data: usersPage } = useUsers(200)
+const userOptions = computed(() => usersPage.value?.content ?? [])
+
+async function bulkAssign() {
+  if (!bulkAssigneeId.value || !selectedTickets.value.length) return
+  isBulkProcessing.value = true
+  try {
+    await ticketsService.bulkAssign(selectedTickets.value.map(t => t.id), bulkAssigneeId.value)
+    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    toast.success(`${selectedTickets.value.length} tickets asignados`)
+    selectedTickets.value = []
+    bulkAssigneeId.value = null
+  } catch {
+    toast.error('No se pudo asignar los tickets')
+  } finally {
+    isBulkProcessing.value = false
+  }
+}
+
+async function bulkChangeStatus() {
+  if (!bulkStatus.value || !selectedTickets.value.length) return
+  isBulkProcessing.value = true
+  try {
+    await ticketsService.bulkUpdateStatus(selectedTickets.value.map(t => t.id), bulkStatus.value)
+    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    toast.success(`${selectedTickets.value.length} tickets actualizados`)
+    selectedTickets.value = []
+    bulkStatus.value = null
+  } catch {
+    toast.error('No se pudo actualizar los tickets')
+  } finally {
+    isBulkProcessing.value = false
+  }
+}
+
+function bulkDeleteConfirm() {
+  if (!selectedTickets.value.length) return
+  confirm.require({
+    message: `¿Eliminar ${selectedTickets.value.length} ticket(s)?`,
+    header: 'Eliminar tickets',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: async () => {
+      isBulkProcessing.value = true
+      try {
+        await Promise.all(selectedTickets.value.map(t => ticketsService.delete(t.id)))
+        await queryClient.invalidateQueries({ queryKey: ['tickets'] })
+        toast.success(`${selectedTickets.value.length} tickets eliminados`)
+        selectedTickets.value = []
+      } catch {
+        toast.error('No se pudieron eliminar todos los tickets')
+      } finally {
+        isBulkProcessing.value = false
+      }
+    }
+  })
+}
+
 // --- CSV Export ---
 const exporting = ref(false)
 async function handleExport() {
@@ -385,9 +451,44 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     <!-- Skeleton on first load -->
     <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="5" />
 
+    <!-- Bulk actions toolbar -->
+    <div
+      v-if="selectedTickets.length > 0"
+      class="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 flex-wrap"
+    >
+      <span class="text-sm font-medium text-[var(--text)] shrink-0">{{ selectedTickets.length }} seleccionado(s)</span>
+      <div class="flex items-center gap-2">
+        <Select
+          v-model="bulkAssigneeId"
+          :options="userOptions"
+          option-label="fullName"
+          option-value="id"
+          placeholder="Asignar a..."
+          class="w-40 text-xs"
+          :disabled="isBulkProcessing"
+        />
+        <Button label="Asignar" size="small" :loading="isBulkProcessing" :disabled="!bulkAssigneeId" @click="bulkAssign" />
+      </div>
+      <div class="flex items-center gap-2">
+        <Select
+          v-model="bulkStatus"
+          :options="formStatusOptions"
+          option-label="label"
+          option-value="value"
+          placeholder="Cambiar estado..."
+          class="w-44 text-xs"
+          :disabled="isBulkProcessing"
+        />
+        <Button label="Aplicar" size="small" severity="secondary" :loading="isBulkProcessing" :disabled="!bulkStatus" @click="bulkChangeStatus" />
+      </div>
+      <Button icon="pi pi-trash" severity="danger" outlined size="small" :loading="isBulkProcessing" v-tooltip.top="'Eliminar seleccionados'" @click="bulkDeleteConfirm" />
+      <Button icon="pi pi-times" severity="secondary" text size="small" @click="selectedTickets = []" />
+    </div>
+
     <!-- DataTable -->
     <DataTable
       v-else
+      v-model:selection="selectedTickets"
       lazy
       :first="page * pageSize"
       :value="tickets"
@@ -402,6 +503,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       class="rounded-xl overflow-hidden"
       @page="onPage"
     >
+      <Column selection-mode="multiple" style="width: 3rem" />
       <Column field="title" :header="t('tickets.formTitle')" sortable style="min-width: 240px">
         <template #body="{ data: row }: { data: Ticket }">
           <span class="font-medium text-[var(--text)] line-clamp-1">{{ row.title }}</span>
