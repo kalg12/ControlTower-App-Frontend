@@ -13,10 +13,13 @@ import { ticketsService } from '@/services/tickets.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { MessageSquare } from 'lucide-vue-next'
+import { MessageSquare, TimerIcon } from 'lucide-vue-next'
 import SourceBadge from '@/components/tickets/SourceBadge.vue'
 import PosContextPanel from '@/components/tickets/PosContextPanel.vue'
 import TicketChatPanel from '@/components/tickets/TicketChatPanel.vue'
+import SlaCountdown from '@/components/time/SlaCountdown.vue'
+import TimerWidget from '@/components/time/TimerWidget.vue'
+import TimeEntriesList from '@/components/time/TimeEntriesList.vue'
 import type { TicketStatus, TicketPriority } from '@/types/ticket'
 import 'dayjs/locale/es'
 
@@ -229,9 +232,25 @@ function fromNow(dateStr: string) {
             <span class="text-[var(--text-muted)]">{{ t('ticketDetail.updatedAt') }}</span>
             <span class="text-[var(--text)]">{{ formatDate(ticket.updatedAt) }}</span>
           </div>
-          <div v-if="ticket.slaDeadline" class="flex justify-between text-sm">
+          <!-- SLA countdown (inline in metadata) -->
+          <div v-if="ticket.slaDueAt" class="pt-1">
+            <SlaCountdown
+              :due-at="ticket.slaDueAt"
+              :created-at="ticket.createdAt"
+              :breached="ticket.slaBreached"
+            />
+          </div>
+          <div v-else-if="ticket.slaDeadline" class="flex justify-between text-sm">
             <span class="text-[var(--text-muted)]">{{ t('ticketDetail.slaDeadline') }}</span>
             <span class="text-[var(--text)]">{{ formatDate(ticket.slaDeadline) }}</span>
+          </div>
+          <div v-if="ticket.estimatedMinutes" class="flex justify-between text-sm">
+            <span class="text-[var(--text-muted)]">Tiempo estimado</span>
+            <span class="text-[var(--text)] font-medium">
+              {{ ticket.estimatedMinutes >= 60
+                  ? `${Math.floor(ticket.estimatedMinutes / 60)}h ${ticket.estimatedMinutes % 60 > 0 ? `${ticket.estimatedMinutes % 60}m` : ''}`
+                  : `${ticket.estimatedMinutes}m` }}
+            </span>
           </div>
           <div v-if="ticket.labels && ticket.labels.length" class="flex flex-col gap-1 pt-1">
             <span class="text-[var(--text-muted)] text-sm">{{ t('ticketDetail.labels') }}</span>
@@ -284,6 +303,16 @@ function fromNow(dateStr: string) {
             </div>
           </div>
         </div>
+      </div>
+
+      <!-- Time tracking panel -->
+      <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 space-y-4">
+        <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide flex items-center gap-2">
+          <TimerIcon class="w-4 h-4" />
+          Tiempo de trabajo
+        </h2>
+        <TimerWidget entity-type="TICKET" :entity-id="ticket.id" />
+        <TimeEntriesList entity-type="TICKET" :entity-id="ticket.id" />
       </div>
     </template>
   </div>
