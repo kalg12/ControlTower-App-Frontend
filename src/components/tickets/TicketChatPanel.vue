@@ -9,6 +9,7 @@ import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 import { useNotificationsStore } from '@/stores/notifications'
+import TemplateSelector from '@/components/templates/TemplateSelector.vue'
 
 dayjs.extend(relativeTime)
 
@@ -121,14 +122,19 @@ function fromNow(dateStr: string) {
 
     <!-- Reply input -->
     <div class="px-5 py-3 border-t border-[var(--border)] flex gap-2 items-end">
-      <Textarea
-        v-model="replyText"
-        placeholder="Escribe una respuesta al cliente POS..."
-        :rows="2"
-        class="flex-1 resize-none text-sm"
-        :disabled="isSubmitting"
-        @keydown="handleKeydown"
-      />
+      <div class="flex-1 relative">
+        <Textarea
+          v-model="replyText"
+          placeholder="Escribe una respuesta al cliente POS..."
+          :rows="2"
+          class="w-full resize-none text-sm pr-10"
+          :disabled="isSubmitting"
+          @keydown="handleKeydown"
+        />
+        <div class="absolute bottom-2 right-2">
+          <TemplateSelector @select="(body) => replyText = body" />
+        </div>
+      </div>
       <Button
         icon="pi pi-send"
         :loading="isSubmitting"
