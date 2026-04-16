@@ -30,8 +30,11 @@ import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 import type { Client, ClientBranch, ClientContact, CreateContactRequest, ClientInteraction, ClientOpportunity, InteractionType, OpportunityStage } from '@/types/client'
 import {
-  Users, Activity, TrendingUp, DollarSign
+  Users, Activity, TrendingUp, DollarSign, Ticket
 } from 'lucide-vue-next'
+import { ticketsService } from '@/services/tickets.service'
+import type { Ticket as TicketType } from '@/types/ticket'
+import NotesPanel from '@/components/notes/NotesPanel.vue'
 
 const { t, locale } = useI18n()
 watch(locale, (loc) => { dayjs.locale(loc === 'es' ? 'es' : 'en') }, { immediate: true })
@@ -87,6 +90,24 @@ const { data: opportunitiesPage, isLoading: oppsLoading, refetch: refetchOpps } 
 })
 const opportunities = computed(() => opportunitiesPage.value?.content ?? [])
 
+// ── Tickets ──────────────────────────────────────────────────────────
+
+const { data: ticketsPage, isLoading: ticketsLoading } = useQuery({
+  queryKey: computed(() => ['tickets-client', id.value]),
+  queryFn: () => ticketsService.list({ clientId: id.value, size: 50 }),
+  staleTime: 15000,
+  enabled: computed(() => !!id.value)
+})
+const clientTickets = computed(() => ticketsPage.value?.content ?? [])
+
+function ticketStatusSeverity(status: string): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
+  const map: Record<string, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
+    OPEN: 'info', IN_PROGRESS: 'warn', WAITING: 'warn', RESOLVED: 'success', CLOSED: 'secondary'
+  }
+  return map[status] ?? 'secondary'
+}
+
+// ── Pipeline helpers ──────────────────────────────────────────────────
 const pipelineValue = computed(() => {
   return opportunities.value
     .filter(o => !['CLOSED_WON', 'CLOSED_LOST'].includes(o.stage))
@@ -788,6 +809,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
           <Tab value="branches">{{ t('crm.tabBranches') }}</Tab>
           <Tab value="contacts">{{ t('crm.tabContacts') }}</Tab>
           <Tab value="pipeline">{{ t('crm.tabPipeline') }}</Tab>
+          <Tab value="tickets">Tickets</Tab>
         </TabList>
 
         <TabPanels class="mt-4">
@@ -852,6 +874,9 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                 </div>
               </Card>
             </div>
+
+            <!-- Notes in overview -->
+            <NotesPanel linked-to="CLIENT" :linked-id="id" class="mt-6" />
           </TabPanel>
 
           <!-- ── Activity Tab ──────────────────────────────────────── -->
@@ -1081,6 +1106,62 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
               </Column>
               <template #empty>
                 <div class="text-center py-8 text-[var(--text-muted)]">{{ t('crm.noOpportunities') }}</div>
+              </template>
+            </DataTable>
+          </TabPanel>
+
+          <!-- ── Tickets Tab ──────────────────────────────────────── -->
+          <TabPanel value="tickets">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-base font-semibold text-[var(--text)] flex items-center gap-2">
+                <Ticket class="w-4 h-4" />
+                Historial de tickets
+                <span v-if="clientTickets.length" class="text-[var(--text-muted)] font-normal text-sm">({{ clientTickets.length }})</span>
+              </h3>
+            </div>
+
+            <template v-if="ticketsLoading">
+              <Skeleton height="1rem" v-for="i in 4" :key="i" class="mb-2" />
+            </template>
+
+            <DataTable
+              v-else
+              :value="clientTickets"
+              striped-rows
+              class="rounded-xl overflow-hidden"
+              @row-click="(e: { data: TicketType }) => router.push(`/tickets/${e.data.id}`)"
+              row-hover
+            >
+              <Column field="title" header="Título" style="min-width: 200px">
+                <template #body="{ data: row }: { data: TicketType }">
+                  <span class="text-sm font-medium text-[var(--text)] cursor-pointer hover:underline">{{ row.title }}</span>
+                </template>
+              </Column>
+              <Column field="status" header="Estado" style="width: 130px">
+                <template #body="{ data: row }: { data: TicketType }">
+                  <Tag :severity="ticketStatusSeverity(row.status)" :value="row.status.replace('_', ' ')" />
+                </template>
+              </Column>
+              <Column field="priority" header="Prioridad" style="width: 110px">
+                <template #body="{ data: row }: { data: TicketType }">
+                  <Tag
+                    :severity="row.priority === 'CRITICAL' || row.priority === 'HIGH' ? 'danger' : row.priority === 'MEDIUM' ? 'warn' : 'secondary'"
+                    :value="row.priority"
+                  />
+                </template>
+              </Column>
+              <Column field="assigneeName" header="Asignado" style="width: 140px">
+                <template #body="{ data: row }: { data: TicketType }">
+                  <span class="text-sm text-[var(--text-muted)]">{{ row.assigneeName ?? '—' }}</span>
+                </template>
+              </Column>
+              <Column field="createdAt" header="Creado" style="width: 140px">
+                <template #body="{ data: row }: { data: TicketType }">
+                  <span class="text-sm text-[var(--text-muted)]">{{ formatDate(row.createdAt) }}</span>
+                </template>
+              </Column>
+              <template #empty>
+                <div class="text-center py-8 text-[var(--text-muted)]">Este cliente no tiene tickets aún.</div>
               </template>
             </DataTable>
           </TabPanel>

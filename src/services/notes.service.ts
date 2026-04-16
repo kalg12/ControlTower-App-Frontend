@@ -3,8 +3,7 @@ import type { PaginatedResponse } from '@/types/api'
 
 export interface Note {
   id: string
-  title?: string
-  body?: string
+  title: string
   content?: string
   linkedTo?: string
   linkedId?: string
@@ -14,8 +13,8 @@ export interface Note {
 }
 
 export interface NoteRequest {
-  title?: string
-  body?: string
+  title: string
+  content?: string
   linkedTo?: string
   linkedId?: string
 }
@@ -36,13 +35,13 @@ export const notesService = {
     return res.data
   },
 
-  async create(body: NoteRequest): Promise<Note> {
-    const res = await api.post<Note>('/notes', body)
+  async create(data: NoteRequest): Promise<Note> {
+    const res = await api.post<Note>('/notes', data)
     return res.data
   },
 
-  async update(id: string, body: NoteRequest): Promise<Note> {
-    const res = await api.put<Note>(`/notes/${id}`, body)
+  async update(id: string, data: NoteRequest): Promise<Note> {
+    const res = await api.put<Note>(`/notes/${id}`, data)
     return res.data
   },
 

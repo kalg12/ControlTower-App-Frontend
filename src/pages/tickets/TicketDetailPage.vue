@@ -20,6 +20,8 @@ import TicketChatPanel from '@/components/tickets/TicketChatPanel.vue'
 import SlaCountdown from '@/components/time/SlaCountdown.vue'
 import TimerWidget from '@/components/time/TimerWidget.vue'
 import TimeEntriesList from '@/components/time/TimeEntriesList.vue'
+import ClientContextCard from '@/components/clients/ClientContextCard.vue'
+import NotesPanel from '@/components/notes/NotesPanel.vue'
 import type { TicketStatus, TicketPriority } from '@/types/ticket'
 import 'dayjs/locale/es'
 
@@ -211,6 +213,9 @@ function fromNow(dateStr: string) {
       <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
         <!-- Metadata -->
         <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 space-y-3">
+          <!-- Client context card -->
+          <ClientContextCard v-if="ticket.clientId" :client-id="ticket.clientId" class="mb-4" />
+
           <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide mb-3">{{ t('ticketDetail.details') }}</h2>
           <div class="flex justify-between text-sm">
             <span class="text-[var(--text-muted)]">{{ t('ticketDetail.status') }}</span>
@@ -304,6 +309,9 @@ function fromNow(dateStr: string) {
           </div>
         </div>
       </div>
+
+      <!-- Internal notes -->
+      <NotesPanel linked-to="TICKET" :linked-id="ticket.id" />
 
       <!-- Time tracking panel -->
       <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 space-y-4">
