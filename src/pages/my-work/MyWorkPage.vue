@@ -7,6 +7,7 @@ import { useAuthStore } from '@/stores/auth'
 import { ticketsService } from '@/services/tickets.service'
 import { qk } from '@/queries/keys'
 import { Briefcase, AlertTriangle, Clock, CheckCircle2, ChevronRight } from 'lucide-vue-next'
+import TicketTimeBar from '@/components/time/TicketTimeBar.vue'
 
 const { t } = useI18n()
 const router = useRouter()
@@ -135,12 +136,15 @@ function formatDate(iso: string) {
           <button
             v-for="ticket in open.slice(0, 10)"
             :key="ticket.id"
-            class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-raised)] transition-colors text-left"
+            class="w-full flex flex-col px-4 py-3 hover:bg-[var(--surface-raised)] transition-colors text-left"
             @click="router.push(`/tickets/${ticket.id}`)"
           >
-            <span class="flex-1 text-sm text-[var(--text)] truncate">{{ ticket.title }}</span>
-            <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded-full', priorityColor[ticket.priority] ?? '']">{{ ticket.priority }}</span>
-            <ChevronRight class="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            <div class="flex items-center gap-3">
+              <span class="flex-1 text-sm text-[var(--text)] truncate">{{ ticket.title }}</span>
+              <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded-full', priorityColor[ticket.priority] ?? '']">{{ ticket.priority }}</span>
+              <ChevronRight class="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            </div>
+            <TicketTimeBar :ticket-id="ticket.id" :estimated-minutes="ticket.estimatedMinutes" />
           </button>
         </div>
       </div>
@@ -156,12 +160,15 @@ function formatDate(iso: string) {
           <button
             v-for="ticket in inProgress.slice(0, 10)"
             :key="ticket.id"
-            class="w-full flex items-center gap-3 px-4 py-3 hover:bg-[var(--surface-raised)] transition-colors text-left"
+            class="w-full flex flex-col px-4 py-3 hover:bg-[var(--surface-raised)] transition-colors text-left"
             @click="router.push(`/tickets/${ticket.id}`)"
           >
-            <span class="flex-1 text-sm text-[var(--text)] truncate">{{ ticket.title }}</span>
-            <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded-full', priorityColor[ticket.priority] ?? '']">{{ ticket.priority }}</span>
-            <ChevronRight class="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            <div class="flex items-center gap-3">
+              <span class="flex-1 text-sm text-[var(--text)] truncate">{{ ticket.title }}</span>
+              <span :class="['text-[10px] font-bold px-1.5 py-0.5 rounded-full', priorityColor[ticket.priority] ?? '']">{{ ticket.priority }}</span>
+              <ChevronRight class="w-3.5 h-3.5 text-[var(--text-muted)]" />
+            </div>
+            <TicketTimeBar :ticket-id="ticket.id" :estimated-minutes="ticket.estimatedMinutes" />
           </button>
         </div>
       </div>
