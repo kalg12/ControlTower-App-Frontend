@@ -18,8 +18,10 @@ import { useBoard, useKanbanMutations } from '@/queries/kanban'
 import { useAuthStore } from '@/stores/auth'
 import { usersService } from '@/services/users.service'
 import type { BoardVisibility, KanbanCard, KanbanColumn, CardPriority } from '@/types/kanban'
-import { AlertTriangle } from 'lucide-vue-next'
+import { AlertTriangle, TimerIcon } from 'lucide-vue-next'
 import dayjs from 'dayjs'
+import TimerWidget from '@/components/time/TimerWidget.vue'
+import TimeEntriesList from '@/components/time/TimeEntriesList.vue'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -89,6 +91,7 @@ const detailDesc = ref('')
 const detailDue = ref('')
 const detailPriority = ref<CardPriority>('MEDIUM')
 const detailAssignee = ref<string | null>(null)
+const detailEstimatedMinutes = ref<number | null>(null)
 const savingCardDetail = ref(false)
 
 const showBoardEdit = ref(false)
@@ -238,6 +241,7 @@ function openCard(c: KanbanCard) {
   detailDue.value = c.dueDate ? formatDue(c.dueDate) : ''
   detailPriority.value = c.priority
   detailAssignee.value = c.assigneeId ?? null
+  detailEstimatedMinutes.value = c.estimatedMinutes ?? null
   showCardDetail.value = true
 }
 
@@ -287,7 +291,8 @@ async function submitCardDetail() {
         description: detailDesc.value.trim() || undefined,
         dueDate: detailDue.value.trim() ? detailDue.value : null,
         priority: detailPriority.value,
-        assigneeId: detailAssignee.value ?? null
+        assigneeId: detailAssignee.value ?? null,
+        estimatedMinutes: detailEstimatedMinutes.value ?? null
       }
     })
     selectedCard.value = updated
@@ -667,6 +672,16 @@ function formatDue(d: string | null | undefined): string {
             <InputText v-model="newChecklistText" class="flex-1" :placeholder="t('kanban.addChecklistItem')" @keydown.enter="submitChecklistItem" />
             <Button icon="pi pi-plus" @click="submitChecklistItem" />
           </div>
+        </div>
+
+        <!-- Time tracking section -->
+        <div class="border-t border-[var(--border)] pt-4 space-y-3">
+          <h3 class="text-sm font-semibold flex items-center gap-1.5">
+            <TimerIcon class="h-4 w-4 text-muted-foreground" />
+            Tiempo
+          </h3>
+          <TimerWidget entity-type="CARD" :entity-id="selectedCard.id" />
+          <TimeEntriesList entity-type="CARD" :entity-id="selectedCard.id" />
         </div>
 
         <div v-if="canWriteKanban" class="flex justify-end gap-2 pt-2">
