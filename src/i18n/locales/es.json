@@ -27,7 +27,8 @@
     "clientDetail": "Cliente",
     "auditLog": "Auditoría",
     "posSupport": "Soporte POS",
-    "activity": "Actividad"
+    "activity": "Actividad",
+    "reports": "Reportes"
   },
   "common": {
     "save": "Guardar",
@@ -53,7 +54,9 @@
     "noRows": "No hay registros",
     "confirm": "Confirmar",
     "success": "Éxito",
-    "error": "Error"
+    "error": "Error",
+    "refresh": "Actualizar",
+    "noData": "Sin datos disponibles"
   },
   "errors": {
     "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
@@ -950,5 +953,26 @@
     "activity": "Línea de tiempo de eventos de navegación y acciones en la aplicación por usuarios de tu organización. Útil para entender patrones de uso.",
     "notifications": "Tu bandeja de notificaciones personal. Mantente informado sobre actualizaciones de tickets, alertas del sistema, menciones y otros eventos.",
     "settings": "Configura tu perfil, preferencias de visualización, tema y ajustes de notificaciones."
+  },
+  "reports": {
+    "title": "Reportes y Analítica",
+    "ticketsTrend": "Tickets creados por día",
+    "slaTrend": "Tendencia de cumplimiento SLA",
+    "agentPerformance": "Rendimiento por agente",
+    "topClients": "Clientes con más tickets",
+    "ticketsCreated": "Tickets creados",
+    "slaOk": "SLA cumplido",
+    "slaBreached": "SLA incumplido",
+    "tickets": "Tickets",
+    "agent": "Agente",
+    "assigned": "Asignados",
+    "resolved": "Resueltos",
+    "avgTime": "Tiempo prom.",
+    "slaRate": "SLA %",
+    "range": {
+      "7d": "7 días",
+      "30d": "30 días",
+      "90d": "90 días"
+    }
   }
 }

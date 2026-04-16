@@ -27,7 +27,8 @@
     "clientDetail": "Client",
     "auditLog": "Audit Log",
     "posSupport": "POS Support",
-    "activity": "Activity"
+    "activity": "Activity",
+    "reports": "Reports"
   },
   "common": {
     "save": "Save",
@@ -53,7 +54,9 @@
     "noRows": "No records found",
     "confirm": "Confirm",
     "success": "Success",
-    "error": "Error"
+    "error": "Error",
+    "refresh": "Refresh",
+    "noData": "No data available"
   },
   "errors": {
     "sessionExpired": "Your session expired. Please sign in again.",
@@ -951,5 +954,26 @@
     "activity": "Timeline of navigation events and in-app actions by users in your organization. Useful for understanding usage patterns and engagement.",
     "notifications": "Your personal notification inbox. Stay informed about ticket updates, system alerts, mentions, and other important events.",
     "settings": "Configure your profile, display preferences, theme, and notification settings."
+  },
+  "reports": {
+    "title": "Reports & Analytics",
+    "ticketsTrend": "Tickets created per day",
+    "slaTrend": "SLA compliance trend",
+    "agentPerformance": "Agent performance",
+    "topClients": "Top clients by volume",
+    "ticketsCreated": "Tickets created",
+    "slaOk": "SLA met",
+    "slaBreached": "SLA breached",
+    "tickets": "Tickets",
+    "agent": "Agent",
+    "assigned": "Assigned",
+    "resolved": "Resolved",
+    "avgTime": "Avg. time",
+    "slaRate": "SLA %",
+    "range": {
+      "7d": "7 days",
+      "30d": "30 days",
+      "90d": "90 days"
+    }
   }
 }

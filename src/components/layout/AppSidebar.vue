@@ -19,7 +19,8 @@ import {
   Megaphone,
   LayoutGrid,
   Shield,
-  Store
+  Store,
+  BarChart3
 } from 'lucide-vue-next'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useAuthStore } from '@/stores/auth'
@@ -59,7 +60,8 @@ const mainItems = computed(() =>
     { to: '/licenses', label: t('nav.licenses'), icon: CreditCard, permission: 'license:read' },
     { to: '/billing', label: t('nav.billing'), icon: Receipt, permission: 'billing:read' },
     { to: '/integrations', label: t('nav.integrations'), icon: Plug, permission: 'integration:read' },
-    { to: '/campaigns', label: t('nav.campaigns'), icon: Megaphone, permission: 'campaign:read' }
+    { to: '/campaigns', label: t('nav.campaigns'), icon: Megaphone, permission: 'campaign:read' },
+    { to: '/reports', label: t('nav.reports'), icon: BarChart3, permission: 'report:read' }
   ])
 )
 

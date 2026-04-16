@@ -1,5 +1,6 @@
 export { qk } from './keys'
 export * from './kanban'
 export * from './notes'
+export * from './reports'
 export * from './roles'
 export * from './users'

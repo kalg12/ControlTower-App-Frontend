@@ -189,6 +189,12 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.activity', permission: 'activity:read' }
     },
     {
+      path: '/reports',
+      name: 'reports',
+      component: () => import('@/pages/reports/ReportsPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.reports', permission: 'report:read' }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/pages/NotFoundPage.vue'),
