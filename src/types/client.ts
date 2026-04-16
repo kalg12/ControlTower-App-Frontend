@@ -1,3 +1,5 @@
+export type LeadSource = 'REFERRAL' | 'INBOUND' | 'OUTBOUND' | 'WEBSITE' | 'SOCIAL_MEDIA' | 'EVENT' | 'SUPPORT_ESCALATION' | 'OTHER'
+
 export interface Client {
   id: string
   tenantId: string
@@ -10,6 +12,8 @@ export interface Client {
   website?: string
   industry?: string
   segment?: 'SMB' | 'MID_MARKET' | 'ENTERPRISE'
+  leadSource?: LeadSource | null
+  phone?: string | null
   accountOwnerId?: string
   accountOwnerName?: string
   healthScore?: number
@@ -54,6 +58,8 @@ export interface CreateClientRequest {
   website?: string
   industry?: string
   segment?: string
+  leadSource?: string
+  phone?: string
 }
 
 export interface UpdateClientRequest {
@@ -66,6 +72,8 @@ export interface UpdateClientRequest {
   industry?: string
   segment?: string
   accountOwnerId?: string
+  leadSource?: string
+  phone?: string
 }
 
 export interface CreateContactRequest {

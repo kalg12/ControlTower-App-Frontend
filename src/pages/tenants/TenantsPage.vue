@@ -10,6 +10,7 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
+import Select from 'primevue/select'
 import Button from 'primevue/button'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
@@ -50,18 +51,46 @@ function onPage(event: { page: number }) {
 const showCreateDialog = ref(false)
 const isSubmitting = ref(false)
 
+const countryOptions = [
+  { label: 'México', value: 'México' },
+  { label: 'United States', value: 'United States' },
+  { label: 'Otro', value: 'Otro' },
+]
+
+const timezoneOptions = [
+  { label: 'America/Mexico_City (CDT)', value: 'America/Mexico_City' },
+  { label: 'America/Monterrey (CDT)', value: 'America/Monterrey' },
+  { label: 'America/Cancun (EST)', value: 'America/Cancun' },
+  { label: 'America/Chihuahua (MDT)', value: 'America/Chihuahua' },
+  { label: 'America/New_York (EDT)', value: 'America/New_York' },
+  { label: 'America/Chicago (CDT)', value: 'America/Chicago' },
+  { label: 'America/Denver (MDT)', value: 'America/Denver' },
+  { label: 'America/Los_Angeles (PDT)', value: 'America/Los_Angeles' },
+]
+
+const currencyOptions = [
+  { label: 'MXN — Peso Mexicano', value: 'MXN' },
+  { label: 'USD — US Dollar', value: 'USD' },
+]
+
 const createSchema = z.object({
   name: z.string().min(2, t('tenants.nameMin')),
   slug: z.string().optional(),
+  country: z.string().optional(),
+  timezone: z.string().optional(),
+  currency: z.string().optional(),
 })
 
 const createForm = useForm({
   validationSchema: toTypedSchema(createSchema),
-  initialValues: { name: '', slug: '' },
+  initialValues: { name: '', slug: '', country: 'México', timezone: 'America/Mexico_City', currency: 'MXN' },
 })
 
 const [cName, cNameAttrs] = createForm.defineField('name')
 const [cSlug, cSlugAttrs] = createForm.defineField('slug')
+const [cCountry] = createForm.defineField('country')
+const [cTimezone] = createForm.defineField('timezone')
+const [cCurrency] = createForm.defineField('currency')
 
 function openCreateDialog() {
   createForm.resetForm()
@@ -71,7 +100,7 @@ function openCreateDialog() {
 const onCreateSubmit = createForm.handleSubmit(async (values) => {
   isSubmitting.value = true
   try {
-    await tenantsService.create({ name: values.name, slug: values.slug || undefined })
+    await tenantsService.create({ name: values.name, slug: values.slug || undefined, country: values.country, timezone: values.timezone, currency: values.currency })
     await queryClient.invalidateQueries({ queryKey: ['tenants'] })
     showCreateDialog.value = false
     toast.success(t('tenants.createSuccess'))
@@ -89,15 +118,18 @@ const isEditSubmitting = ref(false)
 
 const editForm = useForm({
   validationSchema: toTypedSchema(createSchema),
-  initialValues: { name: '', slug: '' },
+  initialValues: { name: '', slug: '', country: 'México', timezone: 'America/Mexico_City', currency: 'MXN' },
 })
 
 const [eName, eNameAttrs] = editForm.defineField('name')
 const [eSlug, eSlugAttrs] = editForm.defineField('slug')
+const [eCountry] = editForm.defineField('country')
+const [eTimezone] = editForm.defineField('timezone')
+const [eCurrency] = editForm.defineField('currency')
 
 function openEditDialog(tenant: Tenant) {
   editingTenant.value = tenant
-  editForm.setValues({ name: tenant.name, slug: tenant.slug ?? '' })
+  editForm.setValues({ name: tenant.name, slug: tenant.slug ?? '', country: tenant.country ?? 'México', timezone: tenant.timezone ?? 'America/Mexico_City', currency: tenant.currency ?? 'MXN' })
   showEditDialog.value = true
 }
 
@@ -105,7 +137,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
   if (!editingTenant.value) return
   isEditSubmitting.value = true
   try {
-    await tenantsService.update(editingTenant.value.id, { name: values.name, slug: values.slug || undefined })
+    await tenantsService.update(editingTenant.value.id, { name: values.name, slug: values.slug || undefined, country: values.country, timezone: values.timezone, currency: values.currency })
     await queryClient.invalidateQueries({ queryKey: ['tenants'] })
     showEditDialog.value = false
     toast.success(t('tenants.updateSuccess'))
@@ -231,6 +263,17 @@ function confirmSuspend(tenant: Tenant) {
       <FormField :label="t('tenants.formSlug')" name="c-slug" :error="createForm.errors.value.slug">
         <InputText v-model="cSlug" v-bind="cSlugAttrs" :placeholder="t('tenants.formSlugPlaceholder')" class="w-full" :disabled="isSubmitting" />
       </FormField>
+      <div class="grid grid-cols-2 gap-4">
+        <FormField :label="t('tenants.formCountry')" name="c-country">
+          <Select v-model="cCountry" :options="countryOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmitting" />
+        </FormField>
+        <FormField :label="t('tenants.formCurrency')" name="c-currency">
+          <Select v-model="cCurrency" :options="currencyOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmitting" />
+        </FormField>
+      </div>
+      <FormField :label="t('tenants.formTimezone')" name="c-timezone">
+        <Select v-model="cTimezone" :options="timezoneOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmitting" />
+      </FormField>
     </form>
     <template #footer>
       <div class="flex justify-end gap-2">
@@ -248,6 +291,17 @@ function confirmSuspend(tenant: Tenant) {
       </FormField>
       <FormField :label="t('tenants.formSlug')" name="e-slug" :error="editForm.errors.value.slug">
         <InputText v-model="eSlug" v-bind="eSlugAttrs" class="w-full" :disabled="isEditSubmitting" />
+      </FormField>
+      <div class="grid grid-cols-2 gap-4">
+        <FormField :label="t('tenants.formCountry')" name="e-country">
+          <Select v-model="eCountry" :options="countryOptions" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
+        </FormField>
+        <FormField :label="t('tenants.formCurrency')" name="e-currency">
+          <Select v-model="eCurrency" :options="currencyOptions" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
+        </FormField>
+      </div>
+      <FormField :label="t('tenants.formTimezone')" name="e-timezone">
+        <Select v-model="eTimezone" :options="timezoneOptions" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
       </FormField>
     </form>
     <template #footer>

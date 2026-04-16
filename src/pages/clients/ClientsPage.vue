@@ -127,20 +127,34 @@ const segmentOptions = computed(() => [
   { label: t('clientsPage.segmentEnterprise'), value: 'ENTERPRISE' },
 ])
 
+const leadSourceOptions = computed(() => [
+  { label: '—', value: '' },
+  { label: t('clientsPage.leadSourceReferral'),         value: 'REFERRAL' },
+  { label: t('clientsPage.leadSourceInbound'),          value: 'INBOUND' },
+  { label: t('clientsPage.leadSourceOutbound'),         value: 'OUTBOUND' },
+  { label: t('clientsPage.leadSourceWebsite'),          value: 'WEBSITE' },
+  { label: t('clientsPage.leadSourceSocialMedia'),      value: 'SOCIAL_MEDIA' },
+  { label: t('clientsPage.leadSourceEvent'),            value: 'EVENT' },
+  { label: t('clientsPage.leadSourceSupportEscalation'),value: 'SUPPORT_ESCALATION' },
+  { label: t('clientsPage.leadSourceOther'),            value: 'OTHER' },
+])
+
 const schema = computed(() => z.object({
-  name:      z.string().min(2, t('clientsPage.nameMin')),
-  legalName: z.string().optional(),
-  taxId:     z.string().optional(),
-  country:   z.string().min(2, t('clientsPage.countryMin')),
-  website:   z.string().url(t('clientsPage.websiteInvalid')).optional().or(z.literal('')),
-  industry:  z.string().optional(),
-  segment:   z.string().optional(),
-  notes:     z.string().optional(),
+  name:       z.string().min(2, t('clientsPage.nameMin')),
+  legalName:  z.string().optional(),
+  taxId:      z.string().optional(),
+  country:    z.string().min(2, t('clientsPage.countryMin')),
+  website:    z.string().url(t('clientsPage.websiteInvalid')).optional().or(z.literal('')),
+  industry:   z.string().optional(),
+  segment:    z.string().optional(),
+  notes:      z.string().optional(),
+  leadSource: z.string().optional(),
+  phone:      z.string().optional(),
 }))
 
 const createForm = useForm({
   validationSchema: computed(() => toTypedSchema(schema.value)),
-  initialValues: { name: '', legalName: '', taxId: '', country: 'MX', website: '', industry: '', segment: '', notes: '' }
+  initialValues: { name: '', legalName: '', taxId: '', country: 'MX', website: '', industry: '', segment: '', notes: '', leadSource: '', phone: '' }
 })
 
 const [nameValue, nameAttrs]           = createForm.defineField('name')
@@ -151,6 +165,8 @@ const [websiteValue, websiteAttrs]     = createForm.defineField('website')
 const [industryValue, industryAttrs]   = createForm.defineField('industry')
 const [segmentValue]                   = createForm.defineField('segment')
 const [notesValue, notesAttrs]         = createForm.defineField('notes')
+const [leadSourceValue]                = createForm.defineField('leadSource')
+const [phoneValue, phoneAttrs]         = createForm.defineField('phone')
 
 function openCreateDialog() {
   createForm.resetForm()
@@ -161,14 +177,16 @@ const onSubmit = createForm.handleSubmit(async (values) => {
   isSubmitting.value = true
   try {
     await clientsService.create({
-      name:      values.name,
-      legalName: values.legalName || undefined,
-      taxId:     values.taxId || undefined,
-      country:   values.country,
-      website:   values.website || undefined,
-      industry:  values.industry || undefined,
-      segment:   values.segment || undefined,
-      notes:     values.notes || undefined,
+      name:       values.name,
+      legalName:  values.legalName || undefined,
+      taxId:      values.taxId || undefined,
+      country:    values.country,
+      website:    values.website || undefined,
+      industry:   values.industry || undefined,
+      segment:    values.segment || undefined,
+      notes:      values.notes || undefined,
+      leadSource: values.leadSource || undefined,
+      phone:      values.phone || undefined,
     })
     await queryClient.invalidateQueries({ queryKey: ['clients'] })
     showCreateDialog.value = false
@@ -187,7 +205,7 @@ const isEditSubmitting = ref(false)
 
 const editForm = useForm({
   validationSchema: computed(() => toTypedSchema(schema.value)),
-  initialValues: { name: '', legalName: '', taxId: '', country: 'MX', website: '', industry: '', segment: '', notes: '' }
+  initialValues: { name: '', legalName: '', taxId: '', country: 'MX', website: '', industry: '', segment: '', notes: '', leadSource: '', phone: '' }
 })
 
 const [editName, editNameAttrs]           = editForm.defineField('name')
@@ -198,18 +216,22 @@ const [editWebsite, editWebsiteAttrs]     = editForm.defineField('website')
 const [editIndustry, editIndustryAttrs]   = editForm.defineField('industry')
 const [editSegment]                       = editForm.defineField('segment')
 const [editNotes, editNotesAttrs]         = editForm.defineField('notes')
+const [editLeadSource]                    = editForm.defineField('leadSource')
+const [editPhone, editPhoneAttrs]         = editForm.defineField('phone')
 
 function openEditDialog(client: Client) {
   editingClient.value = client
   editForm.setValues({
-    name:      client.name,
-    legalName: client.legalName ?? '',
-    taxId:     client.taxId ?? '',
-    country:   client.country ?? 'MX',
-    website:   client.website ?? '',
-    industry:  client.industry ?? '',
-    segment:   client.segment ?? '',
-    notes:     client.notes ?? '',
+    name:       client.name,
+    legalName:  client.legalName ?? '',
+    taxId:      client.taxId ?? '',
+    country:    client.country ?? 'MX',
+    website:    client.website ?? '',
+    industry:   client.industry ?? '',
+    segment:    client.segment ?? '',
+    notes:      client.notes ?? '',
+    leadSource: client.leadSource ?? '',
+    phone:      client.phone ?? '',
   })
   showEditDialog.value = true
 }
@@ -219,14 +241,16 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
   isEditSubmitting.value = true
   try {
     await clientsService.update(editingClient.value.id, {
-      name:      values.name,
-      legalName: values.legalName || undefined,
-      taxId:     values.taxId || undefined,
-      country:   values.country,
-      website:   values.website || undefined,
-      industry:  values.industry || undefined,
-      segment:   values.segment || undefined,
-      notes:     values.notes || undefined,
+      name:       values.name,
+      legalName:  values.legalName || undefined,
+      taxId:      values.taxId || undefined,
+      country:    values.country,
+      website:    values.website || undefined,
+      industry:   values.industry || undefined,
+      segment:    values.segment || undefined,
+      notes:      values.notes || undefined,
+      leadSource: values.leadSource || undefined,
+      phone:      values.phone || undefined,
     })
     await queryClient.invalidateQueries({ queryKey: ['clients'] })
     showEditDialog.value = false
@@ -421,6 +445,14 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
           <Select v-model="segmentValue" :options="segmentOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmitting" />
         </FormField>
       </div>
+      <div class="grid grid-cols-2 gap-3">
+        <FormField :label="t('clientsPage.leadSource')" name="leadSource">
+          <Select v-model="leadSourceValue" :options="leadSourceOptions" option-label="label" option-value="value" class="w-full" :disabled="isSubmitting" />
+        </FormField>
+        <FormField :label="t('clientsPage.phone')" name="phone">
+          <InputText id="phone" v-model="phoneValue" v-bind="phoneAttrs" placeholder="+52 (55) 1234-5678" class="w-full" :disabled="isSubmitting" />
+        </FormField>
+      </div>
       <FormField :label="t('clientsPage.notes')" name="notes">
         <Textarea v-model="notesValue" v-bind="notesAttrs" placeholder="Internal notes..." :rows="2" class="w-full" :disabled="isSubmitting" />
       </FormField>
@@ -494,6 +526,14 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         </FormField>
         <FormField :label="t('clientsPage.segment')" name="edit-segment">
           <Select v-model="editSegment" :options="segmentOptions" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
+        </FormField>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <FormField :label="t('clientsPage.leadSource')" name="edit-leadSource">
+          <Select v-model="editLeadSource" :options="leadSourceOptions" option-label="label" option-value="value" class="w-full" :disabled="isEditSubmitting" />
+        </FormField>
+        <FormField :label="t('clientsPage.phone')" name="edit-phone">
+          <InputText id="edit-phone" v-model="editPhone" v-bind="editPhoneAttrs" placeholder="+52 (55) 1234-5678" class="w-full" :disabled="isEditSubmitting" />
         </FormField>
       </div>
       <FormField :label="t('clientsPage.notes')" name="edit-notes">

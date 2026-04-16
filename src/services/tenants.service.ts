@@ -13,12 +13,12 @@ export const tenantsService = {
     return res.data
   },
 
-  async create(data: { name: string; slug?: string }): Promise<Tenant> {
+  async create(data: { name: string; slug?: string; country?: string; timezone?: string; currency?: string }): Promise<Tenant> {
     const res = await api.post<Tenant>('/tenants', data)
     return res.data
   },
 
-  async update(id: string, data: { name?: string; slug?: string }): Promise<Tenant> {
+  async update(id: string, data: { name?: string; slug?: string; country?: string; timezone?: string; currency?: string }): Promise<Tenant> {
     const res = await api.put<Tenant>(`/tenants/${id}`, data)
     return res.data
   },

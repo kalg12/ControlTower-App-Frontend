@@ -229,7 +229,17 @@
     "contactRoleSupport": "Soporte",
     "branchName": "Nombre de Sucursal",
     "address": "Dirección",
-    "city": "Ciudad"
+    "city": "Ciudad",
+    "phone": "Teléfono",
+    "leadSource": "Origen del cliente",
+    "leadSourceReferral": "Referido",
+    "leadSourceInbound": "Entrada directa",
+    "leadSourceOutbound": "Prospección saliente",
+    "leadSourceWebsite": "Sitio web",
+    "leadSourceSocialMedia": "Redes sociales",
+    "leadSourceEvent": "Evento",
+    "leadSourceSupportEscalation": "Escalación de soporte",
+    "leadSourceOther": "Otro"
   },
   "campaignsPage": {
     "backendNote": "La API de campañas aún no forma parte de este backend. Esta página fallará hasta que exista /api/v1/campaigns."
@@ -478,6 +488,9 @@
     "formNamePlaceholder": "Nombre del inquilino",
     "formSlug": "Slug",
     "formSlugPlaceholder": "inquilino-slug (opcional)",
+    "formCountry": "País",
+    "formTimezone": "Zona horaria",
+    "formCurrency": "Moneda",
     "saveChanges": "Guardar cambios",
     "createSuccess": "Inquilino creado",
     "createFailed": "No se pudo crear el inquilino",

@@ -791,6 +791,14 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
             <p class="text-sm text-[var(--text)]">{{ client.country ?? '—' }}</p>
           </div>
           <div>
+            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('clientsPage.phone') }}</p>
+            <p class="text-sm text-[var(--text)]">{{ client.phone ?? '—' }}</p>
+          </div>
+          <div>
+            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('clientsPage.leadSource') }}</p>
+            <p class="text-sm text-[var(--text)]">{{ client.leadSource ?? '—' }}</p>
+          </div>
+          <div>
             <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Created</p>
             <p class="text-sm text-[var(--text)]">{{ formatDate(client.createdAt) }}</p>
           </div>
