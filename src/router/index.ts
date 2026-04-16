@@ -207,6 +207,24 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.knowledgeBase', permission: 'kb:read' }
     },
     {
+      path: '/my-work',
+      name: 'my-work',
+      component: () => import('@/pages/my-work/MyWorkPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.myWork', permission: 'ticket:read' }
+    },
+    {
+      path: '/templates',
+      name: 'templates',
+      component: () => import('@/pages/templates/ResponseTemplatesPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.templates', permission: 'template:read' }
+    },
+    {
+      path: '/survey/:token',
+      name: 'csat-survey',
+      component: () => import('@/pages/survey/CsatSurveyPage.vue'),
+      meta: { layout: 'none', public: true }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/pages/NotFoundPage.vue'),

@@ -21,4 +21,8 @@ export const qk = {
   activeTimer: () => ['time-active'] as const,
   slaConfig: () => ['sla-config'] as const,
   timeAnalytics: (from?: string, to?: string) => ['time-analytics', from ?? '', to ?? ''] as const,
+  templates: (filters?: string) => ['templates', filters ?? ''] as const,
+  csatTicket: (ticketId: string) => ['csat-ticket', ticketId] as const,
+  csatList: (page?: number) => ['csat-list', page ?? 0] as const,
+  myWork: () => ['my-work'] as const,
 }

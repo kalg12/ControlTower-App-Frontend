@@ -4,7 +4,7 @@ import type { PaginatedResponse } from '@/types/api'
 
 /** Aligned with backend TicketController (/api/v1/tickets) */
 export const ticketsService = {
-  async list(filters?: TicketFilters & { slaAtRisk?: boolean; slaWindowHours?: number }): Promise<PaginatedResponse<Ticket>> {
+  async list(filters?: TicketFilters & { slaAtRisk?: boolean; slaWindowHours?: number; q?: string }): Promise<PaginatedResponse<Ticket>> {
     const res = await api.get<PaginatedResponse<Ticket>>('/tickets', {
       params: {
         status: filters?.status,
@@ -13,7 +13,8 @@ export const ticketsService = {
         clientId: filters?.clientId,
         assigneeId: filters?.assigneeId,
         page: filters?.page,
-        size: filters?.size
+        size: filters?.size,
+        q: filters?.q || undefined
       }
     })
     return res.data
@@ -75,6 +76,11 @@ export const ticketsService = {
 
   async getStats(): Promise<TicketStatsResponse> {
     const res = await api.get<TicketStatsResponse>('/tickets/stats')
+    return res.data
+  },
+
+  async merge(sourceId: string, targetId: string): Promise<Ticket> {
+    const res = await api.post<Ticket>(`/tickets/${sourceId}/merge`, null, { params: { targetId } })
     return res.data
   },
 

@@ -36,6 +36,7 @@ export interface Ticket {
   slaDeadline?: string
   slaDueAt?: string | null
   slaBreached?: boolean | null
+  escalatedAt?: string | null
 }
 
 export interface CreateTicketRequest {
