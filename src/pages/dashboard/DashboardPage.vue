@@ -20,8 +20,12 @@ import {
   AlertTriangle,
   TrendingUp,
   CheckCircle2,
-  Clock
+  Clock,
+  TimerIcon,
+  ShieldCheckIcon
 } from 'lucide-vue-next'
+import { useTimeAnalytics } from '@/queries/time-tracking'
+import { formatMinutes } from '@/types/time-tracking'
 import 'dayjs/locale/es'
 
 const { t, locale } = useI18n()
@@ -132,6 +136,9 @@ const healthPercentage = computed(() => {
 function formatNow() {
   return dayjs().format('DD MMM YYYY, HH:mm')
 }
+
+// Time analytics widget
+const { data: timeAnalytics, isLoading: loadingTimeAnalytics } = useTimeAnalytics()
 </script>
 
 <template>
@@ -376,6 +383,67 @@ function formatNow() {
           </div>
         </Card>
       </div>
+
+      <!-- Time Performance Widget -->
+      <Card>
+        <div class="flex items-center gap-2 mb-4">
+          <TimerIcon class="w-4 h-4 text-[var(--text-muted)]" />
+          <h3 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide">Rendimiento de Tiempo</h3>
+          <span class="text-xs text-[var(--text-muted)] ml-auto">últimos 30 días</span>
+        </div>
+
+        <div v-if="loadingTimeAnalytics" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <div v-for="i in 4" :key="i" class="h-16 rounded-lg bg-muted/40 animate-pulse" />
+        </div>
+
+        <div v-else-if="timeAnalytics" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+          <!-- Avg resolution time -->
+          <div class="rounded-lg bg-[var(--surface-raised)] p-3 text-center">
+            <Clock class="w-5 h-5 text-indigo-500 mx-auto mb-1" />
+            <p class="text-lg font-bold text-[var(--text)]">
+              {{ formatMinutes(Math.round(timeAnalytics.avgResolutionMinutes)) }}
+            </p>
+            <p class="text-xs text-[var(--text-muted)]">Tiempo promedio resolución</p>
+          </div>
+
+          <!-- SLA compliance -->
+          <div class="rounded-lg bg-[var(--surface-raised)] p-3 text-center">
+            <ShieldCheckIcon class="w-5 h-5 mx-auto mb-1"
+              :class="timeAnalytics.slaComplianceRate >= 90 ? 'text-green-500' : timeAnalytics.slaComplianceRate >= 75 ? 'text-yellow-500' : 'text-red-500'" />
+            <p class="text-lg font-bold text-[var(--text)]">{{ timeAnalytics.slaComplianceRate.toFixed(1) }}%</p>
+            <p class="text-xs text-[var(--text-muted)]">Cumplimiento SLA</p>
+          </div>
+
+          <!-- Total logged -->
+          <div class="rounded-lg bg-[var(--surface-raised)] p-3 text-center">
+            <TrendingUp class="w-5 h-5 text-blue-500 mx-auto mb-1" />
+            <p class="text-lg font-bold text-[var(--text)]">
+              {{ formatMinutes(Number(timeAnalytics.totalLoggedMinutes)) }}
+            </p>
+            <p class="text-xs text-[var(--text-muted)]">Tiempo total registrado</p>
+          </div>
+
+          <!-- Total entries -->
+          <div class="rounded-lg bg-[var(--surface-raised)] p-3 text-center">
+            <Activity class="w-5 h-5 text-amber-500 mx-auto mb-1" />
+            <p class="text-lg font-bold text-[var(--text)]">{{ timeAnalytics.totalEntries }}</p>
+            <p class="text-xs text-[var(--text-muted)]">Entradas de tiempo</p>
+          </div>
+        </div>
+
+        <!-- Top users by logged time -->
+        <div v-if="timeAnalytics && timeAnalytics.topUsers.length > 0" class="mt-4 border-t border-[var(--border)] pt-4">
+          <p class="text-xs font-medium text-[var(--text-muted)] mb-2 uppercase tracking-wide">Top agentes por tiempo</p>
+          <div class="space-y-2">
+            <div v-for="(u, i) in timeAnalytics.topUsers.slice(0, 5)" :key="u.userId"
+                 class="flex items-center gap-2 text-sm">
+              <span class="w-5 h-5 rounded-full bg-[var(--surface-raised)] flex items-center justify-center text-xs font-bold text-[var(--text-muted)]">{{ i + 1 }}</span>
+              <span class="flex-1 text-[var(--text)] font-mono text-xs truncate">{{ u.userId.substring(0, 8) }}…</span>
+              <span class="font-semibold text-[var(--text)]">{{ formatMinutes(Number(u.totalMinutes)) }}</span>
+            </div>
+          </div>
+        </div>
+      </Card>
     </template>
   </div>
 </template>
