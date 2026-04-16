@@ -20,7 +20,8 @@ import {
   LayoutGrid,
   Shield,
   Store,
-  BarChart3
+  BarChart3,
+  BookOpen
 } from 'lucide-vue-next'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useAuthStore } from '@/stores/auth'
@@ -61,7 +62,8 @@ const mainItems = computed(() =>
     { to: '/billing', label: t('nav.billing'), icon: Receipt, permission: 'billing:read' },
     { to: '/integrations', label: t('nav.integrations'), icon: Plug, permission: 'integration:read' },
     { to: '/campaigns', label: t('nav.campaigns'), icon: Megaphone, permission: 'campaign:read' },
-    { to: '/reports', label: t('nav.reports'), icon: BarChart3, permission: 'report:read' }
+    { to: '/reports', label: t('nav.reports'), icon: BarChart3, permission: 'report:read' },
+    { to: '/knowledge-base', label: t('nav.knowledgeBase'), icon: BookOpen, permission: 'kb:read' }
   ])
 )
 

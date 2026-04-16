@@ -22,6 +22,7 @@ import TimerWidget from '@/components/time/TimerWidget.vue'
 import TimeEntriesList from '@/components/time/TimeEntriesList.vue'
 import ClientContextCard from '@/components/clients/ClientContextCard.vue'
 import NotesPanel from '@/components/notes/NotesPanel.vue'
+import KbSearchWidget from '@/components/kb/KbSearchWidget.vue'
 import { useUsers } from '@/queries/users'
 import type { TicketStatus, TicketPriority } from '@/types/ticket'
 import 'dayjs/locale/es'
@@ -377,6 +378,11 @@ function fromNow(dateStr: string) {
 
       <!-- Internal notes -->
       <NotesPanel linked-to="TICKET" :linked-id="ticket.id" />
+
+      <!-- Knowledge Base search -->
+      <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4">
+        <KbSearchWidget />
+      </div>
 
       <!-- Time tracking panel -->
       <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 space-y-4">

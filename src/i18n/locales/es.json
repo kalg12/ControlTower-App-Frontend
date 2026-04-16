@@ -28,7 +28,8 @@
     "auditLog": "Auditoría",
     "posSupport": "Soporte POS",
     "activity": "Actividad",
-    "reports": "Reportes"
+    "reports": "Reportes",
+    "knowledgeBase": "Base de Conocimiento"
   },
   "common": {
     "save": "Guardar",
@@ -973,6 +974,29 @@
       "7d": "7 días",
       "30d": "30 días",
       "90d": "90 días"
+    }
+  },
+  "kb": {
+    "title": "Base de Conocimiento",
+    "newArticle": "Nuevo artículo",
+    "editArticle": "Editar artículo",
+    "searchPlaceholder": "Buscar artículos...",
+    "suggestedArticles": "Base de Conocimiento",
+    "backToList": "Volver al listado",
+    "noArticles": "No se encontraron artículos",
+    "noContent": "Sin contenido aún.",
+    "views": "vistas",
+    "viewInKb": "Ver en Base de Conocimiento",
+    "published": "Publicado",
+    "draft": "Borrador",
+    "deleteConfirm": "¿Estás seguro de que deseas eliminar este artículo?",
+    "form": {
+      "title": "Título",
+      "category": "Categoría",
+      "status": "Estado",
+      "tags": "Etiquetas",
+      "tagsPlaceholder": "facturación, configuración, pos (separadas por coma)",
+      "content": "Contenido"
     }
   }
 }

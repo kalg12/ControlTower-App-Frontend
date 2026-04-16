@@ -195,6 +195,18 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.reports', permission: 'report:read' }
     },
     {
+      path: '/knowledge-base',
+      name: 'knowledge-base',
+      component: () => import('@/pages/knowledge-base/KnowledgeBasePage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.knowledgeBase', permission: 'kb:read' }
+    },
+    {
+      path: '/knowledge-base/:id',
+      name: 'kb-article',
+      component: () => import('@/pages/knowledge-base/KbArticleDetailPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.knowledgeBase', permission: 'kb:read' }
+    },
+    {
       path: '/:pathMatch(.*)*',
       name: 'not-found',
       component: () => import('@/pages/NotFoundPage.vue'),

@@ -28,7 +28,8 @@
     "auditLog": "Audit Log",
     "posSupport": "POS Support",
     "activity": "Activity",
-    "reports": "Reports"
+    "reports": "Reports",
+    "knowledgeBase": "Knowledge Base"
   },
   "common": {
     "save": "Save",
@@ -974,6 +975,29 @@
       "7d": "7 days",
       "30d": "30 days",
       "90d": "90 days"
+    }
+  },
+  "kb": {
+    "title": "Knowledge Base",
+    "newArticle": "New article",
+    "editArticle": "Edit article",
+    "searchPlaceholder": "Search articles...",
+    "suggestedArticles": "Knowledge Base",
+    "backToList": "Back to list",
+    "noArticles": "No articles found",
+    "noContent": "No content yet.",
+    "views": "views",
+    "viewInKb": "View in Knowledge Base",
+    "published": "Published",
+    "draft": "Draft",
+    "deleteConfirm": "Are you sure you want to delete this article?",
+    "form": {
+      "title": "Title",
+      "category": "Category",
+      "status": "Status",
+      "tags": "Tags",
+      "tagsPlaceholder": "billing, setup, pos (comma-separated)",
+      "content": "Content"
     }
   }
 }
