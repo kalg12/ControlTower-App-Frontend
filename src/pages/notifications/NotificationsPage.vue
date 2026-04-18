@@ -114,10 +114,19 @@ async function markAllRead() {
   }
 }
 
-function openEntity(n: Notification) {
-  doMarkRead(n)
+async function openEntity(n: Notification) {
+  await doMarkRead(n)
   const link = getEntityLink(n)
   if (link) router.push(link)
+}
+
+function handleNotificationClick(n: Notification) {
+  const link = getEntityLink(n)
+  if (link) {
+    openEntity(n)
+  } else {
+    doMarkRead(n)
+  }
 }
 
 function confirmDelete(id: string) {
@@ -209,12 +218,12 @@ function onPage(event: { page: number }) {
         <div
           v-for="n in filteredNotifications"
           :key="n.id"
-          class="flex items-start gap-3 px-4 py-3 rounded-xl border transition-colors cursor-default"
+          class="flex items-start gap-3 px-4 py-3 rounded-xl border transition-colors cursor-pointer hover:bg-[var(--surface-raised)]"
           :class="[
             n.read ? 'border-[var(--border)] bg-[var(--surface)]' : 'border-[var(--primary)]/20 bg-[var(--primary)]/5',
             severityBorder(n.severity)
           ]"
-          @click="doMarkRead(n)"
+          @click="handleNotificationClick(n)"
         >
           <!-- Severity dot + type icon -->
           <div class="flex flex-col items-center gap-1.5 flex-shrink-0 pt-0.5">

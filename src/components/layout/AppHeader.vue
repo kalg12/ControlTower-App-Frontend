@@ -2,15 +2,20 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
+import dayjs from 'dayjs'
+import relativeTime from 'dayjs/plugin/relativeTime'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useThemeStore } from '@/stores/theme'
+import { getEntityLink, type Notification } from '@/types/notification'
 import OverlayPanel from 'primevue/overlaypanel'
 import Badge from 'primevue/badge'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import Avatar from '@/components/ui/Avatar.vue'
 import { Bell, Settings, LogOut, Search } from 'lucide-vue-next'
+
+dayjs.extend(relativeTime)
 
 const emit = defineEmits<{ 'toggle-sidebar': []; 'toggle-collapse': []; 'open-search': [] }>()
 
@@ -39,6 +44,35 @@ function toggleUserPanel(e: Event) {
 
 function toggleNotifPanel(e: Event) {
   notifPanel.value?.toggle(e)
+}
+
+function formatNotificationTime(dateStr: string) {
+  const date = dayjs(dateStr)
+  const now = dayjs()
+  const diffMinutes = now.diff(date, 'minute')
+  
+  if (diffMinutes < 1) return 'Ahora'
+  if (diffMinutes < 60) return `hace ${diffMinutes}m`
+  
+  const diffHours = Math.floor(diffMinutes / 60)
+  if (diffHours < 24) return `hace ${diffHours}h`
+  
+  const diffDays = Math.floor(diffHours / 24)
+  if (diffDays < 7) return `hace ${diffDays}d`
+  
+  return date.format('DD/MM/YYYY HH:mm')
+}
+
+async function handleNotificationClick(n: Notification) {
+  if (!n.read) {
+    await notifStore.markRead(n.id)
+  }
+  
+  const link = getEntityLink(n)
+  if (link) {
+    notifPanel.value?.hide()
+    router.push(link)
+  }
 }
 
 async function logout() {
@@ -99,8 +133,11 @@ async function logout() {
       <div v-for="n in notifStore.items.slice(0, 5)" :key="n.id"
         class="p-3 rounded-lg cursor-pointer hover:bg-[var(--surface-raised)]"
         :class="{ 'bg-[var(--primary)]/5': !n.read }"
-        @click="notifStore.markRead(n.id)">
-        <p class="text-base font-medium text-[var(--text)] truncate">{{ n.title }}</p>
+        @click="handleNotificationClick(n)">
+        <div class="flex items-start justify-between gap-2">
+          <p class="text-base font-medium text-[var(--text)] truncate flex-1">{{ n.title }}</p>
+          <span class="text-xs text-[var(--text-muted)] whitespace-nowrap">{{ formatNotificationTime(n.createdAt) }}</span>
+        </div>
         <p class="text-sm text-[var(--text-muted)] line-clamp-2">{{ n.body }}</p>
       </div>
     </div>
