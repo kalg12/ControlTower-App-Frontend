@@ -50,7 +50,10 @@ export function connectWebSocket() {
   const wsUrl = `${import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080'}/ws`
 
   const client = new StompClient({
-    brokerURL: `${wsUrl}?token=${token}`,
+    brokerURL: wsUrl,
+    connectHeaders: {
+      Authorization: `Bearer ${token}`,
+    },
     reconnectDelay: 5000,
     heartbeatIncoming: 10000,
     heartbeatOutgoing: 10000,
