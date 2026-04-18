@@ -124,6 +124,12 @@
     "settings": "Configuración",
     "logout": "Cerrar sesión"
   },
+  "time": {
+    "now": "Ahora",
+    "agoMinutes": "hace {minutes}m",
+    "agoHours": "hace {hours}h",
+    "agoDays": "hace {days}d"
+  },
   "kanban": {
     "title": "Tableros Kanban",
     "subtitle": "Flujos de trabajo para tu equipo. Los tableros nuevos incluyen Por hacer, En curso, Hecho e Historial.",

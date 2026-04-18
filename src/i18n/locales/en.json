@@ -124,6 +124,12 @@
     "settings": "Settings",
     "logout": "Sign out"
   },
+  "time": {
+    "now": "now",
+    "agoMinutes": "{minutes}m ago",
+    "agoHours": "{hours}h ago",
+    "agoDays": "{days}d ago"
+  },
   "notFound": {
     "code": "404",
     "title": "Page not found",

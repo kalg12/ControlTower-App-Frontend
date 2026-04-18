@@ -1,9 +1,10 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRouter } from 'vue-router'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
+import 'dayjs/locale/es'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useThemeStore } from '@/stores/theme'
@@ -46,19 +47,24 @@ function toggleNotifPanel(e: Event) {
   notifPanel.value?.toggle(e)
 }
 
+watch(locale, (loc) => {
+  dayjs.locale(loc === 'es' ? 'es' : 'en')
+}, { immediate: true })
+
 function formatNotificationTime(dateStr: string) {
   const date = dayjs(dateStr)
   const now = dayjs()
   const diffMinutes = now.diff(date, 'minute')
+  const isEs = locale.value === 'es'
   
-  if (diffMinutes < 1) return 'Ahora'
-  if (diffMinutes < 60) return `hace ${diffMinutes}m`
+  if (diffMinutes < 1) return isEs ? t('time.now') : 'now'
+  if (diffMinutes < 60) return isEs ? t('time.agoMinutes', { minutes: diffMinutes }) : t('time.agoMinutes', { minutes: diffMinutes })
   
   const diffHours = Math.floor(diffMinutes / 60)
-  if (diffHours < 24) return `hace ${diffHours}h`
+  if (diffHours < 24) return isEs ? t('time.agoHours', { hours: diffHours }) : t('time.agoHours', { hours: diffHours })
   
   const diffDays = Math.floor(diffHours / 24)
-  if (diffDays < 7) return `hace ${diffDays}d`
+  if (diffDays < 7) return isEs ? t('time.agoDays', { days: diffDays }) : t('time.agoDays', { days: diffDays })
   
   return date.format('DD/MM/YYYY HH:mm')
 }
