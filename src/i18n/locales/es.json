@@ -536,7 +536,7 @@
     "fullName": "Nombre Completo",
     "fullNamePlaceholder": "Jane Doe",
     "email": "Correo",
-    "emailPlaceholder": "jane@company.com",
+    "emailPlaceholder": "jane{'@'}company.com",
     "password": "Contraseña",
     "passwordPlaceholder": "Mín. 8 caracteres",
     "newPassword": "Nueva contraseña",
