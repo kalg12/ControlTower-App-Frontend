@@ -485,7 +485,7 @@ function confirmDeleteExpense(e: Expense) {
                     <Button v-if="row.status === 'DRAFT'" size="small" label="Enviar" severity="info" text @click="sendInvMut.mutate(row.id)" />
                     <Button v-if="row.status === 'SENT' || row.status === 'OVERDUE'" size="small" :label="t('finance.markPaid')" severity="success" text @click="payInvMut.mutate(row.id)" />
                     <Button v-if="row.status === 'SENT' || row.status === 'OVERDUE' || row.status === 'CANCELLED'" size="small" :label="t('finance.void')" severity="warn" text @click="voidInvMut.mutate(row.id)" />
-                    <Button v-if="row.status === 'DRAFT'" icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDeleteInvoice(row)" />
+                    <Button v-if="row.status !== 'PAID'" icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDeleteInvoice(row)" />
                   </div>
                 </template>
               </Column>
