@@ -1160,6 +1160,7 @@
     "invoiceSent": "Factura marcada como enviada",
     "invoicePaid": "Factura marcada como pagada",
     "invoiceVoided": "Factura anulada",
+    "invoiceDeleted": "Factura eliminada",
     "paymentCreated": "Pago registrado",
     "expenseCreated": "Gasto registrado",
     "noInvoices": "Sin facturas",

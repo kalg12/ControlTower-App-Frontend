@@ -1161,6 +1161,7 @@
     "invoiceSent": "Invoice marked as sent",
     "invoicePaid": "Invoice marked as paid",
     "invoiceVoided": "Invoice voided",
+    "invoiceDeleted": "Invoice deleted",
     "paymentCreated": "Payment recorded",
     "expenseCreated": "Expense created",
     "noInvoices": "No invoices",

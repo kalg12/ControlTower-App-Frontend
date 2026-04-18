@@ -44,6 +44,10 @@ export const financeService = {
     return res.data
   },
 
+  async deleteInvoice(id: string): Promise<void> {
+    await api.delete(`/finance/invoices/${id}`)
+  },
+
   // ── Payments ─────────────────────────────────────────────────────────
 
   async listPayments(filters?: { clientId?: string; page?: number; size?: number }): Promise<PaginatedResponse<Payment>> {

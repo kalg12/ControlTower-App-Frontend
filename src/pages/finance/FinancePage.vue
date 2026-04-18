@@ -173,6 +173,31 @@ const voidInvMut = useMutation({
   onError: () => toast.error(t('errors.loadFailed'))
 })
 
+const deleteInvMut = useMutation({
+  mutationFn: (id: string) => financeService.deleteInvoice(id),
+  onSuccess: () => { toast.success(t('finance.invoiceDeleted')); invalidateAll() },
+  onError: () => toast.error(t('errors.loadFailed'))
+})
+
+function confirmDeleteInvoice(inv: Invoice) {
+  confirm.require({
+    message: `¿Eliminar factura ${inv.number}? Esta acción no se puede deshacer.`,
+    header: 'Eliminar factura',
+    icon: 'pi pi-exclamation-triangle',
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    accept: () => deleteInvMut.mutate(inv.id)
+  })
+}
+
+// ── Invoice options for payment dialog ──────────────────────────────
+const invoiceOptions = computed(() => [
+  { label: '— Sin factura —', value: '' },
+  ...(invoicesData.value?.content ?? [])
+    .filter(i => i.status === 'SENT' || i.status === 'OVERDUE')
+    .map(i => ({ label: `${i.number} — ${fmt(i.total, i.currency)}`, value: i.id }))
+])
+
 // ── Payment Create Dialog ────────────────────────────────────────────
 const showPaymentDialog = ref(false)
 const payAmount = ref<number>(0)
@@ -454,12 +479,13 @@ function confirmDeleteExpense(e: Expense) {
                   <span class="font-semibold">{{ fmt(row.total, row.currency) }}</span>
                 </template>
               </Column>
-              <Column :header="t('common.actions')" style="width:180px">
+              <Column :header="t('common.actions')" style="width:160px">
                 <template #body="{ data: row }: { data: Invoice }">
-                  <div class="flex gap-1 flex-wrap">
+                  <div class="flex gap-1 items-center">
                     <Button v-if="row.status === 'DRAFT'" size="small" label="Enviar" severity="info" text @click="sendInvMut.mutate(row.id)" />
                     <Button v-if="row.status === 'SENT' || row.status === 'OVERDUE'" size="small" :label="t('finance.markPaid')" severity="success" text @click="payInvMut.mutate(row.id)" />
-                    <Button v-if="row.status !== 'PAID' && row.status !== 'VOIDED'" size="small" :label="t('finance.void')" severity="danger" text @click="voidInvMut.mutate(row.id)" />
+                    <Button v-if="row.status === 'SENT' || row.status === 'OVERDUE' || row.status === 'CANCELLED'" size="small" :label="t('finance.void')" severity="warn" text @click="voidInvMut.mutate(row.id)" />
+                    <Button v-if="row.status === 'DRAFT'" icon="pi pi-trash" severity="danger" text rounded size="small" @click="confirmDeleteInvoice(row)" />
                   </div>
                 </template>
               </Column>
@@ -639,7 +665,7 @@ function confirmDeleteExpense(e: Expense) {
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium">{{ t('finance.invoiceId') }}</label>
-        <InputText v-model="payInvoiceId" placeholder="UUID de factura (opcional)" class="w-full" />
+        <Select v-model="payInvoiceId" :options="invoiceOptions" option-label="label" option-value="value" filter class="w-full" />
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium">{{ t('finance.notes') }}</label>
