@@ -25,6 +25,7 @@ import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
 import { clientsService } from '@/services/clients.service'
 import { crmService } from '@/services/crm.service'
+import { financeService } from '@/services/finance.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
@@ -99,6 +100,19 @@ const { data: ticketsPage, isLoading: ticketsLoading } = useQuery({
   enabled: computed(() => !!id.value)
 })
 const clientTickets = computed(() => ticketsPage.value?.content ?? [])
+
+// ── Finance summary ────────────────────────────────────────────────────
+const { data: financeSummary, isLoading: financeLoading } = useQuery({
+  queryKey: computed(() => ['client-finance-summary', id.value]),
+  queryFn: () => financeService.getClientSummary(id.value),
+  staleTime: 30_000,
+  enabled: computed(() => !!id.value)
+})
+
+function fmtCurrency(n?: number | null) {
+  if (n == null) return '—'
+  return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
+}
 
 function ticketStatusSeverity(status: string): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
   const map: Record<string, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
@@ -818,6 +832,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
           <Tab value="contacts">{{ t('crm.tabContacts') }}</Tab>
           <Tab value="pipeline">{{ t('crm.tabPipeline') }}</Tab>
           <Tab value="tickets">Tickets</Tab>
+          <Tab value="finance">{{ t('crm.tabFinance') }}</Tab>
         </TabList>
 
         <TabPanels class="mt-4">
@@ -1172,6 +1187,44 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                 <div class="text-center py-8 text-[var(--text-muted)]">Este cliente no tiene tickets aún.</div>
               </template>
             </DataTable>
+          </TabPanel>
+
+          <!-- ── FINANCE TAB ─────────────────────────────────────── -->
+          <TabPanel value="finance">
+            <div class="space-y-4 pt-4">
+              <template v-if="financeLoading">
+                <Skeleton height="5rem" v-for="i in 4" :key="i" class="rounded-xl" />
+              </template>
+              <template v-else-if="financeSummary">
+                <div class="grid grid-cols-2 sm:grid-cols-4 gap-4">
+                  <div class="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+                    <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('finance.summary.totalInvoiced') }}</p>
+                    <p class="text-xl font-bold text-[var(--text)]">{{ fmtCurrency(financeSummary.totalInvoiced) }}</p>
+                    <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ financeSummary.invoiceCount }} facturas</p>
+                  </div>
+                  <div class="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+                    <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('finance.summary.totalPaid') }}</p>
+                    <p class="text-xl font-bold text-green-600 dark:text-green-400">{{ fmtCurrency(financeSummary.totalPaid) }}</p>
+                    <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ financeSummary.paymentCount }} pagos</p>
+                  </div>
+                  <div class="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+                    <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('finance.summary.outstanding') }}</p>
+                    <p class="text-xl font-bold" :class="financeSummary.totalOutstanding > 0 ? 'text-orange-500' : 'text-[var(--text)]'">{{ fmtCurrency(financeSummary.totalOutstanding) }}</p>
+                  </div>
+                  <div class="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4">
+                    <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('finance.summary.totalExpenses') }}</p>
+                    <p class="text-xl font-bold text-red-500">{{ fmtCurrency(financeSummary.totalExpenses) }}</p>
+                    <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ financeSummary.expenseCount }} gastos</p>
+                  </div>
+                </div>
+                <div v-if="financeSummary.lastInvoiceAt" class="text-xs text-[var(--text-muted)]">
+                  {{ t('finance.summary.lastInvoice') }}: {{ financeSummary.lastInvoiceAt ? new Date(financeSummary.lastInvoiceAt).toLocaleDateString('es-MX') : '—' }}
+                </div>
+              </template>
+              <div v-else class="text-center py-8 text-sm text-[var(--text-muted)]">
+                Sin datos financieros para este cliente.
+              </div>
+            </div>
           </TabPanel>
         </TabPanels>
       </Tabs>

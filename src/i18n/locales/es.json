@@ -921,7 +921,8 @@
     "tabBranches": "Sucursales",
     "tabContacts": "Contactos",
     "tabTickets": "Tickets",
-    "tabPipeline": "Pipeline"
+    "tabPipeline": "Pipeline",
+    "tabFinance": "Finanzas"
   },
   "activity": {
     "title": "Actividad de Usuarios",
@@ -1125,6 +1126,15 @@
     "expenseCreated": "Gasto registrado",
     "noInvoices": "Sin facturas",
     "noPayments": "Sin pagos registrados",
-    "noExpenses": "Sin gastos registrados"
+    "noExpenses": "Sin gastos registrados",
+    "client": "Cliente",
+    "noClient": "— Sin cliente —",
+    "summary": {
+      "totalInvoiced": "Total facturado",
+      "totalPaid": "Total pagado",
+      "outstanding": "Pendiente",
+      "totalExpenses": "Total gastos",
+      "lastInvoice": "Última factura"
+    }
   }
 }

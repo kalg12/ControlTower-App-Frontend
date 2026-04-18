@@ -19,6 +19,7 @@ import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
 import { DollarSign, TrendingUp, TrendingDown, Activity, Plus, Trash2 } from 'lucide-vue-next'
 import { financeService } from '@/services/finance.service'
+import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import type { Invoice, Payment, Expense, InvoiceLineItemRequest, InvoiceStatus, ExpenseCategory } from '@/types/finance'
@@ -29,6 +30,17 @@ const toast = useToast()
 const confirm = useConfirm()
 
 const activeTab = ref('overview')
+
+// ── Clients list for dropdowns ────────────────────────────────────────
+const { data: clientsData } = useQuery({
+  queryKey: ['clients-for-finance'],
+  queryFn: () => clientsService.list({ page: 0, size: 200 }),
+  staleTime: 60_000
+})
+const clientOptions = computed(() => [
+  { label: t('finance.noClient'), value: '' },
+  ...(clientsData.value?.content ?? []).map(c => ({ label: c.name, value: c.id }))
+])
 
 // ── Date range for cash flow ──────────────────────────────────────────
 const now = dayjs()
@@ -56,10 +68,15 @@ const payments = computed(() => paymentsData.value?.content ?? [])
 
 // ── Expenses ─────────────────────────────────────────────────────────
 const expenseCategoryFilter = ref<ExpenseCategory | ''>('')
+const expenseClientFilter = ref('')
 
 const { data: expensesData, isLoading: expLoading, refetch: refetchExp } = useQuery({
-  queryKey: computed(() => ['finance-expenses', expenseCategoryFilter.value]),
-  queryFn: () => financeService.listExpenses({ category: expenseCategoryFilter.value || undefined, page: 0, size: 50 }),
+  queryKey: computed(() => ['finance-expenses', expenseCategoryFilter.value, expenseClientFilter.value]),
+  queryFn: () => financeService.listExpenses({
+    category: expenseCategoryFilter.value || undefined,
+    clientId: expenseClientFilter.value || undefined,
+    page: 0, size: 50
+  }),
   staleTime: 30_000
 })
 const expenses = computed(() => expensesData.value?.content ?? [])
@@ -219,6 +236,7 @@ const expCategory = ref<ExpenseCategory>('OTHER')
 const expCurrency = ref('MXN')
 const expVendor = ref('')
 const expNotes = ref('')
+const expClientId = ref('')
 const savingExp = ref(false)
 
 const expCategoryOptions = [
@@ -247,6 +265,7 @@ const invStatusOptions = computed(() => [
 
 const createExpenseMut = useMutation({
   mutationFn: () => financeService.createExpense({
+    clientId: expClientId.value || undefined,
     description: expDescription.value,
     amount: expAmount.value,
     category: expCategory.value,
@@ -267,6 +286,7 @@ function openExpenseDialog() {
   expAmount.value = 0
   expCategory.value = 'OTHER'
   expCurrency.value = 'MXN'
+  expClientId.value = ''
   expVendor.value = ''
   expNotes.value = ''
   showExpenseDialog.value = true
@@ -415,6 +435,9 @@ function confirmDeleteExpense(e: Expense) {
 
             <DataTable :value="invoices" :loading="invLoading" striped-rows class="rounded-xl border border-[var(--border)]">
               <Column field="number" :header="t('finance.invoiceNumber')" style="min-width:120px" />
+              <Column field="clientName" :header="t('finance.client')" style="min-width:130px">
+                <template #body="{ data: row }: { data: Invoice }">{{ row.clientName ?? '—' }}</template>
+              </Column>
               <Column field="status" :header="t('finance.status')" style="width:110px">
                 <template #body="{ data: row }: { data: Invoice }">
                   <Tag :severity="statusSeverity(row.status)" :value="row.status" class="text-xs" />
@@ -458,6 +481,9 @@ function confirmDeleteExpense(e: Expense) {
               <Column field="paidAt" :header="t('finance.paidAt')" style="width:130px">
                 <template #body="{ data: row }: { data: Payment }">{{ fmtDate(row.paidAt) }}</template>
               </Column>
+              <Column field="clientName" :header="t('finance.client')" style="min-width:130px">
+                <template #body="{ data: row }: { data: Payment }">{{ row.clientName ?? '—' }}</template>
+              </Column>
               <Column field="amount" :header="t('finance.amount')">
                 <template #body="{ data: row }: { data: Payment }">
                   <span class="font-semibold text-green-600 dark:text-green-400">{{ fmt(row.amount, row.currency) }}</span>
@@ -483,7 +509,10 @@ function confirmDeleteExpense(e: Expense) {
         <TabPanel value="expenses">
           <div class="space-y-3 pt-4">
             <div class="flex flex-wrap gap-2 items-center justify-between">
-              <Select v-model="expenseCategoryFilter" :options="expCategoryFilterOptions" option-label="label" option-value="value" class="w-48" @change="refetchExp()" />
+              <div class="flex gap-2 flex-wrap">
+                <Select v-model="expenseCategoryFilter" :options="expCategoryFilterOptions" option-label="label" option-value="value" class="w-44" @change="refetchExp()" />
+                <Select v-model="expenseClientFilter" :options="clientOptions" option-label="label" option-value="value" class="w-44" :placeholder="t('finance.client')" @change="refetchExp()" />
+              </div>
               <Button :label="t('finance.newExpense')" icon="pi pi-plus" @click="openExpenseDialog" />
             </div>
 
@@ -493,6 +522,9 @@ function confirmDeleteExpense(e: Expense) {
               </Column>
               <Column field="category" :header="t('finance.category')" style="width:120px" />
               <Column field="description" :header="t('finance.description')" />
+              <Column field="clientName" :header="t('finance.client')" style="min-width:130px">
+                <template #body="{ data: row }: { data: Expense }">{{ row.clientName ?? '—' }}</template>
+              </Column>
               <Column field="vendor" :header="t('finance.vendor')">
                 <template #body="{ data: row }: { data: Expense }">{{ row.vendor ?? '—' }}</template>
               </Column>
@@ -520,6 +552,10 @@ function confirmDeleteExpense(e: Expense) {
   <!-- ── CREATE INVOICE DIALOG ──────────────────────────────────────── -->
   <Dialog v-model:visible="showInvoiceDialog" :header="t('finance.newInvoice')" modal class="w-full max-w-2xl">
     <div class="flex flex-col gap-4 pt-2">
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium">{{ t('finance.client') }}</label>
+        <Select v-model="invClientId" :options="clientOptions" option-label="label" option-value="value" filter class="w-full" />
+      </div>
       <div class="grid grid-cols-2 gap-3">
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">{{ t('finance.currency') }}</label>
@@ -598,6 +634,10 @@ function confirmDeleteExpense(e: Expense) {
         <InputText v-model="payReference" :placeholder="t('finance.referencePlaceholder')" class="w-full" />
       </div>
       <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium">{{ t('finance.client') }}</label>
+        <Select v-model="payClientId" :options="clientOptions" option-label="label" option-value="value" filter class="w-full" />
+      </div>
+      <div class="flex flex-col gap-1">
         <label class="text-sm font-medium">{{ t('finance.invoiceId') }}</label>
         <InputText v-model="payInvoiceId" placeholder="UUID de factura (opcional)" class="w-full" />
       </div>
@@ -617,6 +657,10 @@ function confirmDeleteExpense(e: Expense) {
   <!-- ── CREATE EXPENSE DIALOG ─────────────────────────────────────── -->
   <Dialog v-model:visible="showExpenseDialog" :header="t('finance.newExpense')" modal class="w-full max-w-md">
     <div class="flex flex-col gap-3 pt-2">
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium">{{ t('finance.client') }}</label>
+        <Select v-model="expClientId" :options="clientOptions" option-label="label" option-value="value" filter class="w-full" />
+      </div>
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium">{{ t('finance.description') }} *</label>
         <InputText v-model="expDescription" class="w-full" />

@@ -3,7 +3,7 @@ import type { PaginatedResponse } from '@/types/api'
 import type {
   Invoice, Payment, Expense,
   InvoiceRequest, PaymentRequest, ExpenseRequest,
-  CashFlowSummary, FinanceFilters
+  CashFlowSummary, FinanceFilters, ClientFinanceSummary
 } from '@/types/finance'
 
 export const financeService = {
@@ -62,7 +62,7 @@ export const financeService = {
 
   // ── Expenses ─────────────────────────────────────────────────────────
 
-  async listExpenses(filters?: { category?: string; page?: number; size?: number }): Promise<PaginatedResponse<Expense>> {
+  async listExpenses(filters?: { category?: string; clientId?: string; page?: number; size?: number }): Promise<PaginatedResponse<Expense>> {
     const res = await api.get<PaginatedResponse<Expense>>('/finance/expenses', { params: filters })
     return res.data
   },
@@ -79,6 +79,13 @@ export const financeService = {
 
   async deleteExpense(id: string): Promise<void> {
     await api.delete(`/finance/expenses/${id}`)
+  },
+
+  // ── Client Summary ────────────────────────────────────────────────────
+
+  async getClientSummary(clientId: string): Promise<ClientFinanceSummary> {
+    const res = await api.get<ClientFinanceSummary>(`/finance/clients/${clientId}/summary`)
+    return res.data
   },
 
   // ── Cash Flow ─────────────────────────────────────────────────────────

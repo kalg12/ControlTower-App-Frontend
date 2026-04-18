@@ -922,7 +922,8 @@
     "tabBranches": "Branches",
     "tabContacts": "Contacts",
     "tabTickets": "Tickets",
-    "tabPipeline": "Pipeline"
+    "tabPipeline": "Pipeline",
+    "tabFinance": "Finance"
   },
   "activity": {
     "title": "User Activity",
@@ -1126,6 +1127,15 @@
     "expenseCreated": "Expense created",
     "noInvoices": "No invoices",
     "noPayments": "No payments recorded",
-    "noExpenses": "No expenses recorded"
+    "noExpenses": "No expenses recorded",
+    "client": "Client",
+    "noClient": "— No client —",
+    "summary": {
+      "totalInvoiced": "Total invoiced",
+      "totalPaid": "Total paid",
+      "outstanding": "Outstanding",
+      "totalExpenses": "Total expenses",
+      "lastInvoice": "Last invoice"
+    }
   }
 }

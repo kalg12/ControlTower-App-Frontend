@@ -16,6 +16,8 @@ export interface Invoice {
   id: string
   tenantId: string
   clientId?: string | null
+  clientName?: string | null
+  clientTaxId?: string | null
   number: string
   status: InvoiceStatus
   subtotal: number
@@ -36,6 +38,7 @@ export interface Payment {
   id: string
   tenantId: string
   clientId?: string | null
+  clientName?: string | null
   invoiceId?: string | null
   amount: number
   currency: string
@@ -49,6 +52,8 @@ export interface Payment {
 export interface Expense {
   id: string
   tenantId: string
+  clientId?: string | null
+  clientName?: string | null
   category: ExpenseCategory
   description: string
   amount: number
@@ -90,6 +95,7 @@ export interface PaymentRequest {
 }
 
 export interface ExpenseRequest {
+  clientId?: string
   category?: ExpenseCategory
   description: string
   amount: number
@@ -120,4 +126,17 @@ export interface FinanceFilters {
   category?: ExpenseCategory
   page?: number
   size?: number
+}
+
+export interface ClientFinanceSummary {
+  clientId: string
+  clientName: string
+  totalInvoiced: number
+  totalPaid: number
+  totalOutstanding: number
+  totalExpenses: number
+  invoiceCount: number
+  paymentCount: number
+  expenseCount: number
+  lastInvoiceAt?: string | null
 }
