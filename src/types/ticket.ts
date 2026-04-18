@@ -70,6 +70,7 @@ export interface TicketComment {
 export interface TicketCommentResponse {
   id: string
   authorId: string | null
+  authorName: string | null
   content: string
   internal: boolean
   senderType: 'OPERATOR' | 'POS_USER'

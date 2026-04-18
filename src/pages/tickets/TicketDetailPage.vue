@@ -412,7 +412,7 @@ function fromNow(dateStr: string) {
               <div class="flex-1 min-w-0">
                 <div class="flex items-center gap-2 mb-0.5">
                   <span class="text-xs font-medium text-[var(--text)]">
-                    {{ c.senderType === 'OPERATOR' ? t('ticketDetail.agent') : t('ticketDetail.posUser') }}
+                    {{ c.senderType === 'OPERATOR' ? (c.authorName || t('ticketDetail.agent')) : t('ticketDetail.posUser') }}
                   </span>
                   <span class="text-xs text-[var(--text-muted)]">{{ fromNow(c.createdAt) }}</span>
                 </div>
