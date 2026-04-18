@@ -48,9 +48,11 @@ export function getEntityLink(notif: Notification): string | null {
   const ticketId = meta.ticketId as string | undefined
   const cardId = meta.cardId as string | undefined
   const invoiceId = meta.invoiceId as string | undefined
+  const incidentId = meta.incidentId as string | undefined
 
   if (ticketId) return `/tickets/${ticketId}`
   if (cardId) return `/kanban`
   if (invoiceId) return `/finance`
+  if (incidentId) return `/health?incident=${incidentId}`
   return null
 }

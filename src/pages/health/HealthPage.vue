@@ -1,11 +1,13 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue'
+import { computed, ref, watch, onMounted, type Ref } from 'vue'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import DataTable from 'primevue/datatable'
+import type DataTableGlobal from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
@@ -45,6 +47,28 @@ watch(locale, (loc) => {
 const toast = useToast()
 const confirm = useConfirm()
 const queryClient = useQueryClient()
+const route = useRoute()
+
+// ── Incident log with pagination ──────────────────────────────────────
+
+const logOpenOnly = ref(false)
+const incidentTableRef = ref<InstanceType<typeof DataTableGlobal> | null>(null)
+const logBranchId = ref<string | undefined>(undefined)
+const logPage = ref(0)
+const logPageSize = 20
+
+onMounted(() => {
+  const incidentParam = route.query.incident as string | undefined
+  if (incidentParam) {
+    logOpenOnly.value = true
+    setTimeout(() => {
+      const row = incidents.value?.find(i => i.id === incidentParam)
+      if (row && incidentTableRef.value) {
+        incidentTableRef.value.toggleRowSelection(row, true)
+      }
+    }, 100)
+  }
+})
 
 const { data: checks, isLoading, isError, refetch } = useQuery({
   queryKey: ['health-clients'],
@@ -52,13 +76,6 @@ const { data: checks, isLoading, isError, refetch } = useQuery({
   staleTime: 0,
   refetchInterval: 30000 // auto-refresh every 30s
 })
-
-// ── Incident log with pagination ──────────────────────────────────────
-
-const logOpenOnly = ref(false)
-const logBranchId = ref<string | undefined>(undefined)
-const logPage = ref(0)
-const logPageSize = 20
 
 const { data: incidentLogPage, isLoading: isLoadingIncidents, refetch: refetchLog } = useQuery({
   queryKey: computed(() => ['health-incident-log', logOpenOnly.value, logBranchId.value, logPage.value]),
@@ -491,10 +508,13 @@ const branchOptions = computed(() => {
 
         <template v-else>
           <DataTable
+            ref="incidentTableRef"
             :value="incidents"
             removable-sort
             striped-rows
             class="rounded-xl overflow-hidden"
+            scrollable
+            scroll-height="400px"
           >
             <Column field="severity" :header="t('health.severity')" style="width: 110px">
               <template #body="{ data: row }: { data: HealthIncident }">
