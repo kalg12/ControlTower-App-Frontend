@@ -67,9 +67,9 @@ async function logout() {
 
     <div class="flex items-center gap-2">
       <div class="relative">
-        <Button severity="secondary" text rounded size="small" :title="t('header.notifications')" @click="toggleNotifPanel">
+        <Button severity="secondary" text rounded :title="t('header.notifications')" @click="toggleNotifPanel">
           <template #icon>
-            <Bell class="w-4 h-4" />
+            <Bell class="w-6 h-6" />
           </template>
         </Button>
         <Badge v-if="notifStore.unreadCount > 0" :value="notifStore.unreadCount" severity="danger" class="absolute -top-1 -right-1 z-10 pointer-events-none" />
@@ -86,26 +86,26 @@ async function logout() {
   </header>
 
   <!-- Notifications Overlay Panel -->
-  <OverlayPanel ref="notifPanel" class="w-80">
-    <div class="flex items-center justify-between w-full mb-2">
-      <span class="font-semibold text-[var(--text)]">{{ t('header.notifications') }}</span>
+  <OverlayPanel ref="notifPanel" class="w-96">
+    <div class="flex items-center justify-between w-full mb-3">
+      <span class="text-lg font-semibold text-[var(--text)]">{{ t('header.notifications') }}</span>
       <Button :label="t('header.markAllRead')" size="small" text @click="notifStore.markAllRead()" />
     </div>
-    <div v-if="notifStore.items.length === 0" class="text-center py-6 text-[var(--text-muted)]">
-      <Bell class="w-8 h-8 mx-auto mb-2 opacity-50" />
-      <p class="text-sm">{{ t('header.noNotifications') }}</p>
+    <div v-if="notifStore.items.length === 0" class="text-center py-8 text-[var(--text-muted)]">
+      <Bell class="w-12 h-12 mx-auto mb-3 opacity-50" />
+      <p class="text-base">{{ t('header.noNotifications') }}</p>
     </div>
-    <div v-else class="space-y-2 max-h-64 overflow-y-auto">
+    <div v-else class="space-y-3 max-h-80 overflow-y-auto">
       <div v-for="n in notifStore.items.slice(0, 5)" :key="n.id"
-        class="p-2 rounded-lg cursor-pointer hover:bg-[var(--surface-raised)]"
+        class="p-3 rounded-lg cursor-pointer hover:bg-[var(--surface-raised)]"
         :class="{ 'bg-[var(--primary)]/5': !n.read }"
         @click="notifStore.markRead(n.id)">
-        <p class="text-sm font-medium text-[var(--text)] truncate">{{ n.title }}</p>
-        <p class="text-xs text-[var(--text-muted)] line-clamp-1">{{ n.body }}</p>
+        <p class="text-base font-medium text-[var(--text)] truncate">{{ n.title }}</p>
+        <p class="text-sm text-[var(--text-muted)] line-clamp-2">{{ n.body }}</p>
       </div>
     </div>
-    <div class="mt-2 pt-2 border-t border-[var(--border)]">
-      <RouterLink to="/notifications" class="text-xs text-[var(--primary)] hover:underline">{{ t('header.viewAllNotifications') }}</RouterLink>
+    <div class="mt-3 pt-3 border-t border-[var(--border)]">
+      <RouterLink to="/notifications" class="text-sm text-[var(--primary)] hover:underline">{{ t('header.viewAllNotifications') }}</RouterLink>
     </div>
   </OverlayPanel>
 
