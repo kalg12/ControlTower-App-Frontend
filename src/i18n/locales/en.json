@@ -773,7 +773,37 @@
     "weeklyDigestDesc": "Receive a weekly summary",
     "savePrefs": "Save Preferences",
     "prefsSuccess": "Preferences saved",
-    "prefsFailed": "Could not save preferences"
+    "prefsFailed": "Could not save preferences",
+    "notif": {
+      "TICKET_ASSIGNED": "Ticket assigned",
+      "TICKET_ASSIGNED_desc": "Notify when a ticket is assigned to you",
+      "TICKET_ESCALATED": "Ticket escalated",
+      "TICKET_ESCALATED_desc": "Notify when a ticket is escalated",
+      "TICKET_SLA_BREACHED": "SLA breached",
+      "TICKET_SLA_BREACHED_desc": "Notify when a ticket breaches its SLA",
+      "SLA_WARNING": "SLA warning",
+      "SLA_WARNING_desc": "Notify when a ticket is approaching its SLA limit",
+      "CSAT_RESPONSE_RECEIVED": "CSAT response",
+      "CSAT_RESPONSE_RECEIVED_desc": "Notify when a customer submits a satisfaction survey",
+      "CSAT_LOW_SCORE": "Low CSAT score",
+      "CSAT_LOW_SCORE_desc": "Alert when a customer gives a low satisfaction rating",
+      "POS_TICKET": "POS support ticket",
+      "POS_TICKET_desc": "Notify when a new POS support ticket arrives",
+      "CARD_DUE_SOON": "Card due soon",
+      "CARD_DUE_SOON_desc": "Notify when a kanban card assigned to you is due tomorrow",
+      "CARD_OVERDUE": "Card overdue",
+      "CARD_OVERDUE_desc": "Notify when a kanban card assigned to you is past its due date",
+      "ESTIMATE_EXCEEDED": "Estimate exceeded",
+      "ESTIMATE_EXCEEDED_desc": "Notify when logged time exceeds the estimated time",
+      "INVOICE_DUE_SOON": "Invoice due soon",
+      "INVOICE_DUE_SOON_desc": "Notify when an invoice is approaching its due date",
+      "INVOICE_OVERDUE": "Invoice overdue",
+      "INVOICE_OVERDUE_desc": "Notify when an invoice is past its due date",
+      "HEALTH_INCIDENT": "Health incident",
+      "HEALTH_INCIDENT_desc": "Notify when a monitored service reports an incident",
+      "LICENSE_EXPIRING_SOON": "License expiring soon",
+      "LICENSE_EXPIRING_SOON_desc": "Notify when a client license is about to expire"
+    }
   },
   "notifications": {
     "title": "Notifications",
@@ -797,7 +827,15 @@
     "clearAllSuccess": "All notifications have been deleted",
     "clearAllFailed": "Could not delete all notifications",
     "markAllSuccess": "All notifications marked as read",
-    "markAllFailed": "Could not mark all as read"
+    "markAllFailed": "Could not mark all as read",
+    "open": "Open",
+    "categories": {
+      "all": "All",
+      "tickets": "Tickets",
+      "kanban": "Kanban",
+      "finance": "Finance",
+      "system": "System"
+    }
   },
   "campaigns": {
     "title": "Campaigns",

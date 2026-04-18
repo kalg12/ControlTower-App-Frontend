@@ -13,15 +13,27 @@ function subscribeNotifications(client: StompClient) {
   client.subscribe('/user/queue/notifications', (message: IMessage) => {
     try {
       const notification: Notification = JSON.parse(message.body)
-      notifStore.items.unshift(notification)
+      notifStore.push(notification)
+
+      const sev = (notification.severity ?? 'INFO').toUpperCase()
+      const isCritical = sev === 'CRITICAL' || sev === 'ERROR'
+      const isWarning = sev === 'WARNING'
+
       const icons: Record<string, string> = {
-        ERROR: '🔴', CRITICAL: '🔴', WARNING: '⚠️', WARN: '⚠️', SUCCESS: '✅', INFO: 'ℹ️'
+        ERROR: '🔴', CRITICAL: '🚨', WARNING: '⚠️', INFO: 'ℹ️'
       }
-      const s = (notification.severity || notification.type || 'INFO').toUpperCase()
-      const icon = icons[s] ?? 'ℹ️'
-      toast.info(notification.body
+      const icon = icons[sev] ?? 'ℹ️'
+      const text = notification.body
         ? `${icon} ${notification.title} — ${notification.body}`
-        : `${icon} ${notification.title}`, { autoClose: 5000 })
+        : `${icon} ${notification.title}`
+
+      if (isCritical) {
+        toast.error(text, { autoClose: false, closeOnClick: false })
+      } else if (isWarning) {
+        toast.warning(text, { autoClose: 6000 })
+      } else {
+        toast.info(text, { autoClose: 4000 })
+      }
     } catch (e) {
       console.warn('[WS] Failed to parse notification', e)
     }

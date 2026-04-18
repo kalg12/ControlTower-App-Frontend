@@ -1,7 +1,8 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
 import { notificationsService } from '@/services/notifications.service'
-import type { Notification } from '@/types/notification'
+import type { Notification, NotificationCategory } from '@/types/notification'
+import { getCategory } from '@/types/notification'
 
 export const useNotificationsStore = defineStore('notifications', () => {
   const items = ref<Notification[]>([])
@@ -10,10 +11,44 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   const unreadCount = computed(() => items.value.filter(n => !n.read).length)
 
+  const unreadByCategory = computed(() => {
+    const counts: Record<NotificationCategory, number> = {
+      ALL: 0, TICKETS: 0, KANBAN: 0, FINANCE: 0, SYSTEM: 0
+    }
+    items.value.filter(n => !n.read).forEach(n => {
+      const cat = getCategory(n.type)
+      counts[cat]++
+      counts.ALL++
+    })
+    return counts
+  })
+
+  const ticketsBadge = computed(() =>
+    items.value.filter(n => !n.read && (
+      n.type === 'TICKET_ASSIGNED' || n.type === 'TICKET_ESCALATED' || n.type === 'TICKET_SLA_BREACHED'
+    )).length
+  )
+
+  const kanbanBadge = computed(() =>
+    items.value.filter(n => !n.read && (
+      n.type === 'CARD_DUE_SOON' || n.type === 'CARD_OVERDUE'
+    )).length
+  )
+
+  const financeBadge = computed(() =>
+    items.value.filter(n => !n.read && (
+      n.type === 'INVOICE_DUE_SOON' || n.type === 'INVOICE_OVERDUE'
+    )).length
+  )
+
+  const posBadgeCount = computed(() =>
+    items.value.filter(n => !n.read && (n.type === 'POS_TICKET' || n.type === 'POS_CHAT')).length
+  )
+
   async function fetch(page = 0) {
     loading.value = true
     try {
-      const res = await notificationsService.list({ page, size: 20 })
+      const res = await notificationsService.list({ page, size: 50 })
       items.value = res.content
       totalElements.value = res.totalElements
     } catch (e) {
@@ -45,7 +80,11 @@ export const useNotificationsStore = defineStore('notifications', () => {
     totalElements.value = 0
   }
 
-  // Auto-fetch on store creation if token exists
+  function push(notif: Notification) {
+    items.value.unshift(notif)
+    totalElements.value++
+  }
+
   if (localStorage.getItem('accessToken')) {
     fetch()
   }
@@ -55,10 +94,16 @@ export const useNotificationsStore = defineStore('notifications', () => {
     loading,
     totalElements,
     unreadCount,
+    unreadByCategory,
+    ticketsBadge,
+    kanbanBadge,
+    financeBadge,
+    posBadgeCount,
     fetch,
     markRead,
     markAllRead,
     remove,
-    removeAll
+    removeAll,
+    push
   }
 })

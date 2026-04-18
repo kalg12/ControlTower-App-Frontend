@@ -766,7 +766,37 @@
     "weeklyDigestDesc": "Recibe un resumen semanal",
     "savePrefs": "Guardar Preferencias",
     "prefsSuccess": "Preferencias guardadas",
-    "prefsFailed": "No se pudieron guardar las preferencias"
+    "prefsFailed": "No se pudieron guardar las preferencias",
+    "notif": {
+      "TICKET_ASSIGNED": "Ticket asignado",
+      "TICKET_ASSIGNED_desc": "Notificar cuando se te asigne un ticket",
+      "TICKET_ESCALATED": "Ticket escalado",
+      "TICKET_ESCALATED_desc": "Notificar cuando un ticket sea escalado",
+      "TICKET_SLA_BREACHED": "SLA incumplido",
+      "TICKET_SLA_BREACHED_desc": "Notificar cuando un ticket incumpla su SLA",
+      "SLA_WARNING": "Aviso de SLA",
+      "SLA_WARNING_desc": "Notificar cuando un ticket se acerque al límite de SLA",
+      "CSAT_RESPONSE_RECEIVED": "Respuesta CSAT recibida",
+      "CSAT_RESPONSE_RECEIVED_desc": "Notificar cuando un cliente envíe una encuesta de satisfacción",
+      "CSAT_LOW_SCORE": "Puntuación CSAT baja",
+      "CSAT_LOW_SCORE_desc": "Alerta cuando un cliente dé una calificación baja",
+      "POS_TICKET": "Ticket de soporte POS",
+      "POS_TICKET_desc": "Notificar cuando llegue un nuevo ticket de soporte POS",
+      "CARD_DUE_SOON": "Tarjeta próxima a vencer",
+      "CARD_DUE_SOON_desc": "Notificar cuando una tarjeta asignada vence mañana",
+      "CARD_OVERDUE": "Tarjeta vencida",
+      "CARD_OVERDUE_desc": "Notificar cuando una tarjeta asignada esté vencida",
+      "ESTIMATE_EXCEEDED": "Estimación superada",
+      "ESTIMATE_EXCEEDED_desc": "Notificar cuando el tiempo registrado supere la estimación",
+      "INVOICE_DUE_SOON": "Factura próxima a vencer",
+      "INVOICE_DUE_SOON_desc": "Notificar cuando una factura esté cerca de su fecha de vencimiento",
+      "INVOICE_OVERDUE": "Factura vencida",
+      "INVOICE_OVERDUE_desc": "Notificar cuando una factura haya pasado su fecha de vencimiento",
+      "HEALTH_INCIDENT": "Incidente de salud",
+      "HEALTH_INCIDENT_desc": "Notificar cuando un servicio monitorizado reporte un incidente",
+      "LICENSE_EXPIRING_SOON": "Licencia próxima a expirar",
+      "LICENSE_EXPIRING_SOON_desc": "Notificar cuando una licencia de cliente esté próxima a expirar"
+    }
   },
   "notifications": {
     "title": "Notificaciones",
@@ -790,7 +820,15 @@
     "clearAllSuccess": "Todas las notificaciones han sido eliminadas",
     "clearAllFailed": "No se pudieron eliminar todas las notificaciones",
     "markAllSuccess": "Todas las notificaciones marcadas como leídas",
-    "markAllFailed": "No se pudieron marcar todas como leídas"
+    "markAllFailed": "No se pudieron marcar todas como leídas",
+    "open": "Abrir",
+    "categories": {
+      "all": "Todas",
+      "tickets": "Tickets",
+      "kanban": "Kanban",
+      "finance": "Finanzas",
+      "system": "Sistema"
+    }
   },
   "notFound": {
     "code": "404",

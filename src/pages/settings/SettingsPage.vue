@@ -1,8 +1,7 @@
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useQuery } from '@tanstack/vue-query'
-import { useForm } from 'vee-validate'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import Card from '@/components/ui/Card.vue'
 import Avatar from '@/components/ui/Avatar.vue'
 import PageInfoButton from '@/components/ui/PageInfoButton.vue'
@@ -15,7 +14,7 @@ import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Tag from 'primevue/tag'
-import { settingsService } from '@/services/settings.service'
+import { notificationsService } from '@/services/notifications.service'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useToast } from '@/composables/useToast'
@@ -26,43 +25,76 @@ const toast = useToast()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const activeTab = ref('profile')
+const queryClient = useQueryClient()
 
-const { data: settings } = useQuery({
-  queryKey: ['notification-settings'],
-  queryFn: () => settingsService.getNotificationPreferences(),
+const { data: preferences } = useQuery({
+  queryKey: ['notification-preferences'],
+  queryFn: () => notificationsService.getPreferences(),
   staleTime: 30000,
 })
 
-const notifForm = useForm({
-  initialValues: { emailAlerts: false, ticketUpdates: false, healthAlerts: false, licenseAlerts: false, weeklyDigest: false },
+const prefMap = computed(() => {
+  const map: Record<string, boolean> = {}
+  for (const p of preferences.value ?? []) map[p.notificationType] = p.enabled
+  return map
 })
 
-const [emailAlerts] = notifForm.defineField('emailAlerts')
-const [ticketUpdates] = notifForm.defineField('ticketUpdates')
-const [healthAlerts] = notifForm.defineField('healthAlerts')
-const [licenseAlerts] = notifForm.defineField('licenseAlerts')
-const [weeklyDigest] = notifForm.defineField('weeklyDigest')
+function isEnabled(type: string): boolean {
+  return prefMap.value[type] ?? true
+}
 
-watch(settings, (val) => {
-  if (val) {
-    notifForm.setValues({
-      emailAlerts: val.emailAlerts ?? false,
-      ticketUpdates: val.ticketUpdates ?? false,
-      healthAlerts: val.healthAlerts ?? false,
-      licenseAlerts: val.licenseAlerts ?? false,
-      weeklyDigest: val.weeklyDigest ?? false,
-    })
-  }
-}, { immediate: true })
+const togglingTypes = ref<Set<string>>(new Set())
 
-async function saveNotifSettings() {
+async function onToggle(type: string, enabled: boolean) {
+  togglingTypes.value = new Set([...togglingTypes.value, type])
   try {
-    await settingsService.saveNotificationPreferences(notifForm.values)
-    toast.success(t('settings.prefsSuccess'))
+    await notificationsService.setPreference(type, enabled)
+    await queryClient.invalidateQueries({ queryKey: ['notification-preferences'] })
   } catch {
     toast.error(t('settings.prefsFailed'))
+  } finally {
+    const next = new Set(togglingTypes.value)
+    next.delete(type)
+    togglingTypes.value = next
   }
 }
+
+const notifGroups = [
+  {
+    label: t('notifications.categories.tickets'),
+    types: [
+      { type: 'TICKET_ASSIGNED',         label: t('settings.notif.TICKET_ASSIGNED'),         desc: t('settings.notif.TICKET_ASSIGNED_desc') },
+      { type: 'TICKET_ESCALATED',        label: t('settings.notif.TICKET_ESCALATED'),        desc: t('settings.notif.TICKET_ESCALATED_desc') },
+      { type: 'TICKET_SLA_BREACHED',     label: t('settings.notif.TICKET_SLA_BREACHED'),     desc: t('settings.notif.TICKET_SLA_BREACHED_desc') },
+      { type: 'SLA_WARNING',             label: t('settings.notif.SLA_WARNING'),             desc: t('settings.notif.SLA_WARNING_desc') },
+      { type: 'CSAT_RESPONSE_RECEIVED',  label: t('settings.notif.CSAT_RESPONSE_RECEIVED'),  desc: t('settings.notif.CSAT_RESPONSE_RECEIVED_desc') },
+      { type: 'CSAT_LOW_SCORE',          label: t('settings.notif.CSAT_LOW_SCORE'),          desc: t('settings.notif.CSAT_LOW_SCORE_desc') },
+      { type: 'POS_TICKET',              label: t('settings.notif.POS_TICKET'),              desc: t('settings.notif.POS_TICKET_desc') },
+    ],
+  },
+  {
+    label: t('notifications.categories.kanban'),
+    types: [
+      { type: 'CARD_DUE_SOON',    label: t('settings.notif.CARD_DUE_SOON'),    desc: t('settings.notif.CARD_DUE_SOON_desc') },
+      { type: 'CARD_OVERDUE',     label: t('settings.notif.CARD_OVERDUE'),     desc: t('settings.notif.CARD_OVERDUE_desc') },
+      { type: 'ESTIMATE_EXCEEDED', label: t('settings.notif.ESTIMATE_EXCEEDED'), desc: t('settings.notif.ESTIMATE_EXCEEDED_desc') },
+    ],
+  },
+  {
+    label: t('notifications.categories.finance'),
+    types: [
+      { type: 'INVOICE_DUE_SOON', label: t('settings.notif.INVOICE_DUE_SOON'), desc: t('settings.notif.INVOICE_DUE_SOON_desc') },
+      { type: 'INVOICE_OVERDUE',  label: t('settings.notif.INVOICE_OVERDUE'),  desc: t('settings.notif.INVOICE_OVERDUE_desc') },
+    ],
+  },
+  {
+    label: t('notifications.categories.system'),
+    types: [
+      { type: 'HEALTH_INCIDENT',       label: t('settings.notif.HEALTH_INCIDENT'),       desc: t('settings.notif.HEALTH_INCIDENT_desc') },
+      { type: 'LICENSE_EXPIRING_SOON', label: t('settings.notif.LICENSE_EXPIRING_SOON'), desc: t('settings.notif.LICENSE_EXPIRING_SOON_desc') },
+    ],
+  },
+]
 
 // ── SLA Configuration ─────────────────────────────────────────────
 const { data: slaConfig, isLoading: loadingSla } = useSlaConfig()
@@ -149,22 +181,28 @@ async function saveSlaConfig() {
           </div>
         </TabPanel>
         <TabPanel value="notifications">
-          <Card>
-            <h3 class="text-sm font-semibold text-[var(--text)] mb-4">{{ t('settings.notifPrefs') }}</h3>
-            <div class="space-y-4">
-              <div v-for="pref in [
-                { label: t('settings.emailAlerts'), desc: t('settings.emailAlertsDesc'), model: emailAlerts },
-                { label: t('settings.ticketUpdates'), desc: t('settings.ticketUpdatesDesc'), model: ticketUpdates },
-                { label: t('settings.healthAlerts'), desc: t('settings.healthAlertsDesc'), model: healthAlerts },
-                { label: t('settings.licenseAlerts'), desc: t('settings.licenseAlertsDesc'), model: licenseAlerts },
-                { label: t('settings.weeklyDigest'), desc: t('settings.weeklyDigestDesc'), model: weeklyDigest },
-              ]" :key="pref.label" class="flex items-center justify-between py-2">
-                <div><p class="text-sm font-medium text-[var(--text)]">{{ pref.label }}</p><p class="text-xs text-[var(--text-muted)]">{{ pref.desc }}</p></div>
-                <ToggleSwitch v-model="pref.model" />
+          <div class="space-y-4">
+            <Card v-for="group in notifGroups" :key="group.label">
+              <h3 class="text-xs font-semibold uppercase tracking-widest text-[var(--text-placeholder)] mb-3">{{ group.label }}</h3>
+              <div class="divide-y divide-[var(--border)]">
+                <div
+                  v-for="item in group.types"
+                  :key="item.type"
+                  class="flex items-center justify-between py-3"
+                >
+                  <div>
+                    <p class="text-sm font-medium text-[var(--text)]">{{ item.label }}</p>
+                    <p class="text-xs text-[var(--text-muted)]">{{ item.desc }}</p>
+                  </div>
+                  <ToggleSwitch
+                    :model-value="isEnabled(item.type)"
+                    :disabled="togglingTypes.has(item.type)"
+                    @update:model-value="(val) => onToggle(item.type, val as boolean)"
+                  />
+                </div>
               </div>
-            </div>
-            <div class="flex justify-end mt-4"><Button :label="t('settings.savePrefs')" @click="saveNotifSettings" /></div>
-          </Card>
+            </Card>
+          </div>
         </TabPanel>
 
         <!-- SLA Configuration Tab -->

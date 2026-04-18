@@ -96,15 +96,12 @@ function isActive(path: string): boolean {
   return route.path === path || route.path.startsWith(path + '/')
 }
 
-const posBadgeCount = computed(() =>
-  notifStore.items.filter(
-    (n) => !n.read && (n.type === 'POS_TICKET' || n.type === 'POS_CHAT')
-  ).length
-)
-
 function badge(to: string): number | null {
   if (to === '/notifications') return unreadCount.value || null
-  if (to === '/pos-support') return posBadgeCount.value || null
+  if (to === '/pos-support') return notifStore.posBadgeCount || null
+  if (to === '/tickets') return notifStore.ticketsBadge || null
+  if (to === '/kanban') return notifStore.kanbanBadge || null
+  if (to === '/finance') return notifStore.financeBadge || null
   return null
 }
 </script>
@@ -148,7 +145,16 @@ function badge(to: string): number | null {
               :is="item.icon"
               :class="['w-4 h-4 flex-shrink-0 transition-colors', isActive(item.to) ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text)]']"
             />
-            <span v-if="!collapsed" class="truncate">{{ item.label }}</span>
+            <span v-if="!collapsed" class="flex-1 truncate">{{ item.label }}</span>
+            <span
+              v-if="badge(item.to)"
+              :class="[
+                'flex-shrink-0 text-[10px] font-bold text-white bg-red-500 rounded-full leading-none flex items-center justify-center',
+                collapsed ? 'absolute top-1 right-1 w-4 h-4' : 'min-w-[18px] h-4 px-1'
+              ]"
+            >
+              {{ badge(item.to)! > 9 ? '9+' : badge(item.to) }}
+            </span>
           </RouterLink>
         </div>
       </div>

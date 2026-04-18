@@ -22,5 +22,14 @@ export const notificationsService = {
 
   async removeAll(): Promise<void> {
     await api.delete('/notifications')
+  },
+
+  async getPreferences(): Promise<Array<{ id: string; userId: string; notificationType: string; enabled: boolean }>> {
+    const res = await api.get('/notifications/preferences')
+    return res.data
+  },
+
+  async setPreference(type: string, enabled: boolean): Promise<void> {
+    await api.put(`/notifications/preferences/${type}`, null, { params: { enabled } })
   }
 }
