@@ -557,6 +557,23 @@ const branchOptions = computed(() => {
               </template>
             </Column>
 
+            <Column header="Resuelto por" style="width: 160px">
+              <template #body="{ data: row }: { data: HealthIncident }">
+                <div v-if="row.resolvedAt" class="text-xs">
+                  <span v-if="row.autoResolved" class="text-[var(--text-muted)]">
+                    Auto
+                  </span>
+                  <span v-else class="text-[var(--text)]">
+                    {{ row.resolvedByUserName || '—' }}
+                  </span>
+                  <span class="block text-[var(--text-muted)]">
+                    {{ formatDateTime(row.resolvedAt) }}
+                  </span>
+                </div>
+                <span v-else class="text-[var(--text-muted)]">—</span>
+              </template>
+            </Column>
+
             <Column field="open" :header="t('health.status')" style="width: 110px">
               <template #body="{ data: row }: { data: HealthIncident }">
                 <Tag

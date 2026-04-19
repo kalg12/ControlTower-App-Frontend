@@ -35,8 +35,12 @@ export interface HealthIncident {
   description: string
   openedAt: string
   resolvedAt?: string
+  resolvedBy?: string
+  resolvedByUserName?: string
+  resolutionNote?: string
   open: boolean
   autoCreated: boolean
+  autoResolved: boolean
   durationSeconds: number
   // Legacy fields
   clientName?: string
