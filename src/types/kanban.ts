@@ -24,6 +24,9 @@ export interface KanbanCard {
   labels?: string[] | null
   checklist?: ChecklistItem[]
   estimatedMinutes?: number | null
+  attendedBy?: string
+  attendedAt?: string
+  wasOverdue?: boolean
   createdAt?: string
   updatedAt?: string
 }

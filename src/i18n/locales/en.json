@@ -216,7 +216,8 @@
     "reassign": "Reassign",
     "move": "Move",
     "delete": "Delete",
-    "noItems": "No cards match the filters."
+    "noItems": "No cards match the filters.",
+    "attended": "Attended"
   },
   "rolesPage": {
     "title": "Roles & permissions",
