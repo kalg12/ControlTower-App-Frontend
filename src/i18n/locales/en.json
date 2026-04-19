@@ -61,7 +61,10 @@
     "success": "Success",
     "error": "Error",
     "refresh": "Refresh",
-    "noData": "No data available"
+    "noData": "No data available",
+    "previous": "Previous",
+    "next": "Next",
+    "view": "View"
   },
   "errors": {
     "sessionExpired": "Your session expired. Please sign in again.",
@@ -713,7 +716,29 @@
     "createdAt": "Created",
     "totalLabel": "Total",
     "activeLabel": "Active",
-    "inactiveLabel": "Inactive"
+    "inactiveLabel": "Inactive",
+    "name": "Name",
+    "namePlaceholder": "e.g. POS North Branch",
+    "nameType": "Name / Type",
+    "client": "Client",
+    "clientBranch": "Client / Branch",
+    "selectClient": "Select client",
+    "branch": "Branch",
+    "selectBranch": "Select branch",
+    "noClient": "No client linked",
+    "viewDetails": "View details",
+    "eventsTab": "Received events",
+    "webhooksTab": "Sent webhooks",
+    "noEvents": "No events recorded for this endpoint.",
+    "noWebhooks": "No webhook deliveries recorded.",
+    "processed": "Processed",
+    "pending": "Pending",
+    "attempts": "Attempts",
+    "regenerateKeySection": "Regenerate API key",
+    "regenerateKey": "Generate new key",
+    "regenKeyFailed": "Could not regenerate key",
+    "newKeyWarning": "Copy this key now — it will not be shown again.",
+    "tabIntegrations": "Integrations"
   },
   "audit": {
     "title": "Audit Log",

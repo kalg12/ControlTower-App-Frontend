@@ -26,6 +26,8 @@ import FormField from '@/components/ui/FormField.vue'
 import { clientsService } from '@/services/clients.service'
 import { crmService } from '@/services/crm.service'
 import { financeService } from '@/services/finance.service'
+import { integrationsService } from '@/services/integrations.service'
+import type { Integration } from '@/types/integration'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
@@ -113,6 +115,17 @@ function fmtCurrency(n?: number | null) {
   if (n == null) return '—'
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 }
+
+// ── Integrations ──────────────────────────────────────────────────────
+const { data: integrationsResult, isLoading: integrationsLoading } = useQuery({
+  queryKey: computed(() => ['integrations']),
+  queryFn: () => integrationsService.list(0, 200),
+  staleTime: 30_000,
+  enabled: computed(() => !!id.value),
+})
+const clientIntegrations = computed<Integration[]>(() =>
+  (integrationsResult.value?.content ?? []).filter(i => i.clientId === id.value)
+)
 
 function ticketStatusSeverity(status: string): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
   const map: Record<string, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
@@ -833,6 +846,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
           <Tab value="pipeline">{{ t('crm.tabPipeline') }}</Tab>
           <Tab value="tickets">Tickets</Tab>
           <Tab value="finance">{{ t('crm.tabFinance') }}</Tab>
+          <Tab value="integrations">{{ t('integrations.tabIntegrations') }}</Tab>
         </TabList>
 
         <TabPanels class="mt-4">
@@ -1223,6 +1237,46 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
               </template>
               <div v-else class="text-center py-8 text-sm text-[var(--text-muted)]">
                 Sin datos financieros para este cliente.
+              </div>
+            </div>
+          </TabPanel>
+
+          <!-- ── INTEGRATIONS TAB ───────────────────────────────── -->
+          <TabPanel value="integrations">
+            <div class="space-y-3 pt-4">
+              <div v-if="integrationsLoading" class="py-8 text-center text-sm text-[var(--text-muted)]">{{ t('common.loading') }}</div>
+              <div v-else-if="clientIntegrations.length === 0" class="text-center py-10 text-sm text-[var(--text-muted)]">
+                {{ t('integrations.noRows') }}
+                <div class="mt-2">
+                  <Button
+                    :label="t('integrations.registerEndpoint')"
+                    size="small"
+                    @click="router.push('/integrations')"
+                  />
+                </div>
+              </div>
+              <div
+                v-for="ep in clientIntegrations"
+                :key="ep.id"
+                class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4"
+              >
+                <div class="flex items-start justify-between gap-3">
+                  <div class="space-y-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="text-sm font-medium text-[var(--text)]">{{ ep.name || ep.type }}</span>
+                      <Tag :value="ep.type" :severity="ep.type === 'POS' ? 'info' : 'secondary'" />
+                      <Tag :severity="ep.active ? 'success' : 'secondary'" :value="ep.active ? t('integrations.activeLabel') : t('integrations.inactiveLabel')" />
+                    </div>
+                    <p v-if="ep.branchName" class="text-xs text-[var(--text-muted)]">{{ ep.branchName }}</p>
+                    <p v-if="ep.pullUrl" class="text-xs font-mono text-[var(--text-muted)] truncate max-w-xs">{{ ep.pullUrl }}</p>
+                  </div>
+                  <Button
+                    text rounded size="small" severity="secondary"
+                    v-tooltip.top="t('common.view')"
+                    @click="router.push('/integrations')"
+                    icon="pi pi-arrow-right"
+                  />
+                </div>
               </div>
             </div>
           </TabPanel>

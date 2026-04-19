@@ -61,7 +61,10 @@
     "success": "Éxito",
     "error": "Error",
     "refresh": "Actualizar",
-    "noData": "Sin datos disponibles"
+    "noData": "Sin datos disponibles",
+    "previous": "Anterior",
+    "next": "Siguiente",
+    "view": "Ver"
   },
   "errors": {
     "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
@@ -706,7 +709,29 @@
     "createdAt": "Creado",
     "totalLabel": "Total",
     "activeLabel": "Activos",
-    "inactiveLabel": "Inactivos"
+    "inactiveLabel": "Inactivos",
+    "name": "Nombre",
+    "namePlaceholder": "ej. POS Sucursal Norte",
+    "nameType": "Nombre / Tipo",
+    "client": "Cliente",
+    "clientBranch": "Cliente / Sucursal",
+    "selectClient": "Seleccionar cliente",
+    "branch": "Sucursal",
+    "selectBranch": "Seleccionar sucursal",
+    "noClient": "Sin cliente vinculado",
+    "viewDetails": "Ver detalles",
+    "eventsTab": "Eventos recibidos",
+    "webhooksTab": "Webhooks enviados",
+    "noEvents": "No hay eventos registrados para este endpoint.",
+    "noWebhooks": "No hay entregas de webhook registradas.",
+    "processed": "Procesado",
+    "pending": "Pendiente",
+    "attempts": "Intentos",
+    "regenerateKeySection": "Regenerar clave API",
+    "regenerateKey": "Generar nueva clave",
+    "regenKeyFailed": "No se pudo regenerar la clave",
+    "newKeyWarning": "Copia esta clave ahora — no se mostrará de nuevo.",
+    "tabIntegrations": "Integraciones"
   },
   "audit": {
     "title": "Registro de Auditoría",

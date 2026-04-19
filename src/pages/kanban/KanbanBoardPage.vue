@@ -394,20 +394,23 @@ function formatDue(d: string | null | undefined): string {
   return dayjs(d).format('YYYY-MM-DD')
 }
 
-function isCardOverdue(dueDate: string | null | undefined): boolean {
+function isCardOverdue(dueDate: string | null | undefined, columnKind: string | null | undefined): boolean {
   if (!dueDate) return false
+  if (columnKind === 'DONE' || columnKind === 'HISTORY') return false
   return dayjs(dueDate).isBefore(dayjs(), 'day')
 }
 
-function isCardDueSoon(dueDate: string | null | undefined): boolean {
+function isCardDueSoon(dueDate: string | null | undefined, columnKind: string | null | undefined): boolean {
   if (!dueDate) return false
+  if (columnKind === 'DONE' || columnKind === 'HISTORY') return false
   const d = dayjs(dueDate)
   const today = dayjs()
   return d.isSame(today, 'day') || d.isSame(today.add(1, 'day'), 'day')
 }
 
-function dueBadgeLabel(dueDate: string | null | undefined): string | null {
+function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | null | undefined): string | null {
   if (!dueDate) return null
+  if (columnKind === 'DONE' || columnKind === 'HISTORY') return null
   const d = dayjs(dueDate)
   const today = dayjs()
   if (d.isBefore(today, 'day')) return 'VENCIDA'
@@ -525,9 +528,9 @@ function dueBadgeLabel(dueDate: string | null | undefined): string | null {
             <button
               type="button"
               class="w-full text-left rounded-lg border bg-[var(--surface-raised)] p-3 hover:border-[var(--primary)]/50 transition-colors"
-              :class="isCardOverdue(card.dueDate)
+              :class="isCardOverdue(card.dueDate, col.columnKind)
                 ? 'border-red-400 dark:border-red-600'
-                : isCardDueSoon(card.dueDate)
+                : isCardDueSoon(card.dueDate, col.columnKind)
                   ? 'border-orange-400 dark:border-orange-500'
                   : 'border-[var(--border)]'"
               @click="openCard(card)"
@@ -535,16 +538,16 @@ function dueBadgeLabel(dueDate: string | null | undefined): string | null {
               <div class="flex items-start justify-between gap-1 mb-1">
                 <p class="font-medium text-sm text-[var(--text)] line-clamp-2">{{ card.title }}</p>
                 <span
-                  v-if="dueBadgeLabel(card.dueDate)"
+                  v-if="dueBadgeLabel(card.dueDate, col.columnKind)"
                   class="flex-shrink-0 text-[9px] font-bold px-1.5 py-0.5 rounded text-white"
-                  :class="isCardOverdue(card.dueDate) ? 'bg-red-500' : 'bg-orange-400'"
-                >{{ dueBadgeLabel(card.dueDate) }}</span>
+                  :class="isCardOverdue(card.dueDate, col.columnKind) ? 'bg-red-500' : 'bg-orange-400'"
+                >{{ dueBadgeLabel(card.dueDate, col.columnKind) }}</span>
               </div>
               <p v-if="card.description" class="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">{{ card.description }}</p>
               <div class="flex items-center justify-between gap-1 mt-2">
                 <div class="flex flex-wrap gap-1">
                   <Tag v-if="card.priority" severity="warn" class="text-[10px]">{{ priorityLabel(card.priority) }}</Tag>
-                  <Tag v-if="card.dueDate" severity="info" class="text-[10px]">{{ formatDue(card.dueDate) }}</Tag>
+                  <Tag v-if="card.dueDate && col.columnKind !== 'DONE' && col.columnKind !== 'HISTORY'" severity="info" class="text-[10px]">{{ formatDue(card.dueDate) }}</Tag>
                   <Tag v-if="card.estimatedMinutes" severity="secondary" class="text-[10px]">
                     ⏱ {{ card.estimatedMinutes >= 60 ? `${Math.floor(card.estimatedMinutes / 60)}h` : `${card.estimatedMinutes}m` }}
                   </Tag>
