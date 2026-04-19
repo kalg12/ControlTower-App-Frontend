@@ -44,13 +44,19 @@ const columns = ref<{ id: string; name: string; kind: KanbanColumnKind | null }[
 ])
 
 const { data: allItems, isLoading, isError, error: workItemsError, refetch } = useQuery({
-  queryKey: computed(() => ['kanban', 'work-items', filterTenant.value, filterBoard.value, filterAssignee.value, filterPriority.value]),
+  queryKey: computed(() => ['kanban', isSuperAdmin.value ? 'supervisor-items' : 'work-items', filterTenant.value, filterBoard.value, filterAssignee.value, filterPriority.value]),
   queryFn: async () => {
-    const items = await kanbanService.listWorkItems({
+    if (isSuperAdmin.value) {
+      return kanbanService.listSupervisorItems({
+        tenantId: filterTenant.value || undefined,
+        assigneeId: filterAssignee.value || undefined,
+        priority: filterPriority.value || undefined
+      })
+    }
+    return kanbanService.listWorkItems({
       assigneeId: filterAssignee.value || undefined,
       columnKind: undefined
     })
-    return items
   },
   staleTime: 15_000
 })
@@ -62,8 +68,11 @@ const { data: tenantOptions } = useQuery({
 })
 
 const { data: userOptions } = useQuery({
-  queryKey: ['users', 'all'],
-  queryFn: () => usersService.list({ tenantId: auth.user!.tenantId, page: 0, size: 200 }).then(r => r.content),
+  queryKey: computed(() => ['users', isSuperAdmin.value ? 'all' : 'tenant', filterTenant.value]),
+  queryFn: () => {
+    const tenantId = isSuperAdmin.value && filterTenant.value ? filterTenant.value : auth.user!.tenantId
+    return usersService.list({ tenantId, page: 0, size: 500 }).then(r => r.content)
+  },
   enabled: computed(() => !!auth.user?.tenantId)
 })
 
