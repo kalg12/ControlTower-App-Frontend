@@ -4,6 +4,7 @@ import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { useI18n } from 'vue-i18n'
 import { isAxiosError } from 'axios'
+import draggable from 'vuedraggable'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
@@ -191,23 +192,25 @@ function openBoard(item: KanbanWorkItem) {
   router.push({ name: 'kanban-board', params: { id: item.boardId } })
 }
 
-async function onDragChange(columnKind: string, event: { added?: { element: KanbanWorkItem } }) {
-  if (event.added) {
-    const item = event.added.element
-    try {
-      const targetColumn = columns.value.find(c => c.kind === columnKind)
-      if (targetColumn) {
-        await kanbanService.moveCard(item.id, {
-          targetColumnId: targetColumn.id,
-          position: 0
-        })
-        toast.success(t('kanban.cardMoved'))
-        refetch()
-      }
-    } catch (e) {
-      toast.error(t('kanban.moveCardFailed'))
+async function onColumnReorder(columnKind: string, newList: KanbanWorkItem[]) {
+  const firstItem = newList[0]
+  if (!firstItem) return
+  
+  try {
+    const differentColumn = firstItem.columnKind !== columnKind
+    
+    if (differentColumn) {
+      console.log('Moving card to new column:', columnKind)
+      await kanbanService.moveCardToColumn(firstItem.id, {
+        columnKind: columnKind
+      })
+      toast.success(t('kanban.cardMoved'))
       refetch()
     }
+  } catch (e) {
+    console.error('Move failed:', e)
+    toast.error(t('kanban.moveCardFailed'))
+    refetch()
   }
 }
 
@@ -392,8 +395,7 @@ function clearFilters() {
         </div>
 
         <div
-          :list="itemsByColumn[col.kind as KanbanColumnKind]"
-          group="work-hub"
+          :model-value="itemsByColumn[col.kind as KanbanColumnKind]"
           class="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-20rem)]"
         >
           <div v-for="item in itemsByColumn[col.kind as KanbanColumnKind]" :key="item.id">
@@ -438,11 +440,9 @@ function clearFilters() {
                   >
                     {{ item.assigneeNames?.[idx]?.[0]?.toUpperCase() || '?' }}
                   </div>
-                </div>
               </div>
             </button>
-          </div>
-          </div>
+          </template>
         </div>
       </div>
     </div>

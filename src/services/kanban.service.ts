@@ -90,6 +90,11 @@ export const kanbanService = {
     return res.data
   },
 
+  async moveCardToColumn(cardId: string, body: { columnKind: string }): Promise<KanbanWorkItem> {
+    const res = await api.patch<KanbanWorkItem>(`/kanban/cards/${cardId}/move-to`, body)
+    return res.data
+  },
+
   async updateCard(cardId: string, body: CardUpdateRequest): Promise<KanbanCard> {
     const res = await api.patch<KanbanCard>(`/boards/cards/${cardId}`, body)
     return res.data
