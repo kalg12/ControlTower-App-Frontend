@@ -117,6 +117,12 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.kanbanWork', permission: 'kanban:read' }
     },
     {
+      path: '/kanban/supervisor',
+      name: 'kanban-supervisor',
+      component: () => import('@/pages/kanban/KanbanSupervisorPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.kanbanSupervisor', permission: 'super:admin' }
+    },
+    {
       path: '/kanban/:id',
       name: 'kanban-board',
       component: () => import('@/pages/kanban/KanbanBoardPage.vue'),

@@ -4,11 +4,13 @@ import type {
   BoardRequest,
   CardRequest,
   CardUpdateRequest,
+  CardPriority,
   KanbanBoard,
   KanbanCard,
   KanbanColumn,
   KanbanColumnKind,
   KanbanWorkItem,
+  SupervisorFilters,
   ChecklistItem,
   MoveCardRequest
 } from '@/types/kanban'
@@ -27,6 +29,22 @@ export const kanbanService = {
       params: {
         assigneeId: params?.assigneeId || undefined,
         columnKind: params?.columnKind || undefined
+      }
+    })
+    return res.data
+  },
+
+  async listSupervisorItems(params?: SupervisorFilters): Promise<KanbanWorkItem[]> {
+    const res = await api.get<KanbanWorkItem[]>('/kanban/supervisor-items', {
+      params: {
+        tenantId: params?.tenantId || undefined,
+        boardId: params?.boardId || undefined,
+        assigneeId: params?.assigneeId || undefined,
+        columnKind: params?.columnKind || undefined,
+        priority: params?.priority || undefined,
+        dueDateFrom: params?.dueDateFrom || undefined,
+        dueDateTo: params?.dueDateTo || undefined,
+        label: params?.label || undefined
       }
     })
     return res.data

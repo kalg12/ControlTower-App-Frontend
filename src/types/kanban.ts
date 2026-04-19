@@ -89,10 +89,27 @@ export interface CardUpdateRequest {
 export type BoardListResponse = PaginatedResponse<KanbanBoard>
 
 export interface KanbanWorkItem {
+  id: string
   card: KanbanCard
   boardId: string
   boardName: string
   columnId: string
   columnName: string
   columnKind?: string | null
+  tenantId?: string
+  tenantName?: string
+  assigneeNames: string[]
+  checklistProgress?: string
+  overdue: boolean
+}
+
+export interface SupervisorFilters {
+  tenantId?: string
+  boardId?: string
+  assigneeId?: string
+  columnKind?: KanbanColumnKind
+  priority?: CardPriority
+  dueDateFrom?: string
+  dueDateTo?: string
+  label?: string
 }
