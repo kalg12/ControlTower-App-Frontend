@@ -210,7 +210,12 @@
     "move": "Mover",
     "delete": "Eliminar",
     "noItems": "No hay tarjetas que coincidan con los filtros.",
-    "attended": "Atendida"
+    "attended": "Atendida",
+    "overdue": "Vencidas",
+    "total": "total",
+    "search": "Buscar",
+    "searchPlaceholder": "Buscar tâche...",
+    "cardMoved": "Tarjeta movida"
   },
   "rolesPage": {
     "title": "Roles y permisos",

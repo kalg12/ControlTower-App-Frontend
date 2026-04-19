@@ -217,7 +217,12 @@
     "move": "Move",
     "delete": "Delete",
     "noItems": "No cards match the filters.",
-    "attended": "Attended"
+    "attended": "Attended",
+    "overdue": "Overdue",
+    "total": "total",
+    "search": "Search",
+    "searchPlaceholder": "Search task...",
+    "cardMoved": "Card moved"
   },
   "rolesPage": {
     "title": "Roles & permissions",

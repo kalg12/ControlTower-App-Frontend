@@ -104,6 +104,8 @@ export interface KanbanWorkItem {
   assigneeNames: string[]
   checklistProgress?: string
   overdue: boolean
+  // For work hub filtering
+  cardId?: string
 }
 
 export interface SupervisorFilters {
