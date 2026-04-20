@@ -1,30 +1,26 @@
 <script setup lang="ts">
-import { ref, computed, watch } from 'vue'
+import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
 import { useQuery } from '@tanstack/vue-query'
 import { useI18n } from 'vue-i18n'
 import { isAxiosError } from 'axios'
-import draggable from 'vuedraggable'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
 import Calendar from 'primevue/calendar'
 import Tag from 'primevue/tag'
-import Skeleton from 'primevue/skeleton'
 import { useAuthStore } from '@/stores/auth'
 import { kanbanService } from '@/services/kanban.service'
 import { usersService } from '@/services/users.service'
 import { tenantsService } from '@/services/tenants.service'
 import type { KanbanColumnKind, KanbanWorkItem, KanbanCard, CardPriority } from '@/types/kanban'
-import { ClipboardList, Users, Flag, Calendar, Tag as TagIcon, Search, BarChart3, Clock, AlertTriangle, CheckCircle } from 'lucide-vue-next'
+import { ClipboardList, Users, Flag, Tag as TagIcon, Search, BarChart3, Clock, AlertTriangle, CheckCircle } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import PageInfoButton from '@/components/ui/PageInfoButton.vue'
-import { useToast } from '@/composables/useToast'
 
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
-const toast = useToast()
 
 const isSuperAdmin = computed(() => auth.user?.superAdmin)
 
@@ -44,7 +40,7 @@ const columns = ref<{ id: string; name: string; kind: KanbanColumnKind | null }[
   { id: 'HISTORY', name: 'History', kind: 'HISTORY' }
 ])
 
-const { data: allItems, isLoading, isError, error: workItemsError, refetch } = useQuery({
+const { data: allItems, isError, error: workItemsError, refetch } = useQuery({
   queryKey: computed(() => ['kanban', isSuperAdmin.value ? 'supervisor-items' : 'work-items', filterTenant.value, filterBoard.value, filterAssignee.value, filterPriority.value]),
   queryFn: async () => {
     if (isSuperAdmin.value) {
@@ -88,7 +84,7 @@ const filteredItems = computed(() => {
     items = items.filter(i => i.card.priority === filterPriority.value)
   }
   if (filterAssignee.value) {
-    items = items.filter(i => i.card.assigneeIds?.includes(filterAssignee.value))
+    items = items.filter(i => i.card.assigneeIds?.includes(filterAssignee.value as string))
   }
   if (searchText.value) {
     const search = searchText.value.toLowerCase()
@@ -190,28 +186,6 @@ function formatDue(date: string): string {
 
 function openBoard(item: KanbanWorkItem) {
   router.push({ name: 'kanban-board', params: { id: item.boardId } })
-}
-
-async function onColumnReorder(columnKind: string, newList: KanbanWorkItem[]) {
-  const firstItem = newList[0]
-  if (!firstItem) return
-  
-  try {
-    const differentColumn = firstItem.columnKind !== columnKind
-    
-    if (differentColumn) {
-      console.log('Moving card to new column:', columnKind)
-      await kanbanService.moveCardToColumn(firstItem.id, {
-        columnKind: columnKind
-      })
-      toast.success(t('kanban.cardMoved'))
-      refetch()
-    }
-  } catch (e) {
-    console.error('Move failed:', e)
-    toast.error(t('kanban.moveCardFailed'))
-    refetch()
-  }
 }
 
 function workItemsErrorHint(err: unknown): string {
