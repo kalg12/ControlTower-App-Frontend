@@ -99,9 +99,6 @@ function isActive(path: string): boolean {
 function badge(to: string): number | null {
   if (to === '/notifications') return unreadCount.value || null
   if (to === '/pos-support') return notifStore.posBadgeCount || null
-  if (to === '/tickets') return notifStore.ticketsBadge || null
-  if (to === '/kanban') return notifStore.kanbanBadge || null
-  if (to === '/finance') return notifStore.financeBadge || null
   return null
 }
 </script>

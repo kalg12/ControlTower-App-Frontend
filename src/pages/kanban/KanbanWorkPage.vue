@@ -440,6 +440,7 @@ function clearFilters() {
                   >
                     {{ item.assigneeNames?.[idx]?.[0]?.toUpperCase() || '?' }}
                   </div>
+                </div>
               </div>
             </button>
           </template>

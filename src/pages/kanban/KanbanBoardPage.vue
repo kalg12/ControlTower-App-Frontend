@@ -16,6 +16,7 @@ import Skeleton from 'primevue/skeleton'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from '@/composables/useToast'
 import { useBoard, useKanbanMutations } from '@/queries/kanban'
+import { kanbanService } from '@/services/kanban.service'
 import { useAuthStore } from '@/stores/auth'
 import { usersService } from '@/services/users.service'
 import type { BoardVisibility, KanbanCard, KanbanColumn, CardPriority } from '@/types/kanban'
@@ -318,6 +319,20 @@ async function onToggleChecklist(itemId: string) {
   }
 }
 
+const attendingCardId = ref<string | null>(null)
+
+async function attendCard(cardId: string) {
+  attendingCardId.value = cardId
+  try {
+    await kanbanService.attendCard(cardId)
+    refetch()
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  } finally {
+    attendingCardId.value = null
+  }
+}
+
 const newChecklistText = ref('')
 async function submitChecklistItem() {
   const text = newChecklistText.value.trim()
@@ -549,6 +564,13 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
               <div v-if="card.wasOverdue && card.attendedAt" class="text-[10px] text-green-600 dark:text-green-400 mb-1">
                 ✓ Atendida
               </div>
+              <button
+                v-if="dueBadgeLabel(card.dueDate, col.columnKind, card.attendedAt) === 'VENCIDA' && canWriteKanban"
+                type="button"
+                class="mt-1 text-[10px] text-green-600 hover:text-green-700 dark:text-green-400 font-medium flex items-center gap-0.5 disabled:opacity-50"
+                :disabled="attendingCardId === card.id"
+                @click.stop="attendCard(card.id)"
+              >✓ Marcar atendida</button>
               <p v-if="card.description" class="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">{{ card.description }}</p>
               <div class="flex items-center justify-between gap-1 mt-2">
                 <div class="flex flex-wrap gap-1">

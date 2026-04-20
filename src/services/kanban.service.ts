@@ -100,6 +100,11 @@ export const kanbanService = {
     return res.data
   },
 
+  async attendCard(cardId: string): Promise<KanbanCard> {
+    const res = await api.patch<KanbanCard>(`/boards/cards/${cardId}/attend`)
+    return res.data
+  },
+
   async deleteCard(cardId: string): Promise<void> {
     await api.delete(`/boards/cards/${cardId}`)
   },
