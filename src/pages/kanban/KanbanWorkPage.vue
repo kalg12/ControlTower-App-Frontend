@@ -443,7 +443,7 @@ function clearFilters() {
                 </div>
               </div>
             </button>
-          </template>
+          </div>
         </div>
       </div>
     </div>
