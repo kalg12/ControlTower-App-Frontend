@@ -4,7 +4,6 @@ import type {
   BoardRequest,
   CardRequest,
   CardUpdateRequest,
-  CardPriority,
   KanbanBoard,
   KanbanCard,
   KanbanColumn,

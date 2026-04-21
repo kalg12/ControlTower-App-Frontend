@@ -2,7 +2,7 @@
 import { ref, computed, watch } from 'vue'
 import { useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useQuery, useQueryClient, useMutation } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
 import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
@@ -371,10 +371,6 @@ function openDrawer(ep: Integration) {
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
-function formatDate(iso: string) {
-  return new Date(iso).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })
-}
-
 function formatDatetime(iso?: string) {
   if (!iso) return '—'
   return new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
@@ -708,7 +704,7 @@ function webhookSeverity(status: WebhookDelivery['status']) {
     :title="t('integrations.editTitle')"
     :subtitle="t('integrations.editSubtitle')"
     :loading="isEditing"
-    @update:visible="if (!$event) closeEditDialog()"
+    @update:visible="(val) => { if (!val) closeEditDialog() }"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
       <FormField :label="t('integrations.name')" name="edit-name" :error="editForm.errors.value.name">

@@ -152,7 +152,7 @@ const statusColor: Record<string, string> = {
               >
                 <Building2 class="w-4 h-4 text-[var(--text-muted)] flex-shrink-0" />
                 <span class="flex-1 text-sm text-[var(--text)] truncate">{{ client.name }}</span>
-                <span class="text-xs text-[var(--text-muted)]">{{ client.email }}</span>
+                <span class="text-xs text-[var(--text-muted)]">{{ client.phone ?? '-' }}</span>
               </button>
             </div>
 

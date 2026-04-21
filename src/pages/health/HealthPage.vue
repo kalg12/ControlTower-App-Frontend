@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { computed, ref, watch, onMounted, type Ref } from 'vue'
+import { computed, ref, watch, onMounted } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useRoute } from 'vue-router'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
@@ -7,7 +7,6 @@ import { useForm } from 'vee-validate'
 import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import DataTable from 'primevue/datatable'
-import type DataTableGlobal from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
@@ -52,7 +51,7 @@ const route = useRoute()
 // ── Incident log with pagination ──────────────────────────────────────
 
 const logOpenOnly = ref(false)
-const incidentTableRef = ref<InstanceType<typeof DataTableGlobal> | null>(null)
+const incidentTableRef = ref<any>(null)
 const logBranchId = ref<string | undefined>(undefined)
 const logPage = ref(0)
 const logPageSize = 20

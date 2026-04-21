@@ -1,4 +1,16 @@
-export type LeadSource = 'REFERRAL' | 'INBOUND' | 'OUTBOUND' | 'WEBSITE' | 'SOCIAL_MEDIA' | 'EVENT' | 'SUPPORT_ESCALATION' | 'OTHER'
+export type LeadSource =
+  | 'REFERRAL'
+  | 'INBOUND'
+  | 'OUTBOUND'
+  | 'WEBSITE'
+  | 'SOCIAL_MEDIA'
+  | 'EVENT'
+  | 'SUPPORT_ESCALATION'
+  | 'WHATSAPP'
+  | 'INSTAGRAM'
+  | 'FACEBOOK'
+  | 'TIKTOK'
+  | 'OTHER'
 
 export interface Client {
   id: string

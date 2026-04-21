@@ -422,3 +422,4 @@ function clearFilters() {
       </div>
     </div>
   </div>
+</template>

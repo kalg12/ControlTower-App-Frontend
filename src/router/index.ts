@@ -99,6 +99,12 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.clientDetail', permission: 'client:read' }
     },
     {
+      path: '/calendar',
+      name: 'calendar',
+      component: () => import('@/pages/calendar/CalendarPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.calendar', permission: 'client:read' }
+    },
+    {
       path: '/health',
       name: 'health',
       component: () => import('@/pages/health/HealthPage.vue'),

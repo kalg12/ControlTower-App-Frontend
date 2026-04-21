@@ -7,7 +7,7 @@ import { ticketsService } from '@/services/tickets.service'
 import Skeleton from 'primevue/skeleton'
 import Tag from 'primevue/tag'
 import Button from 'primevue/button'
-import { Building2, ExternalLink } from 'lucide-vue-next'
+import { Building2 } from 'lucide-vue-next'
 
 const props = defineProps<{ clientId: string }>()
 const router = useRouter()

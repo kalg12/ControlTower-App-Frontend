@@ -84,7 +84,7 @@ const cardDesc = ref('')
 const cardDue = ref<string | null>(null)
 const cardPriority = ref<CardPriority>('MEDIUM')
 const cardAssignees = ref<string[]>([])
-const cardEstimatedMinutes = ref<number | null>(null)
+const cardEstimatedMinutes = ref<string | null>(null)
 const savingCard = ref(false)
 
 const selectedCard = ref<KanbanCard | null>(null)
@@ -94,7 +94,7 @@ const detailDesc = ref('')
 const detailDue = ref('')
 const detailPriority = ref<CardPriority>('MEDIUM')
 const detailAssignees = ref<string[]>([])
-const detailEstimatedMinutes = ref<number | null>(null)
+const detailEstimatedMinutes = ref<string | null>(null)
 const savingCardDetail = ref(false)
 
 const showBoardEdit = ref(false)
@@ -188,7 +188,7 @@ async function submitCard() {
         priority: cardPriority.value,
         assigneeIds: cardAssignees.value.length > 0 ? cardAssignees.value : undefined,
         position: pos,
-        estimatedMinutes: cardEstimatedMinutes.value ?? undefined
+        estimatedMinutes: cardEstimatedMinutes.value ? Number(cardEstimatedMinutes.value) : undefined
       },
       boardId: board.value.id
     })
@@ -246,7 +246,7 @@ function openCard(c: KanbanCard) {
   detailDue.value = c.dueDate ? formatDue(c.dueDate) : ''
   detailPriority.value = c.priority
   detailAssignees.value = c.assigneeIds ?? []
-  detailEstimatedMinutes.value = c.estimatedMinutes ?? null
+  detailEstimatedMinutes.value = c.estimatedMinutes != null ? String(c.estimatedMinutes) : null
   showCardDetail.value = true
 }
 
@@ -297,7 +297,7 @@ async function submitCardDetail() {
         dueDate: detailDue.value.trim() ? detailDue.value : null,
         priority: detailPriority.value,
         assigneeIds: detailAssignees.value,
-        estimatedMinutes: detailEstimatedMinutes.value ?? null
+        estimatedMinutes: detailEstimatedMinutes.value ? Number(detailEstimatedMinutes.value) : null
       }
     })
     selectedCard.value = updated
@@ -585,7 +585,7 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
                   <div
                     v-for="(uid, idx) in card.assigneeIds.slice(0, 3)"
                     :key="uid"
-                    :style="{ zIndex: 3 - idx }"
+                    :style="{ zIndex: 3 - Number(idx) }"
                     class="w-5 h-5 rounded-full bg-[var(--primary)] border border-[var(--surface)] flex items-center justify-center text-[8px] font-bold text-white"
                     :title="uid"
                   >
@@ -649,7 +649,7 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tiempo estimado (min)</label>
-          <InputText v-model.number="cardEstimatedMinutes" type="number" min="1" placeholder="ej. 90" class="w-full" />
+          <InputText v-model="cardEstimatedMinutes" type="number" min="1" placeholder="ej. 90" class="w-full" />
         </div>
         <div class="flex justify-end gap-2 pt-2">
           <Button :label="t('common.cancel')" severity="secondary" outlined @click="showCardDialog = false" />
@@ -736,7 +736,7 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Tiempo estimado (min)</label>
-          <InputText v-model.number="detailEstimatedMinutes" type="number" min="1" placeholder="ej. 90" class="w-full" :readonly="!canWriteKanban" />
+          <InputText v-model="detailEstimatedMinutes" type="number" min="1" placeholder="ej. 90" class="w-full" :readonly="!canWriteKanban" />
         </div>
         <div v-if="canWriteKanban" class="flex justify-end gap-2">
           <Button

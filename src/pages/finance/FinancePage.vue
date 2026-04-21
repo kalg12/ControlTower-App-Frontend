@@ -17,7 +17,7 @@ import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
 import TabPanels from 'primevue/tabpanels'
 import TabPanel from 'primevue/tabpanel'
-import { DollarSign, TrendingUp, TrendingDown, Activity, Plus, Trash2 } from 'lucide-vue-next'
+import { DollarSign, TrendingUp, TrendingDown, Activity } from 'lucide-vue-next'
 import { financeService } from '@/services/finance.service'
 import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
@@ -59,7 +59,7 @@ const { data: invoicesData, isLoading: invLoading, refetch: refetchInv } = useQu
 const invoices = computed(() => invoicesData.value?.content ?? [])
 
 // ── Payments ─────────────────────────────────────────────────────────
-const { data: paymentsData, isLoading: payLoading, refetch: refetchPay } = useQuery({
+const { data: paymentsData, isLoading: payLoading } = useQuery({
   queryKey: ['finance-payments'],
   queryFn: () => financeService.listPayments({ page: 0, size: 50 }),
   staleTime: 30_000
@@ -110,7 +110,6 @@ const invDueDate = ref('')
 const invLines = ref<InvoiceLineItemRequest[]>([
   { description: '', quantity: 1, unitPrice: 0, position: 0 }
 ])
-const savingInv = ref(false)
 
 function addLine() {
   invLines.value.push({ description: '', quantity: 1, unitPrice: 0, position: invLines.value.length })
@@ -207,7 +206,6 @@ const payCurrency = ref('MXN')
 const payMethod = ref('BANK_TRANSFER')
 const payReference = ref('')
 const payNotes = ref('')
-const savingPay = ref(false)
 
 const payMethodOptions = [
   { label: 'Transferencia bancaria', value: 'BANK_TRANSFER' },
@@ -262,7 +260,6 @@ const expCurrency = ref('MXN')
 const expVendor = ref('')
 const expNotes = ref('')
 const expClientId = ref('')
-const savingExp = ref(false)
 
 const expCategoryOptions = [
   { label: 'Nómina', value: 'PAYROLL' },

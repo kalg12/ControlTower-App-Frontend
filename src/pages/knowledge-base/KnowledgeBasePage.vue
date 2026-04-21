@@ -37,7 +37,7 @@ const filters = computed<KbArticleFilters>(() => ({
 
 const { data, isLoading } = useKbArticles(filters)
 
-const articles = computed(() => data.value?.data ?? (data.value as any)?.content ?? [])
+const articles = computed(() => data.value?.content ?? [])
 
 // Derive unique categories from loaded articles
 const categories = computed<string[]>(() => {

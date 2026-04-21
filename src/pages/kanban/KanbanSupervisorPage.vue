@@ -6,20 +6,18 @@ import { useI18n } from 'vue-i18n'
 import { isAxiosError } from 'axios'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
-import MultiSelect from 'primevue/multiselect'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
-import Checkbox from 'primevue/checkbox'
 import InputText from 'primevue/inputtext'
 import Calendar from 'primevue/calendar'
-import Dialog from 'primevue/dialog'
 import { useAuthStore } from '@/stores/auth'
 import { kanbanService } from '@/services/kanban.service'
-import { usersService } from '@/services/users.service'
 import { tenantsService } from '@/services/tenants.service'
 import type { KanbanWorkItem, SupervisorFilters, KanbanColumnKind, CardPriority } from '@/types/kanban'
-import { clipboardList, filter, checkSquare, arrowLeft, users, calendar, flag, tag, clock } from 'lucide-vue-next'
+import type { User } from '@/types/user'
+import type { Tenant } from '@/types/tenant'
+import { ClipboardList, Users, Calendar as CalendarIcon, Flag, Tag as TagIcon, CheckSquare } from 'lucide-vue-next'
 import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 
 const { t } = useI18n()
@@ -57,9 +55,20 @@ const { data: tenantOptions } = useQuery({
   enabled: computed(() => !!isSuperAdmin.value)
 })
 
-const { data: userOptions } = useQuery({
+const { data: userOptions } = useQuery<User[]>({
   queryKey: ['users', 'all'],
-  queryFn: () => usersService.listAll(),
+  queryFn: async () => {
+    const resp = await tenantsService.list({ page: 0, size: 500 })
+    const usersMap = new Map<string, User>()
+    for (const tenant of resp.content ?? []) {
+      if ((tenant as Tenant & { users?: User[] }).users) {
+        for (const u of (tenant as Tenant & { users?: User[] }).users!) {
+          usersMap.set(u.id, u)
+        }
+      }
+    }
+    return Array.from(usersMap.values())
+  },
   enabled: computed(() => !!isSuperAdmin.value)
 })
 
@@ -86,7 +95,7 @@ const tenantOpts = computed(() => [
 
 const assigneeOpts = computed(() => [
   { label: t('kanban.allUsers'), value: undefined as string | undefined },
-  ...(userOptions.value ?? []).map((u) => ({ label: u.fullName || u.email, value: u.id }))
+  ...(userOptions.value ?? []).map((u: User) => ({ label: u.fullName || u.email, value: u.id }))
 ])
 
 function prioritySeverity(p?: string): 'success' | 'warn' | 'danger' | 'secondary' {
@@ -112,23 +121,6 @@ function errorHint(err: unknown): string {
 const totalItems = computed(() => items.value?.length ?? 0)
 const selectedCount = computed(() => selectedItems.value.length)
 
-function toggleSelect(item: KanbanWorkItem) {
-  const idx = selectedItems.value.findIndex((i) => i.id === item.id)
-  if (idx >= 0) {
-    selectedItems.value.splice(idx, 1)
-  } else {
-    selectedItems.value.push(item)
-  }
-}
-
-function selectAll() {
-  if (selectedCount.value === totalItems.value) {
-    selectedItems.value = []
-  } else {
-    selectedItems.value = [...(items.value ?? [])]
-  }
-}
-
 function clearFilters() {
   filters.value = {
     tenantId: undefined,
@@ -146,10 +138,6 @@ function clearFilters() {
 function openBoard(item: KanbanWorkItem) {
   router.push({ name: 'kanban-board', params: { id: item.boardId } })
 }
-
-function isSelected(item: KanbanWorkItem): boolean {
-  return selectedItems.value.some((i) => i.id === item.id)
-}
 </script>
 
 <template>
@@ -157,7 +145,7 @@ function isSelected(item: KanbanWorkItem): boolean {
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
       <div>
         <h1 class="text-xl font-semibold text-[var(--text)] flex items-center gap-2">
-          <clipboardList class="w-6 h-6 text-[var(--primary)]" />
+          <ClipboardList class="w-6 h-6 text-[var(--primary)]" />
           {{ t('kanban.supervisorTitle') }}
           <PageInfoButton :title="t('kanban.supervisorTitle')" :description="t('pageInfo.supervisor')" />
         </h1>
@@ -198,7 +186,7 @@ function isSelected(item: KanbanWorkItem): boolean {
       <div v-if="showFilters" class="flex flex-wrap gap-3 p-4 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
         <div class="flex flex-col gap-1 min-w-[180px]">
           <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-            <users class="w-3 h-3" /> {{ t('kanban.company') }}
+            <Users class="w-3 h-3" /> {{ t('kanban.company') }}
           </label>
           <Select
             v-model="filters.tenantId"
@@ -213,7 +201,7 @@ function isSelected(item: KanbanWorkItem): boolean {
 
         <div class="flex flex-col gap-1 min-w-[180px]">
           <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-            <users class="w-3 h-3" /> {{ t('kanban.assignee') }}
+            <Users class="w-3 h-3" /> {{ t('kanban.assignee') }}
           </label>
           <Select
             v-model="filters.assigneeId"
@@ -227,7 +215,7 @@ function isSelected(item: KanbanWorkItem): boolean {
 
         <div class="flex flex-col gap-1 min-w-[150px]">
           <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-            <flag class="w-3 h-3" /> {{ t('kanban.priority') }}
+            <Flag class="w-3 h-3" /> {{ t('kanban.priority') }}
           </label>
           <Select
             v-model="filters.priority"
@@ -255,10 +243,10 @@ function isSelected(item: KanbanWorkItem): boolean {
 
         <div class="flex flex-col gap-1 min-w-[160px]">
           <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-            <calendar class="w-3 h-3" /> {{ t('kanban.dueFrom') }}
+            <CalendarIcon class="w-3 h-3" /> {{ t('kanban.dueFrom') }}
           </label>
           <Calendar
-            v-model="filters.dueDateFrom"
+            v-model="filters.dueDateFrom as unknown as Date"
             date-format="yy-mm-dd"
             placeholder="yyyy-mm-dd"
             class="w-full"
@@ -268,10 +256,10 @@ function isSelected(item: KanbanWorkItem): boolean {
 
         <div class="flex flex-col gap-1 min-w-[160px]">
           <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-            <calendar class="w-3 h-3" /> {{ t('kanban.dueTo') }}
+            <CalendarIcon class="w-3 h-3" /> {{ t('kanban.dueTo') }}
           </label>
           <Calendar
-            v-model="filters.dueDateTo"
+            v-model="filters.dueDateTo as unknown as Date"
             date-format="yy-mm-dd"
             placeholder="yyyy-mm-dd"
             class="w-full"
@@ -281,7 +269,7 @@ function isSelected(item: KanbanWorkItem): boolean {
 
         <div class="flex flex-col gap-1 min-w-[180px]">
           <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-            <tag class="w-3 h-3" /> {{ t('kanban.label') }}
+            <TagIcon class="w-3 h-3" /> {{ t('kanban.label') }}
           </label>
           <InputText
             v-model="filters.label"
@@ -384,3 +372,4 @@ function isSelected(item: KanbanWorkItem): boolean {
       </DataTable>
     </template>
   </div>
+</template>

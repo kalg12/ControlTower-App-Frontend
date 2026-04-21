@@ -58,8 +58,8 @@ export function useTimeTrackingMutations() {
   })
 
   const stopTimer = useMutation({
-    mutationFn: ({ id, entityType, entityId }: { id: string; entityType: TimeEntityType; entityId: string }) =>
-      timeTrackingService.stopTimer(id),
+    mutationFn: (vars: { id: string; entityType: TimeEntityType; entityId: string }) =>
+      timeTrackingService.stopTimer(vars.id),
     onSuccess: (_, vars) => invalidateSummary(vars.entityType, vars.entityId),
   })
 
@@ -69,8 +69,8 @@ export function useTimeTrackingMutations() {
   })
 
   const deleteEntry = useMutation({
-    mutationFn: ({ id, entityType, entityId }: { id: string; entityType: TimeEntityType; entityId: string }) =>
-      timeTrackingService.deleteEntry(id),
+    mutationFn: (vars: { id: string; entityType: TimeEntityType; entityId: string }) =>
+      timeTrackingService.deleteEntry(vars.id),
     onSuccess: (_, vars) => invalidateSummary(vars.entityType, vars.entityId),
   })
 

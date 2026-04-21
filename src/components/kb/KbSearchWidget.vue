@@ -6,7 +6,7 @@ import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
-import { BookOpen, Search, ExternalLink } from 'lucide-vue-next'
+import { BookOpen, Search } from 'lucide-vue-next'
 import { kbService } from '@/services/kb.service'
 import type { KbArticle } from '@/types/knowledge-base'
 
@@ -31,7 +31,7 @@ watch(searchQuery, (q) => {
     isSearching.value = true
     try {
       const res = await kbService.list({ q: q.trim(), status: 'PUBLISHED', size: 5 })
-      results.value = res.data ?? (res as any).content ?? []
+      results.value = res.content ?? []
     } catch {
       results.value = []
     } finally {

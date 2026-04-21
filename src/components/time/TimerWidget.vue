@@ -5,7 +5,7 @@ import { useTimerStore } from '@/stores/timer'
 import { useTimeTrackingMutations, useActiveTimer } from '@/queries/time-tracking'
 import { useToast } from '@/composables/useToast'
 import type { TimeEntityType } from '@/types/time-tracking'
-import { PlayIcon, PauseIcon, StopCircleIcon, TimerIcon } from 'lucide-vue-next'
+import { PlayIcon, StopCircleIcon, TimerIcon } from 'lucide-vue-next'
 import { qk } from '@/queries/keys'
 
 const props = defineProps<{

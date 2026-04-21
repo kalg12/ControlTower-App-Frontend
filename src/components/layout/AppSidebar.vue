@@ -24,7 +24,8 @@ import {
   BookOpen,
   Briefcase,
   FileText,
-  DollarSign
+  DollarSign,
+  CalendarDays
 } from 'lucide-vue-next'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useAuthStore } from '@/stores/auth'
@@ -58,6 +59,7 @@ const mainItems = computed(() =>
     { to: '/tickets', label: t('nav.tickets'), icon: MessageSquare, permission: 'ticket:read' },
     { to: '/pos-support', label: t('nav.posSupport'), icon: Store, permission: 'ticket:read' },
     { to: '/clients', label: t('nav.clients'), icon: Building2, permission: 'client:read' },
+    { to: '/calendar', label: t('nav.calendar'), icon: CalendarDays, permission: 'client:read' },
     { to: '/kanban', label: t('nav.kanban'), icon: LayoutGrid, permission: 'kanban:read' },
     { to: '/kanban/work', label: t('nav.kanbanWork'), icon: ClipboardList, permission: 'kanban:read' },
     { to: '/health', label: t('nav.health'), icon: Activity, permission: 'health:read' },

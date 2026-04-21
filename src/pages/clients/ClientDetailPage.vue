@@ -28,6 +28,8 @@ import { crmService } from '@/services/crm.service'
 import { financeService } from '@/services/finance.service'
 import { integrationsService } from '@/services/integrations.service'
 import type { Integration } from '@/types/integration'
+import { calendarService } from '@/services/calendar.service'
+import type { CalendarEvent, CalendarEventType, CalendarEventStatus, CreateCalendarEventRequest, ContactChannel } from '@/types/calendar'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
@@ -115,6 +117,108 @@ function fmtCurrency(n?: number | null) {
   if (n == null) return '—'
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency: 'MXN' }).format(n)
 }
+
+// ── Calendar ──────────────────────────────────────────────────────────
+const { data: clientCalendarEvents, isLoading: calendarLoading, refetch: refetchCalendar } = useQuery({
+  queryKey: computed(() => ['calendar-client', id.value]),
+  queryFn: () => calendarService.list({ from: new Date().toISOString(), clientId: id.value }),
+  staleTime: 30_000,
+  enabled: computed(() => !!id.value)
+})
+
+const showCalendarDialog = ref(false)
+const savingCalEvent = ref(false)
+const calForm = ref({
+  title: '',
+  eventType: 'MEETING' as CalendarEventType,
+  startAt: '',
+  endAt: '',
+  contactChannel: null as ContactChannel | null,
+  notes: ''
+})
+
+function openCalendarCreate() {
+  const base = dayjs()
+  calForm.value = {
+    title: '',
+    eventType: 'MEETING',
+    startAt: base.hour(9).minute(0).format('YYYY-MM-DDTHH:mm'),
+    endAt: base.hour(10).minute(0).format('YYYY-MM-DDTHH:mm'),
+    contactChannel: null,
+    notes: ''
+  }
+  showCalendarDialog.value = true
+}
+
+async function saveCalEvent() {
+  if (!calForm.value.title.trim()) return
+  savingCalEvent.value = true
+  try {
+    const body: CreateCalendarEventRequest = {
+      title: calForm.value.title.trim(),
+      eventType: calForm.value.eventType,
+      startAt: new Date(calForm.value.startAt).toISOString(),
+      endAt: new Date(calForm.value.endAt).toISOString(),
+      clientId: id.value,
+      contactChannel: calForm.value.contactChannel ?? undefined,
+      notes: calForm.value.notes.trim() || undefined
+    }
+    await calendarService.create(body)
+    toast.success(t('calendar.newEvent'))
+    showCalendarDialog.value = false
+    refetchCalendar()
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  } finally {
+    savingCalEvent.value = false
+  }
+}
+
+async function markCalEventCompleted(event: CalendarEvent) {
+  try {
+    await calendarService.patchStatus(event.id, 'COMPLETED')
+    refetchCalendar()
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  }
+}
+
+function calEventTypeLabel(type: CalendarEventType): string {
+  const map: Record<CalendarEventType, string> = {
+    CALL: t('calendar.eventTypeCall'), MEETING: t('calendar.eventTypeMeeting'),
+    SITE_VISIT: t('calendar.eventTypeSiteVisit'), DEMO: t('calendar.eventTypeDemo'),
+    FOLLOW_UP: t('calendar.eventTypeFollowUp'), WHATSAPP: t('calendar.eventTypeWhatsapp'),
+    INSTAGRAM: t('calendar.eventTypeInstagram'), OTHER: t('calendar.eventTypeOther')
+  }
+  return map[type] ?? type
+}
+
+function calStatusSeverity(s: CalendarEventStatus): string {
+  const map: Record<CalendarEventStatus, string> = {
+    SCHEDULED: 'info', COMPLETED: 'success', CANCELLED: 'secondary', NO_SHOW: 'warn'
+  }
+  return map[s] ?? 'secondary'
+}
+
+const calendarEventTypeOpts = computed(() => [
+  { label: t('calendar.eventTypeCall'),      value: 'CALL' as CalendarEventType },
+  { label: t('calendar.eventTypeMeeting'),   value: 'MEETING' as CalendarEventType },
+  { label: t('calendar.eventTypeSiteVisit'), value: 'SITE_VISIT' as CalendarEventType },
+  { label: t('calendar.eventTypeDemo'),      value: 'DEMO' as CalendarEventType },
+  { label: t('calendar.eventTypeFollowUp'),  value: 'FOLLOW_UP' as CalendarEventType },
+  { label: t('calendar.eventTypeWhatsapp'),  value: 'WHATSAPP' as CalendarEventType },
+  { label: t('calendar.eventTypeInstagram'), value: 'INSTAGRAM' as CalendarEventType },
+  { label: t('calendar.eventTypeOther'),     value: 'OTHER' as CalendarEventType }
+])
+
+const calendarChannelOpts = computed(() => [
+  { label: t('calendar.channelWhatsapp'),  value: 'WHATSAPP' as ContactChannel },
+  { label: t('calendar.channelInstagram'), value: 'INSTAGRAM' as ContactChannel },
+  { label: t('calendar.channelFacebook'),  value: 'FACEBOOK' as ContactChannel },
+  { label: t('calendar.channelEmail'),     value: 'EMAIL' as ContactChannel },
+  { label: t('calendar.channelPhone'),     value: 'PHONE' as ContactChannel },
+  { label: t('calendar.channelInPerson'),  value: 'IN_PERSON' as ContactChannel }
+])
 
 // ── Integrations ──────────────────────────────────────────────────────
 const { data: integrationsResult, isLoading: integrationsLoading } = useQuery({
@@ -847,6 +951,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
           <Tab value="tickets">Tickets</Tab>
           <Tab value="finance">{{ t('crm.tabFinance') }}</Tab>
           <Tab value="integrations">{{ t('integrations.tabIntegrations') }}</Tab>
+          <Tab value="calendar">{{ t('calendar.tabCalendar') }}</Tab>
         </TabList>
 
         <TabPanels class="mt-4">
@@ -1279,6 +1384,91 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                 </div>
               </div>
             </div>
+          </TabPanel>
+
+          <!-- ── Calendar Tab ──────────────────────────────────────── -->
+          <TabPanel value="calendar">
+            <div class="space-y-3 pt-4">
+              <div class="flex items-center justify-between">
+                <h3 class="text-sm font-semibold text-[var(--text)]">{{ t('calendar.upcomingEvents') }}</h3>
+                <Button
+                  :label="t('calendar.scheduleVisit')"
+                  icon="pi pi-plus"
+                  size="small"
+                  @click="openCalendarCreate"
+                />
+              </div>
+
+              <div v-if="calendarLoading" class="py-8 text-center text-sm text-[var(--text-muted)]">{{ t('common.loading') }}</div>
+              <div v-else-if="!clientCalendarEvents?.length" class="text-center py-10 text-sm text-[var(--text-muted)]">
+                {{ t('calendar.noEvents') }}
+              </div>
+              <div
+                v-for="event in clientCalendarEvents"
+                :key="event.id"
+                class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 flex items-start justify-between gap-3"
+                :class="event.status === 'COMPLETED' || event.status === 'CANCELLED' ? 'opacity-60' : ''"
+              >
+                <div class="space-y-0.5 min-w-0">
+                  <div class="flex items-center gap-2 flex-wrap">
+                    <span class="text-sm font-medium text-[var(--text)] truncate">{{ event.title }}</span>
+                    <Tag :severity="calStatusSeverity(event.status as CalendarEventStatus)" class="text-[10px]">
+                      {{ event.status === 'SCHEDULED' ? t('calendar.statusScheduled') : event.status === 'COMPLETED' ? t('calendar.statusCompleted') : event.status }}
+                    </Tag>
+                  </div>
+                  <p class="text-xs text-[var(--text-muted)]">
+                    {{ calEventTypeLabel(event.eventType as CalendarEventType) }} ·
+                    {{ dayjs(event.startAt).format('DD MMM YYYY HH:mm') }}
+                  </p>
+                </div>
+                <Button
+                  v-if="event.status === 'SCHEDULED'"
+                  v-tooltip.top="t('calendar.markCompleted')"
+                  icon="pi pi-check"
+                  text rounded size="small"
+                  severity="success"
+                  @click="markCalEventCompleted(event)"
+                />
+              </div>
+            </div>
+
+            <!-- Create calendar event dialog -->
+            <Dialog v-model:visible="showCalendarDialog" :header="t('calendar.scheduleVisit')" modal class="w-full max-w-md">
+              <div class="flex flex-col gap-3 pt-2">
+                <div class="flex flex-col gap-1">
+                  <label class="text-sm font-medium">{{ t('calendar.eventTitle') }} *</label>
+                  <InputText v-model="calForm.title" class="w-full" />
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium">{{ t('calendar.eventType') }}</label>
+                    <Select v-model="calForm.eventType" :options="calendarEventTypeOpts" option-label="label" option-value="value" class="w-full" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium">{{ t('calendar.contactChannel') }}</label>
+                    <Select v-model="calForm.contactChannel" :options="calendarChannelOpts" option-label="label" option-value="value" class="w-full" show-clear />
+                  </div>
+                </div>
+                <div class="grid grid-cols-2 gap-3">
+                  <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium">{{ t('calendar.startAt') }}</label>
+                    <InputText v-model="calForm.startAt" type="datetime-local" class="w-full" />
+                  </div>
+                  <div class="flex flex-col gap-1">
+                    <label class="text-sm font-medium">{{ t('calendar.endAt') }}</label>
+                    <InputText v-model="calForm.endAt" type="datetime-local" class="w-full" />
+                  </div>
+                </div>
+                <div class="flex flex-col gap-1">
+                  <label class="text-sm font-medium">{{ t('calendar.notes') }}</label>
+                  <Textarea v-model="calForm.notes" rows="2" class="w-full" />
+                </div>
+                <div class="flex justify-end gap-2">
+                  <Button :label="t('common.cancel')" severity="secondary" outlined @click="showCalendarDialog = false" />
+                  <Button :label="t('common.save')" :loading="savingCalEvent" :disabled="!calForm.title.trim()" @click="saveCalEvent" />
+                </div>
+              </div>
+            </Dialog>
           </TabPanel>
         </TabPanels>
       </Tabs>

@@ -233,7 +233,7 @@ async function saveSlaConfig() {
                 </div>
                 <div class="flex items-center gap-2 shrink-0">
                   <InputText
-                    v-model.number="item.model.value"
+                    v-model="(item.model as any).value"
                     type="number"
                     min="1"
                     :placeholder="item.placeholder"
