@@ -1299,6 +1299,15 @@
     "channelPhone": "Teléfono",
     "channelInPerson": "Presencial",
     "noClientSelected": "— Sin cliente —",
-    "tabCalendar": "Calendario"
+    "tabCalendar": "Calendario",
+    "events": "Eventos",
+    "reminders": "Recordatorios",
+    "newReminder": "Nuevo Recordatorio",
+    "noReminders": "No hay recordatorios configurados",
+    "nextDue": "Próximo vencimiento",
+    "completeReminder": "Completar",
+    "snoozeReminder": "Posponer",
+    "reminderCompleted": "Recordatorio completado",
+    "reminderSnoozed": "Recordatorio posposto 1 día"
   }
 }

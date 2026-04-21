@@ -1300,6 +1300,15 @@
     "channelPhone": "Phone",
     "channelInPerson": "In person",
     "noClientSelected": "— No client —",
-    "tabCalendar": "Calendar"
+    "tabCalendar": "Calendar",
+    "events": "Events",
+    "reminders": "Reminders",
+    "newReminder": "New Reminder",
+    "noReminders": "No reminders configured",
+    "nextDue": "Next due",
+    "completeReminder": "Complete",
+    "snoozeReminder": "Snooze",
+    "reminderCompleted": "Reminder completed",
+    "reminderSnoozed": "Reminder snoozed for 1 day"
   }
 }

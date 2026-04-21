@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth'
 import { calendarService } from '@/services/calendar.service'
 import { clientsService } from '@/services/clients.service'
 import { usersService } from '@/services/users.service'
+import { remindersService, type ClientReminder } from '@/services/reminders.service'
 import type {
   CalendarEvent,
   CalendarEventType,
@@ -26,6 +27,9 @@ import type {
 } from '@/types/calendar'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
 
 const { t, locale } = useI18n()
 const auth = useAuthStore()
@@ -35,6 +39,17 @@ const confirm = useConfirm()
 dayjs.locale(locale.value === 'es' ? 'es' : 'en')
 
 const canWrite = computed(() => auth.hasPermission('client:write'))
+
+const activeTab = ref('events')
+
+// ── Reminders query ─────────────────────────────────────────────────
+const { data: reminders, refetch: refetchReminders } = useQuery({
+  queryKey: computed(() => ['reminders', filterClient.value]),
+  queryFn: () => filterClient.value 
+    ? remindersService.getByClient(filterClient.value)
+    : remindersService.list({ size: 100 }).then(r => r.content ?? r),
+  staleTime: 30_000
+})
 
 // ── Month navigation ──────────────────────────────────────────────────
 const currentMonth = ref(dayjs().startOf('month'))
@@ -354,6 +369,29 @@ async function markStatus(event: CalendarEvent, status: CalendarEventStatus) {
   }
 }
 
+// ── Reminders ────────────────────────────────────────────────────────
+const showReminderDialog = ref(false)
+
+async function completeReminder(reminder: ClientReminder) {
+  try {
+    await remindersService.complete(reminder.id)
+    toast.success(t('calendar.reminderCompleted') || 'Reminder completed')
+    refetchReminders()
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  }
+}
+
+async function snoozeReminder(reminder: ClientReminder) {
+  try {
+    await remindersService.snooze(reminder.id, 1)
+    toast.success(t('calendar.reminderSnoozed') || 'Reminder snoozed for 1 day')
+    refetchReminders()
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  }
+}
+
 function confirmDelete(event: CalendarEvent) {
   confirm.require({
     message: t('calendar.deleteConfirm'),
@@ -417,8 +455,14 @@ function formatDateTime(iso: string): string {
   <div class="space-y-4">
     <!-- Header -->
     <div class="flex flex-wrap items-center justify-between gap-3">
-      <div>
+      <div class="flex items-center gap-4">
         <h1 class="text-xl font-semibold text-[var(--text)]">{{ t('calendar.title') }}</h1>
+        <Tabs v-model:value="activeTab" class="ml-4">
+          <TabList>
+            <Tab value="events">{{ t('calendar.events') || 'Events' }}</Tab>
+            <Tab value="reminders">{{ t('calendar.reminders') || 'Reminders' }}</Tab>
+          </TabList>
+        </Tabs>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
         <!-- Agent filter -->
@@ -479,8 +523,9 @@ function formatDateTime(iso: string): string {
       </div>
     </div>
 
-    <!-- Calendar grid -->
-    <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+    <!-- Content based on active tab -->
+    <div v-if="activeTab === 'events'" class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+      <!-- Calendar grid -->
       <!-- Day-of-week header -->
       <div class="grid grid-cols-7 border-b border-[var(--border)]">
         <div
@@ -538,6 +583,42 @@ function formatDateTime(iso: string): string {
             >{{ event.title }}</button>
             <div v-if="cell.events.length > 3" class="text-[10px] text-[var(--text-muted)] pl-1">
               +{{ cell.events.length - 3 }} más
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Reminders list -->
+    <div v-else-if="activeTab === 'reminders'" class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
+      <div class="p-4">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-lg font-semibold">{{ t('calendar.reminders') || 'Client Reminders' }}</h2>
+          <Button v-if="canWrite" :label="t('calendar.newReminder') || 'New Reminder'" icon="pi pi-plus" size="small" @click="showReminderDialog = true" />
+        </div>
+        
+        <div v-if="!reminders?.length" class="text-center py-8 text-[var(--text-muted)]">
+          {{ t('calendar.noReminders') || 'No reminders configured' }}
+        </div>
+        
+        <div v-else class="space-y-2">
+          <div
+            v-for="reminder in reminders"
+            :key="reminder.id"
+            class="flex items-center justify-between p-3 rounded-lg border border-[var(--border)] hover:bg-[var(--surface-hover)]"
+          >
+            <div class="flex-1">
+              <p class="font-medium">{{ reminder.title }}</p>
+              <p v-if="reminder.description" class="text-sm text-[var(--text-muted)]">{{ reminder.description }}</p>
+              <p class="text-xs text-[var(--text-muted)]">
+                {{ t('calendar.nextDue') || 'Next due' }}: {{ dayjs(reminder.nextDueDate).format('DD/MM/YYYY HH:mm') }}
+                <span v-if="reminder.occurrencesCount"> ({{ reminder.occurrencesCount }} {{ t('calendar.completed') || 'completed' }})</span>
+              </p>
+            </div>
+            <div class="flex items-center gap-2">
+              <Tag :value="reminder.status" :severity="reminder.status === 'ACTIVE' ? 'success' : 'secondary'" />
+              <Button v-if="reminder.status === 'ACTIVE'" icon="pi pi-check" size="small" outlined @click="completeReminder(reminder)" :aria-label="t('calendar.completeReminder')" />
+              <Button v-if="reminder.status === 'ACTIVE'" icon="pi pi-clock" size="small" text @click="snoozeReminder(reminder)" :aria-label="t('calendar.snoozeReminder')" />
             </div>
           </div>
         </div>
