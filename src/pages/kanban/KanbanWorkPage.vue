@@ -13,7 +13,7 @@ import { useAuthStore } from '@/stores/auth'
 import { kanbanService } from '@/services/kanban.service'
 import { usersService } from '@/services/users.service'
 import { tenantsService } from '@/services/tenants.service'
-import type { KanbanColumnKind, KanbanWorkItem, KanbanCard, CardPriority } from '@/types/kanban'
+import type { KanbanWorkItem, KanbanCard, CardPriority } from '@/types/kanban'
 import { ClipboardList, Users, Flag, Tag as TagIcon, Search, BarChart3, Clock, AlertTriangle, CheckCircle, LayoutGrid } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import PageInfoButton from '@/components/ui/PageInfoButton.vue'
@@ -33,12 +33,6 @@ const filterDueTo = ref<Date | null>(null)
 const filterLabel = ref<string>('')
 const searchText = ref('')
 
-const columns = ref<{ id: string; name: string; kind: KanbanColumnKind | null }[]>([
-  { id: 'TODO', name: 'To Do', kind: 'TODO' },
-  { id: 'IN_PROGRESS', name: 'In Progress', kind: 'IN_PROGRESS' },
-  { id: 'DONE', name: 'Done', kind: 'DONE' },
-  { id: 'HISTORY', name: 'History', kind: 'HISTORY' }
-])
 
 const { data: allItems, isError, error: workItemsError, refetch } = useQuery({
   queryKey: computed(() => ['kanban', isSuperAdmin.value ? 'supervisor-items' : 'work-items', filterTenant.value, filterBoard.value, filterAssignee.value, filterPriority.value]),
@@ -111,21 +105,23 @@ const filteredItems = computed(() => {
   return items
 })
 
-const itemsByColumn = computed(() => {
-  const grouped: Record<string, KanbanWorkItem[]> = {
-    TODO: [],
-    IN_PROGRESS: [],
-    DONE: [],
-    HISTORY: []
-  }
-
+const dynamicColumns = computed(() => {
+  const colMap = new Map<string, { id: string; name: string; kind: string | null; boardName: string }>()
   filteredItems.value.forEach(item => {
-    const kind = item.columnKind as KanbanColumnKind
-    if (kind && grouped[kind]) {
-      grouped[kind].push(item)
+    if (!colMap.has(item.columnId)) {
+      colMap.set(item.columnId, { id: item.columnId, name: item.columnName, kind: item.columnKind ?? null, boardName: item.boardName })
     }
   })
+  const kindOrder = (k: string | null) => k === 'TODO' ? 0 : k === 'IN_PROGRESS' ? 1 : k === 'DONE' ? 3 : k === 'HISTORY' ? 4 : 2
+  return Array.from(colMap.values()).sort((a, b) => kindOrder(a.kind) - kindOrder(b.kind) || a.name.localeCompare(b.name))
+})
 
+const itemsByColumnId = computed(() => {
+  const grouped: Record<string, KanbanWorkItem[]> = {}
+  filteredItems.value.forEach(item => {
+    if (!grouped[item.columnId]) grouped[item.columnId] = []
+    grouped[item.columnId].push(item)
+  })
   return grouped
 })
 
@@ -133,10 +129,10 @@ const metrics = computed(() => {
   const items = filteredItems.value
   return {
     total: items.length,
-    todo: itemsByColumn.value.TODO.length,
-    inProgress: itemsByColumn.value.IN_PROGRESS.length,
-    done: itemsByColumn.value.DONE.length,
-    history: itemsByColumn.value.HISTORY.length,
+    todo: items.filter(i => i.columnKind === 'TODO').length,
+    inProgress: items.filter(i => i.columnKind === 'IN_PROGRESS').length,
+    done: items.filter(i => i.columnKind === 'DONE').length,
+    history: items.filter(i => i.columnKind === 'HISTORY').length,
     overdue: items.filter(i => {
       if (!i.card.dueDate) return false
       if (i.columnKind === 'DONE' || i.columnKind === 'HISTORY') return false
@@ -206,8 +202,8 @@ function workItemsErrorHint(err: unknown): string {
     const st = err.response?.status
     if (st === 401) return t('errors.sessionExpired')
     if (st === 403) return t('errors.forbidden')
-    const body = err.response?.data as { message?: string } | undefined
-    if (body?.message && typeof body.message === 'string') return body.message
+    if (st === 404) return t('errors.notFound')
+    if (st && st >= 500) return t('errors.server')
     if (st) return `${t('errors.loadFailed')} (HTTP ${st})`
   }
   return t('errors.loadFailed')
@@ -383,24 +379,28 @@ function clearFilters() {
       <p class="text-sm text-[var(--text-muted)]">{{ workItemsErrorHint(workItemsError) }}</p>
     </div>
 
+    <div v-else-if="!allItems || allItems.length === 0" class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-10 text-center text-[var(--text-muted)]">
+      {{ t('kanban.noWorkItems') }}
+    </div>
+
     <div v-else class="flex gap-4 overflow-x-auto pb-4">
       <div
-        v-for="col in columns"
+        v-for="col in dynamicColumns"
         :key="col.id"
         class="w-80 shrink-0 rounded-xl border border-[var(--border)] bg-[var(--surface)] flex flex-col max-h-[calc(100vh-16rem)]"
       >
         <div class="p-3 border-b border-[var(--border)] flex items-center justify-between">
-          <div class="flex items-center gap-2">
-            <h2 class="font-semibold text-[var(--text)]">{{ col.name }}</h2>
-            <Tag severity="secondary" class="text-xs">{{ itemsByColumn[col.kind as KanbanColumnKind]?.length || 0 }}</Tag>
+          <div class="flex flex-col gap-0.5 min-w-0">
+            <div class="flex items-center gap-2">
+              <h2 class="font-semibold text-[var(--text)] truncate">{{ col.name }}</h2>
+              <Tag severity="secondary" class="text-xs shrink-0">{{ itemsByColumnId[col.id]?.length || 0 }}</Tag>
+            </div>
+            <span class="text-[10px] text-[var(--text-muted)] truncate">{{ col.boardName }}</span>
           </div>
         </div>
 
-        <div
-          :model-value="itemsByColumn[col.kind as KanbanColumnKind]"
-          class="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-20rem)]"
-        >
-          <div v-for="item in itemsByColumn[col.kind as KanbanColumnKind]" :key="item.id">
+        <div class="flex-1 p-2 space-y-2 overflow-y-auto max-h-[calc(100vh-20rem)]">
+          <div v-for="item in itemsByColumnId[col.id]" :key="item.id">
             <button
               type="button"
               class="w-full text-left rounded-lg border bg-[var(--surface-raised)] p-3 hover:border-[var(--primary)]/50 transition-colors"
@@ -426,7 +426,7 @@ function clearFilters() {
                   <Tag v-if="item.card.priority" :severity="prioritySeverity(item.card.priority)" class="text-[10px]">
                     {{ item.card.priority }}
                   </Tag>
-                  <Tag v-if="item.card.dueDate && col.kind !== 'DONE' && col.kind !== 'HISTORY'" severity="info" class="text-[10px]">
+                  <Tag v-if="item.card.dueDate && item.columnKind !== 'DONE' && item.columnKind !== 'HISTORY'" severity="info" class="text-[10px]">
                     {{ formatDue(item.card.dueDate) }}
                   </Tag>
                   <Tag v-if="item.checklistProgress" severity="secondary" class="text-[10px]">
