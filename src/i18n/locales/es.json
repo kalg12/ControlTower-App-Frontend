@@ -65,7 +65,8 @@
     "noData": "Sin datos disponibles",
     "previous": "Anterior",
     "next": "Siguiente",
-    "view": "Ver"
+    "view": "Ver",
+    "loadMore": "Cargar más"
   },
   "errors": {
     "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
@@ -1035,7 +1036,20 @@
     "tabContacts": "Contactos",
     "tabTickets": "Tickets",
     "tabPipeline": "Pipeline",
-    "tabFinance": "Finanzas"
+    "tabFinance": "Finanzas",
+    "history": "Historial",
+    "noHistory": "No hay historial de cambios",
+    "statusChanged": "Estado cambiao",
+    "assignedChanged": "Asignación cambiada",
+    "segmentChanged": "Segmento cambiado",
+    "stageChanged": "Etapa cambiada",
+    "valueChanged": "Valor actualizado",
+    "converted": "Convertido a cliente",
+    "lost": "Prospecto perdido",
+    "reactivated": "Reactivado",
+    "won": "Oportunidad ganada",
+    "reopened": "Reabierto",
+    "created": "Creado"
   },
   "activity": {
     "title": "Actividad de Usuarios",

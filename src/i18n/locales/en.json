@@ -65,7 +65,8 @@
     "noData": "No data available",
     "previous": "Previous",
     "next": "Next",
-    "view": "View"
+    "view": "View",
+    "loadMore": "Load more"
   },
   "errors": {
     "sessionExpired": "Your session expired. Please sign in again.",
@@ -1036,7 +1037,20 @@
     "tabContacts": "Contacts",
     "tabTickets": "Tickets",
     "tabPipeline": "Pipeline",
-    "tabFinance": "Finance"
+    "tabFinance": "Finance",
+    "history": "History",
+    "noHistory": "No change history",
+    "statusChanged": "Status changed",
+    "assignedChanged": "Assignment changed",
+    "segmentChanged": "Segment changed",
+    "stageChanged": "Stage changed",
+    "valueChanged": "Value updated",
+    "converted": "Converted to client",
+    "lost": "Prospect lost",
+    "reactivated": "Reactivated",
+    "won": "Opportunity won",
+    "reopened": "Reopened",
+    "created": "Created"
   },
   "activity": {
     "title": "User Activity",

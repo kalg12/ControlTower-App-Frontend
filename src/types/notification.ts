@@ -1,4 +1,4 @@
-export type NotificationCategory = 'ALL' | 'TICKETS' | 'KANBAN' | 'FINANCE' | 'SYSTEM'
+export type NotificationCategory = 'ALL' | 'TICKETS' | 'KANBAN' | 'FINANCE' | 'CRM' | 'SYSTEM'
 
 export interface Notification {
   id: string
@@ -34,6 +34,14 @@ export const CATEGORY_MAP: Record<string, NotificationCategory> = {
   ESTIMATE_EXCEEDED: 'KANBAN',
   INVOICE_DUE_SOON: 'FINANCE',
   INVOICE_OVERDUE: 'FINANCE',
+  CLIENT_MOVED: 'CRM',
+  BRANCH_MOVED: 'CRM',
+  OPPORTUNITY_STAGE_CHANGED: 'CRM',
+  OPPORTUNITY_WON: 'CRM',
+  OPPORTUNITY_LOST: 'CRM',
+  PROSPECT_CONVERTED: 'CRM',
+  PROSPECT_LOST: 'CRM',
+  CONTACT_ASSIGNED: 'CRM',
   HEALTH_INCIDENT: 'SYSTEM',
   LICENSE_EXPIRING_SOON: 'SYSTEM',
   WEBHOOK_FAILED: 'SYSTEM',
@@ -58,6 +66,8 @@ export function getEntityLink(notif: Notification): string | null {
   const eventId = meta.eventId as string | undefined
   const reminderId = meta.reminderId as string | undefined
   const clientId = meta.clientId as string | undefined
+  const branchId = meta.branchId as string | undefined
+  const opportunityId = meta.opportunityId as string | undefined
 
   if (ticketId) return `/tickets/${ticketId}`
   if (cardId) return `/kanban`
@@ -65,6 +75,8 @@ export function getEntityLink(notif: Notification): string | null {
   if (incidentId) return `/health?incident=${incidentId}`
   if (eventId) return `/calendar`
   if (reminderId) return `/calendar?tab=reminders&reminder=${reminderId}`
+  if (opportunityId) return `/crm/opportunities/${opportunityId}`
+  if (branchId) return `/clients/${clientId}/branches/${branchId}`
   if (clientId) return `/clients/${clientId}`
   return null
 }
