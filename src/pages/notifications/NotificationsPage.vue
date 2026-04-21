@@ -90,6 +90,9 @@ function typeIcon(type: string) {
     LICENSE_EXPIRING_SOON: 'pi pi-key',
     POS_TICKET: 'pi pi-shopping-cart',
     POS_CHAT: 'pi pi-comments',
+    CALENDAR_ASSIGNED: 'pi pi-calendar-plus',
+    CALENDAR_UPDATED: 'pi pi-calendar',
+    CALENDAR_REMOVED: 'pi pi-calendar-minus',
   }
   return map[type] || 'pi pi-bell'
 }
