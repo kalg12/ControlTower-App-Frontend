@@ -11,6 +11,7 @@ import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
 import ToggleSwitch from 'primevue/toggleswitch'
+import DatePicker from 'primevue/datepicker'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import { calendarService } from '@/services/calendar.service'
@@ -123,23 +124,6 @@ const weekDayLabels = computed(() =>
     : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 )
 
-// ── Quick time slots ─────────────────────────────────────────────────
-const quickTimeSlots = [
-  { label: '08:00', value: '08:00' },
-  { label: '09:00', value: '09:00' },
-  { label: '10:00', value: '10:00' },
-  { label: '11:00', value: '11:00' },
-  { label: '12:00', value: '12:00' },
-  { label: '13:00', value: '13:00' },
-  { label: '14:00', value: '14:00' },
-  { label: '15:00', value: '15:00' },
-  { label: '16:00', value: '16:00' },
-  { label: '17:00', value: '17:00' },
-  { label: '18:00', value: '18:00' },
-  { label: '19:00', value: '19:00' },
-  { label: '20:00', value: '20:00' },
-]
-
 // ── Duration presets ─────────────────────────────────────────────────
 const durationPresets = [
   { label: '15 min', value: 15, icon: '⏱' },
@@ -226,41 +210,53 @@ const showDialog = ref(false)
 const editingEvent = ref<CalendarEvent | null>(null)
 const saving = ref(false)
 
-const form = ref({
+const form = ref<{
+  title: string
+  eventType: CalendarEventType
+  startAt: Date | null
+  endAt: Date | null
+  allDay: boolean
+  durationMinutes: number
+  clientId: string | null
+  contactChannel: ContactChannel | null
+  assigneeIds: string[]
+  notes: string
+  description: string
+}>({
   title: '',
-  eventType: 'MEETING' as CalendarEventType,
-  startAt: '',
-  endAt: '',
+  eventType: 'MEETING',
+  startAt: null,
+  endAt: null,
   allDay: false,
   durationMinutes: 60,
-  clientId: null as string | null,
-  contactChannel: null as ContactChannel | null,
-  assigneeIds: [] as string[],
+  clientId: null,
+  contactChannel: null,
+  assigneeIds: [],
   notes: '',
   description: ''
 })
 
 // ── Update end time when start or duration changes ─────────────────────
 watch(() => form.value.startAt, (newStart) => {
-  if (newStart && !form.value.allDay) {
+  if (newStart && !form.value.allDay && form.value.endAt) {
     const start = dayjs(newStart)
     const end = start.add(form.value.durationMinutes, 'minute')
-    form.value.endAt = end.format('YYYY-MM-DDTHH:mm')
+    form.value.endAt = end.toDate()
   }
 })
 
 watch(() => form.value.durationMinutes, (newDuration) => {
-  if (form.value.startAt && !form.value.allDay) {
+  if (form.value.startAt && !form.value.allDay && form.value.endAt) {
     const start = dayjs(form.value.startAt)
     const end = start.add(newDuration, 'minute')
-    form.value.endAt = end.format('YYYY-MM-DDTHH:mm')
+    form.value.endAt = end.toDate()
   }
 })
 
 watch(() => form.value.allDay, (isAllDay) => {
   if (isAllDay && form.value.startAt) {
     const start = dayjs(form.value.startAt)
-    form.value.endAt = start.endOf('day').format('YYYY-MM-DDTHH:mm')
+    form.value.endAt = start.endOf('day').toDate()
   }
 })
 
@@ -272,8 +268,8 @@ function openCreate(date?: dayjs.Dayjs) {
   form.value = {
     title: '',
     eventType: 'MEETING',
-    startAt: base.hour(9).minute(0).format('YYYY-MM-DDTHH:mm'),
-    endAt: base.hour(10).minute(0).format('YYYY-MM-DDTHH:mm'),
+    startAt: base.hour(9).minute(0).toDate(),
+    endAt: base.hour(10).minute(0).toDate(),
     allDay: false,
     durationMinutes: defaultDuration,
     clientId: filterClient.value,
@@ -294,8 +290,8 @@ function openEdit(event: CalendarEvent) {
   form.value = {
     title: event.title,
     eventType: event.eventType,
-    startAt: start.format('YYYY-MM-DDTHH:mm'),
-    endAt: end.format('YYYY-MM-DDTHH:mm'),
+    startAt: start.toDate(),
+    endAt: end.toDate(),
     allDay: durationMinutes >= 480,
     durationMinutes: durationMinutes,
     clientId: event.clientId ?? null,
@@ -588,28 +584,20 @@ function formatDateTime(iso: string): string {
               <label class="text-sm font-medium cursor-pointer" for="allDay">Todo el día</label>
             </div>
             <div v-if="!form.allDay">
-              <label class="text-xs text-[var(--text-muted)]">Hora de inicio</label>
-              <Select
+              <label class="text-xs text-[var(--text-muted)]">Fecha y hora de inicio</label>
+              <DatePicker
                 v-model="form.startAt"
-                :options="quickTimeSlots"
-                option-label="label"
-                option-value="value"
-                placeholder="Hora"
+                showTime
+                hourFormat="24"
+                dateFormat="dd/mm/yy"
                 class="w-full"
-                :virtualScrollerOptions="{ itemSize: 32 }"
-                show-clear
-              >
-                <template #value="slotProps">
-                  <div v-if="slotProps.value" class="flex items-center gap-2">
-                    <i class="pi pi-clock text-xs" />
-                    {{ slotProps.value }}
-                  </div>
-                  <span v-else class="text-[var(--text-placeholder)]">Seleccionar hora</span>
-                </template>
-              </Select>
+                :showIcon="false"
+                :manualInput="true"
+                placeholder="Seleccionar fecha y hora"
+              />
             </div>
             <div v-else>
-              <InputText v-model="form.startAt" type="date" class="w-full" />
+              <DatePicker v-model="form.startAt" dateFormat="dd/mm/yy" class="w-full" :showIcon="false" :manualInput="true" />
             </div>
           </div>
 
