@@ -26,6 +26,9 @@ export interface Client {
   segment?: 'SMB' | 'MID_MARKET' | 'ENTERPRISE'
   leadSource?: LeadSource | null
   phone?: string | null
+  primaryPhone?: string | null
+  primaryEmail?: string | null
+  primaryContactName?: string | null
   accountOwnerId?: string
   accountOwnerName?: string
   healthScore?: number
@@ -72,6 +75,9 @@ export interface CreateClientRequest {
   segment?: string
   leadSource?: string
   phone?: string
+  primaryPhone?: string
+  primaryEmail?: string
+  primaryContactName?: string
 }
 
 export interface UpdateClientRequest {
@@ -86,6 +92,9 @@ export interface UpdateClientRequest {
   accountOwnerId?: string
   leadSource?: string
   phone?: string
+  primaryPhone?: string
+  primaryEmail?: string
+  primaryContactName?: string
 }
 
 export interface CreateContactRequest {

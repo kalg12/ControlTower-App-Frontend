@@ -1040,6 +1040,7 @@
     "tabFinance": "Finanzas",
     "history": "Historial",
     "noHistory": "No hay historial de cambios",
+    "primary": "Principal",
     "statusChanged": "Estado cambiao",
     "assignedChanged": "Asignación cambiada",
     "segmentChanged": "Segmento cambiado",
@@ -1323,6 +1324,7 @@
     "completeReminder": "Completar",
     "snoozeReminder": "Posponer",
     "reminderCompleted": "Recordatorio completado",
-    "reminderSnoozed": "Recordatorio posposto 1 día"
+    "reminderSnoozed": "Recordatorio posposto 1 día",
+    "contacts": "Contactos"
   }
 }

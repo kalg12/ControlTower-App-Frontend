@@ -351,9 +351,19 @@ async function saveEvent() {
 const selectedEvent = ref<CalendarEvent | null>(null)
 const showDetail = ref(false)
 
+const { data: eventContacts, refetch: refetchContacts } = useQuery({
+  queryKey: computed(() => ['event-contacts', selectedEvent.value?.clientId]),
+  queryFn: () => selectedEvent.value?.clientId 
+    ? clientsService.getContacts(selectedEvent.value.clientId)
+    : Promise.resolve([]),
+  staleTime: 30_000,
+  enabled: computed(() => !!selectedEvent.value?.clientId)
+})
+
 function openDetail(event: CalendarEvent) {
   selectedEvent.value = event
   showDetail.value = true
+  refetchContacts()
 }
 
 async function markStatus(event: CalendarEvent, status: CalendarEventStatus) {
@@ -796,6 +806,42 @@ function formatDateTime(iso: string): string {
         <div v-if="selectedEvent.clientName" class="text-sm">
           <p class="text-[var(--text-muted)] text-xs">{{ t('calendar.client') }}</p>
           <p class="font-medium text-[var(--text)]">{{ selectedEvent.clientName }}</p>
+        </div>
+
+        <!-- Contacts -->
+        <div v-if="eventContacts && eventContacts.length > 0" class="text-sm">
+          <p class="text-[var(--text-muted)] text-xs mb-2">{{ t('calendar.contacts') }}</p>
+          <div class="flex flex-col gap-2">
+            <div 
+              v-for="contact in eventContacts" 
+              :key="contact.id"
+              class="flex items-center justify-between p-2 rounded border border-[var(--border)] bg-[var(--surface-ground)]"
+            >
+              <div class="flex flex-col">
+                <div class="flex items-center gap-1">
+                  <span class="font-medium text-[var(--text)]">{{ contact.fullName }}</span>
+                  <Tag v-if="contact.primary" severity="info" class="text-[10px] px-1 py-0">{{ t('crm.primary') }}</Tag>
+                </div>
+                <span class="text-xs text-[var(--text-muted)]">{{ contact.role }}</span>
+              </div>
+              <div class="flex flex-col items-end gap-1">
+                <a 
+                  v-if="contact.phone" 
+                  :href="`tel:${contact.phone}`"
+                  class="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  <i class="pi pi-phone"></i> {{ contact.phone }}
+                </a>
+                <a 
+                  v-if="contact.email" 
+                  :href="`mailto:${contact.email}`"
+                  class="text-xs text-primary hover:underline flex items-center gap-1"
+                >
+                  <i class="pi pi-envelope"></i> {{ contact.email }}
+                </a>
+              </div>
+            </div>
+          </div>
         </div>
 
         <!-- Channel -->
