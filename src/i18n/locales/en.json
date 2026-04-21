@@ -865,7 +865,13 @@
       "HEALTH_INCIDENT": "Health incident",
       "HEALTH_INCIDENT_desc": "Notify when a monitored service reports an incident",
       "LICENSE_EXPIRING_SOON": "License expiring soon",
-      "LICENSE_EXPIRING_SOON_desc": "Notify when a client license is about to expire"
+      "LICENSE_EXPIRING_SOON_desc": "Notify when a client license is about to expire",
+      "CALENDAR_ASSIGNED": "Event assigned",
+      "CALENDAR_ASSIGNED_desc": "Notify when a calendar event is assigned to you",
+      "CALENDAR_UPDATED": "Event updated",
+      "CALENDAR_UPDATED_desc": "Notify when an assigned event is modified",
+      "CALENDAR_REMOVED": "Event cancelled",
+      "CALENDAR_REMOVED_desc": "Notify when an assigned event is cancelled"
     }
   },
   "notifications": {

@@ -858,7 +858,13 @@
       "HEALTH_INCIDENT": "Incidente de salud",
       "HEALTH_INCIDENT_desc": "Notificar cuando un servicio monitorizado reporte un incidente",
       "LICENSE_EXPIRING_SOON": "Licencia próxima a expirar",
-      "LICENSE_EXPIRING_SOON_desc": "Notificar cuando una licencia de cliente esté próxima a expirar"
+      "LICENSE_EXPIRING_SOON_desc": "Notificar cuando una licencia de cliente esté próxima a expirar",
+      "CALENDAR_ASSIGNED": "Evento asignado",
+      "CALENDAR_ASSIGNED_desc": "Notificar cuando se te asigne un evento del calendario",
+      "CALENDAR_UPDATED": "Evento actualizado",
+      "CALENDAR_UPDATED_desc": "Notificar cuando se modifique un evento asignado",
+      "CALENDAR_REMOVED": "Evento cancelado",
+      "CALENDAR_REMOVED_desc": "Notificar cuando se cancele un evento asignado"
     }
   },
   "notifications": {

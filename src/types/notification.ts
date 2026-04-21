@@ -37,6 +37,9 @@ export const CATEGORY_MAP: Record<string, NotificationCategory> = {
   HEALTH_INCIDENT: 'SYSTEM',
   LICENSE_EXPIRING_SOON: 'SYSTEM',
   WEBHOOK_FAILED: 'SYSTEM',
+  CALENDAR_ASSIGNED: 'SYSTEM',
+  CALENDAR_UPDATED: 'SYSTEM',
+  CALENDAR_REMOVED: 'SYSTEM',
 }
 
 export function getCategory(type: string): NotificationCategory {
@@ -49,10 +52,12 @@ export function getEntityLink(notif: Notification): string | null {
   const cardId = meta.cardId as string | undefined
   const invoiceId = meta.invoiceId as string | undefined
   const incidentId = meta.incidentId as string | undefined
+  const eventId = meta.eventId as string | undefined
 
   if (ticketId) return `/tickets/${ticketId}`
   if (cardId) return `/kanban`
   if (invoiceId) return `/finance`
   if (incidentId) return `/health?incident=${incidentId}`
+  if (eventId) return `/calendar`
   return null
 }

@@ -35,6 +35,12 @@ export const useNotificationsStore = defineStore('notifications', () => {
     )).length
   )
 
+  const calendarBadge = computed(() =>
+    items.value.filter(n => !n.read && (
+      n.type === 'CALENDAR_ASSIGNED' || n.type === 'CALENDAR_UPDATED' || n.type === 'CALENDAR_REMOVED'
+    )).length
+  )
+
   const financeBadge = computed(() =>
     items.value.filter(n => !n.read && (
       n.type === 'INVOICE_DUE_SOON' || n.type === 'INVOICE_OVERDUE'
@@ -97,6 +103,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
     unreadByCategory,
     ticketsBadge,
     kanbanBadge,
+    calendarBadge,
     financeBadge,
     posBadgeCount,
     fetch,
