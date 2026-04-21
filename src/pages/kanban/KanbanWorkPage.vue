@@ -14,7 +14,7 @@ import { kanbanService } from '@/services/kanban.service'
 import { usersService } from '@/services/users.service'
 import { tenantsService } from '@/services/tenants.service'
 import type { KanbanColumnKind, KanbanWorkItem, KanbanCard, CardPriority } from '@/types/kanban'
-import { ClipboardList, Users, Flag, Tag as TagIcon, Search, BarChart3, Clock, AlertTriangle, CheckCircle } from 'lucide-vue-next'
+import { ClipboardList, Users, Flag, Tag as TagIcon, Search, BarChart3, Clock, AlertTriangle, CheckCircle, LayoutGrid } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import PageInfoButton from '@/components/ui/PageInfoButton.vue'
 
@@ -46,11 +46,13 @@ const { data: allItems, isError, error: workItemsError, refetch } = useQuery({
     if (isSuperAdmin.value) {
       return kanbanService.listSupervisorItems({
         tenantId: filterTenant.value || undefined,
+        boardId: filterBoard.value || undefined,
         assigneeId: filterAssignee.value || undefined,
         priority: filterPriority.value || undefined
       })
     }
     return kanbanService.listWorkItems({
+      boardId: filterBoard.value || undefined,
       assigneeId: filterAssignee.value || undefined,
       columnKind: undefined
     })
@@ -62,6 +64,12 @@ const { data: tenantOptions } = useQuery({
   queryKey: ['tenants', 'all'],
   queryFn: () => tenantsService.list({ page: 0, size: 500 }).then(r => r.content),
   enabled: isSuperAdmin
+})
+
+const { data: boardOptions } = useQuery({
+  queryKey: computed(() => ['kanban-boards']),
+  queryFn: () => kanbanService.listBoards(0, 100).then(r => r.content ?? r),
+  staleTime: 60_000
 })
 
 const { data: userOptions } = useQuery({
@@ -154,6 +162,11 @@ const priorityOpts = computed(() => [
   { label: t('kanban.priorityMedium'), value: 'MEDIUM' as CardPriority },
   { label: t('kanban.priorityHigh'), value: 'HIGH' as CardPriority },
   { label: t('kanban.priorityCritical'), value: 'CRITICAL' as CardPriority }
+])
+
+const boardOpts = computed(() => [
+  { label: t('kanban.allBoards'), value: null as string | null },
+  ...(boardOptions.value ?? []).map(b => ({ label: b.name, value: b.id }))
 ])
 
 function prioritySeverity(p?: string): 'success' | 'warn' | 'danger' | 'secondary' {
@@ -282,6 +295,21 @@ function clearFilters() {
           option-value="value"
           class="w-full"
           :placeholder="t('kanban.allTenants')"
+        />
+      </div>
+
+      <div class="flex flex-col gap-1 min-w-[180px]">
+        <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
+          <LayoutGrid class="w-3 h-3" /> {{ t('kanban.board') }}
+        </label>
+        <Select
+          v-model="filterBoard"
+          :options="boardOpts"
+          option-label="label"
+          option-value="value"
+          class="w-full"
+          :placeholder="t('kanban.allBoards')"
+          show-clear
         />
       </div>
 

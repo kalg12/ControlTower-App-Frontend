@@ -167,6 +167,8 @@
     "cardDescription": "Descripción",
     "assignee": "Asignado",
     "assignees": "Asignados",
+    "board": "Tablero",
+    "allBoards": "Todos los tableros",
     "unassigned": "Sin asignar",
     "dueDate": "Fecha límite",
     "priority": "Prioridad",

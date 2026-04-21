@@ -21,11 +21,13 @@ export const kanbanService = {
   },
 
   async listWorkItems(params?: {
+    boardId?: string
     assigneeId?: string
     columnKind?: KanbanColumnKind | ''
   }): Promise<KanbanWorkItem[]> {
     const res = await api.get<KanbanWorkItem[]>('/kanban/work-items', {
       params: {
+        boardId: params?.boardId || undefined,
         assigneeId: params?.assigneeId || undefined,
         columnKind: params?.columnKind || undefined
       }
