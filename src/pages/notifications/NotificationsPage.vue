@@ -93,6 +93,9 @@ function typeIcon(type: string) {
     CALENDAR_ASSIGNED: 'pi pi-calendar-plus',
     CALENDAR_UPDATED: 'pi pi-calendar',
     CALENDAR_REMOVED: 'pi pi-calendar-minus',
+    CLIENT_REMINDER_DUE: 'pi pi-bell',
+    CLIENT_REMINDER_COMPLETED: 'pi pi-check-circle',
+    CLIENT_REMINDER_SNOOZED: 'pi pi-clock',
   }
   return map[type] || 'pi pi-bell'
 }

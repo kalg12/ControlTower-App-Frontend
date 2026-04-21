@@ -40,6 +40,9 @@ export const CATEGORY_MAP: Record<string, NotificationCategory> = {
   CALENDAR_ASSIGNED: 'SYSTEM',
   CALENDAR_UPDATED: 'SYSTEM',
   CALENDAR_REMOVED: 'SYSTEM',
+  CLIENT_REMINDER_DUE: 'SYSTEM',
+  CLIENT_REMINDER_COMPLETED: 'SYSTEM',
+  CLIENT_REMINDER_SNOOZED: 'SYSTEM',
 }
 
 export function getCategory(type: string): NotificationCategory {
@@ -53,11 +56,15 @@ export function getEntityLink(notif: Notification): string | null {
   const invoiceId = meta.invoiceId as string | undefined
   const incidentId = meta.incidentId as string | undefined
   const eventId = meta.eventId as string | undefined
+  const reminderId = meta.reminderId as string | undefined
+  const clientId = meta.clientId as string | undefined
 
   if (ticketId) return `/tickets/${ticketId}`
   if (cardId) return `/kanban`
   if (invoiceId) return `/finance`
   if (incidentId) return `/health?incident=${incidentId}`
   if (eventId) return `/calendar`
+  if (reminderId) return `/calendar?tab=reminders&reminder=${reminderId}`
+  if (clientId) return `/clients/${clientId}`
   return null
 }

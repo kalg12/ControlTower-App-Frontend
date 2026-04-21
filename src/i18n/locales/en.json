@@ -873,7 +873,11 @@
       "CALENDAR_UPDATED": "Event updated",
       "CALENDAR_UPDATED_desc": "Notify when an assigned event is modified",
       "CALENDAR_REMOVED": "Event cancelled",
-      "CALENDAR_REMOVED_desc": "Notify when an assigned event is cancelled"
+      "CALENDAR_REMOVED_desc": "Notify when an assigned event is cancelled",
+      "CLIENT_REMINDER_DUE": "Client reminder due",
+      "CLIENT_REMINDER_DUE_desc": "Notify when a client reminder is due today",
+      "CLIENT_REMINDER_COMPLETED": "Client reminder completed",
+      "CLIENT_REMINDER_COMPLETED_desc": "Notify when a client reminder is completed"
     }
   },
   "notifications": {

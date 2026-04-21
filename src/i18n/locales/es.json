@@ -866,7 +866,11 @@
       "CALENDAR_UPDATED": "Evento actualizado",
       "CALENDAR_UPDATED_desc": "Notificar cuando se modifique un evento asignado",
       "CALENDAR_REMOVED": "Evento cancelado",
-      "CALENDAR_REMOVED_desc": "Notificar cuando se cancele un evento asignado"
+      "CALENDAR_REMOVED_desc": "Notificar cuando se cancele un evento asignado",
+      "CLIENT_REMINDER_DUE": "Recordatorio de cliente pendiente",
+      "CLIENT_REMINDER_DUE_desc": "Notificar cuando un recordatorio de cliente vence hoy",
+      "CLIENT_REMINDER_COMPLETED": "Recordatorio de cliente completado",
+      "CLIENT_REMINDER_COMPLETED_desc": "Notificar cuando se completa un recordatorio de cliente"
     }
   },
   "notifications": {
