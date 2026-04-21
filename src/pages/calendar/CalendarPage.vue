@@ -27,9 +27,6 @@ import type {
 } from '@/types/calendar'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
-import Tabs from 'primevue/tabs'
-import TabList from 'primevue/tablist'
-import Tab from 'primevue/tab'
 
 const { t, locale } = useI18n()
 const auth = useAuthStore()
@@ -457,12 +454,26 @@ function formatDateTime(iso: string): string {
     <div class="flex flex-wrap items-center justify-between gap-3">
       <div class="flex items-center gap-4">
         <h1 class="text-xl font-semibold text-[var(--text)]">{{ t('calendar.title') }}</h1>
-        <Tabs v-model:value="activeTab" class="ml-4">
-          <TabList>
-            <Tab value="events">{{ t('calendar.events') || 'Events' }}</Tab>
-            <Tab value="reminders">{{ t('calendar.reminders') || 'Reminders' }}</Tab>
-          </TabList>
-        </Tabs>
+        <div class="flex gap-1 ml-4">
+          <button
+            class="px-3 py-1.5 text-sm rounded-lg transition-colors"
+            :class="activeTab === 'events' 
+              ? 'bg-[var(--primary)] text-white' 
+              : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]'"
+            @click="activeTab = 'events'"
+          >
+            {{ t('calendar.events') || 'Events' }}
+          </button>
+          <button
+            class="px-3 py-1.5 text-sm rounded-lg transition-colors"
+            :class="activeTab === 'reminders' 
+              ? 'bg-[var(--primary)] text-white' 
+              : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]'"
+            @click="activeTab = 'reminders'"
+          >
+            {{ t('calendar.reminders') || 'Reminders' }}
+          </button>
+        </div>
       </div>
       <div class="flex items-center gap-2 flex-wrap">
         <!-- Agent filter -->
