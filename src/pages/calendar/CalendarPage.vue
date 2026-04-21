@@ -39,13 +39,18 @@ const canWrite = computed(() => auth.hasPermission('client:write'))
 
 const activeTab = ref('events')
 
+// ── Filters ───────────────────────────────────────────────────────────
+const filterAssignee = ref<string | null>(null)
+const filterClient = ref<string | null>(null)
+
 // ── Reminders query ─────────────────────────────────────────────────
 const { data: reminders, refetch: refetchReminders } = useQuery({
   queryKey: computed(() => ['reminders', filterClient.value]),
   queryFn: () => filterClient.value 
     ? remindersService.getByClient(filterClient.value)
     : remindersService.list({ size: 100 }).then(r => r.content ?? r),
-  staleTime: 30_000
+  staleTime: 30_000,
+  enabled: computed(() => activeTab.value === 'reminders')
 })
 
 // ── Month navigation ──────────────────────────────────────────────────
@@ -60,10 +65,6 @@ function goToday() { currentMonth.value = dayjs().startOf('month') }
 const monthLabel = computed(() =>
   currentMonth.value.format(locale.value === 'es' ? 'MMMM [de] YYYY' : 'MMMM YYYY')
 )
-
-// ── Filters ───────────────────────────────────────────────────────────
-const filterAssignee = ref<string | null>(null)
-const filterClient = ref<string | null>(null)
 
 // ── Data queries ──────────────────────────────────────────────────────
 const { data: events, refetch } = useQuery({
