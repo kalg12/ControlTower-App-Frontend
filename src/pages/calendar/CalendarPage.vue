@@ -1,7 +1,7 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
+import { useQuery } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
@@ -10,6 +10,7 @@ import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import MultiSelect from 'primevue/multiselect'
 import Tag from 'primevue/tag'
+import ToggleSwitch from 'primevue/toggleswitch'
 import { useToast } from '@/composables/useToast'
 import { useAuthStore } from '@/stores/auth'
 import { calendarService } from '@/services/calendar.service'
@@ -29,7 +30,6 @@ const { t, locale } = useI18n()
 const auth = useAuthStore()
 const toast = useToast()
 const confirm = useConfirm()
-const queryClient = useQueryClient()
 
 dayjs.locale(locale.value === 'es' ? 'es' : 'en')
 
@@ -123,7 +123,46 @@ const weekDayLabels = computed(() =>
     : ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
 )
 
-// ── Event colors ──────────────────────────────────────────────────────
+// ── Quick time slots ─────────────────────────────────────────────────
+const quickTimeSlots = [
+  { label: '08:00', value: '08:00' },
+  { label: '09:00', value: '09:00' },
+  { label: '10:00', value: '10:00' },
+  { label: '11:00', value: '11:00' },
+  { label: '12:00', value: '12:00' },
+  { label: '13:00', value: '13:00' },
+  { label: '14:00', value: '14:00' },
+  { label: '15:00', value: '15:00' },
+  { label: '16:00', value: '16:00' },
+  { label: '17:00', value: '17:00' },
+  { label: '18:00', value: '18:00' },
+  { label: '19:00', value: '19:00' },
+  { label: '20:00', value: '20:00' },
+]
+
+// ── Duration presets ─────────────────────────────────────────────────
+const durationPresets = [
+  { label: '15 min', value: 15, icon: '⏱' },
+  { label: '30 min', value: 30, icon: '⏱' },
+  { label: '1 hora', value: 60, icon: '⏱' },
+  { label: '1.5 horas', value: 90, icon: '⏱' },
+  { label: '2 horas', value: 120, icon: '⏱' },
+  { label: '3 horas', value: 180, icon: '⏱' },
+  { label: '4 horas', value: 240, icon: '⏱' },
+  { label: 'Todo el día', value: 480, icon: '📅' },
+]
+
+// ── Event type to default duration ─────────────────────────────────
+const eventTypeDefaultDuration: Record<CalendarEventType, number> = {
+  CALL: 15,
+  MEETING: 60,
+  SITE_VISIT: 120,
+  DEMO: 90,
+  FOLLOW_UP: 30,
+  WHATSAPP: 15,
+  INSTAGRAM: 15,
+  OTHER: 30,
+}
 const typeColor: Record<CalendarEventType, string> = {
   CALL:       'bg-green-500',
   MEETING:    'bg-blue-500',
@@ -192,6 +231,8 @@ const form = ref({
   eventType: 'MEETING' as CalendarEventType,
   startAt: '',
   endAt: '',
+  allDay: false,
+  durationMinutes: 60,
   clientId: null as string | null,
   contactChannel: null as ContactChannel | null,
   assigneeIds: [] as string[],
@@ -199,14 +240,42 @@ const form = ref({
   description: ''
 })
 
+// ── Update end time when start or duration changes ─────────────────────
+watch(() => form.value.startAt, (newStart) => {
+  if (newStart && !form.value.allDay) {
+    const start = dayjs(newStart)
+    const end = start.add(form.value.durationMinutes, 'minute')
+    form.value.endAt = end.format('YYYY-MM-DDTHH:mm')
+  }
+})
+
+watch(() => form.value.durationMinutes, (newDuration) => {
+  if (form.value.startAt && !form.value.allDay) {
+    const start = dayjs(form.value.startAt)
+    const end = start.add(newDuration, 'minute')
+    form.value.endAt = end.format('YYYY-MM-DDTHH:mm')
+  }
+})
+
+watch(() => form.value.allDay, (isAllDay) => {
+  if (isAllDay && form.value.startAt) {
+    const start = dayjs(form.value.startAt)
+    form.value.endAt = start.endOf('day').format('YYYY-MM-DDTHH:mm')
+  }
+})
+
 function openCreate(date?: dayjs.Dayjs) {
   editingEvent.value = null
   const base = date ?? dayjs()
+  const defaultDuration = eventTypeDefaultDuration['MEETING']
+  
   form.value = {
     title: '',
     eventType: 'MEETING',
     startAt: base.hour(9).minute(0).format('YYYY-MM-DDTHH:mm'),
     endAt: base.hour(10).minute(0).format('YYYY-MM-DDTHH:mm'),
+    allDay: false,
+    durationMinutes: defaultDuration,
     clientId: filterClient.value,
     contactChannel: null,
     assigneeIds: [],
@@ -218,11 +287,17 @@ function openCreate(date?: dayjs.Dayjs) {
 
 function openEdit(event: CalendarEvent) {
   editingEvent.value = event
+  const start = dayjs(event.startAt)
+  const end = dayjs(event.endAt)
+  const durationMinutes = end.diff(start, 'minute')
+  
   form.value = {
     title: event.title,
     eventType: event.eventType,
-    startAt: dayjs(event.startAt).format('YYYY-MM-DDTHH:mm'),
-    endAt: dayjs(event.endAt).format('YYYY-MM-DDTHH:mm'),
+    startAt: start.format('YYYY-MM-DDTHH:mm'),
+    endAt: end.format('YYYY-MM-DDTHH:mm'),
+    allDay: durationMinutes >= 480,
+    durationMinutes: durationMinutes,
     clientId: event.clientId ?? null,
     contactChannel: event.contactChannel ?? null,
     assigneeIds: event.assigneeIds ?? [],
@@ -426,11 +501,12 @@ function formatDateTime(iso: string): string {
         <div
           v-for="(cell, idx) in calendarDays"
           :key="idx"
-          class="min-h-[100px] border-b border-r border-[var(--border)] p-1.5 last:border-r-0 transition-colors"
+          class="min-h-[100px] border-b border-r border-[var(--border)] p-1.5 last:border-r-0 transition-colors cursor-pointer"
           :class="[
             cell.isCurrentMonth ? 'bg-[var(--surface)]' : 'bg-[var(--surface-raised)]/40',
             cell.date.isSame(dayjs(), 'day') ? 'ring-1 ring-inset ring-[var(--primary)]/40' : ''
           ]"
+          @dblclick="canWrite && cell.isCurrentMonth && openCreate(cell.date)"
         >
           <!-- Date number -->
           <div class="flex items-center justify-between mb-1">
@@ -505,13 +581,56 @@ function formatDateTime(iso: string): string {
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <!-- All day toggle + Start time -->
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">{{ t('calendar.startAt') }} *</label>
-            <InputText v-model="form.startAt" type="datetime-local" class="w-full" />
+            <div class="flex items-center gap-2 mb-1">
+              <ToggleSwitch v-model="form.allDay" input-id="allDay" />
+              <label class="text-sm font-medium cursor-pointer" for="allDay">Todo el día</label>
+            </div>
+            <div v-if="!form.allDay">
+              <label class="text-xs text-[var(--text-muted)]">Hora de inicio</label>
+              <Select
+                v-model="form.startAt"
+                :options="quickTimeSlots"
+                option-label="label"
+                option-value="value"
+                placeholder="Hora"
+                class="w-full"
+                :virtualScrollerOptions="{ itemSize: 32 }"
+                show-clear
+              >
+                <template #value="slotProps">
+                  <div v-if="slotProps.value" class="flex items-center gap-2">
+                    <i class="pi pi-clock text-xs" />
+                    {{ slotProps.value }}
+                  </div>
+                  <span v-else class="text-[var(--text-placeholder)]">Seleccionar hora</span>
+                </template>
+              </Select>
+            </div>
+            <div v-else>
+              <InputText v-model="form.startAt" type="date" class="w-full" />
+            </div>
           </div>
+
+          <!-- Duration or End time -->
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">{{ t('calendar.endAt') }} *</label>
-            <InputText v-model="form.endAt" type="datetime-local" class="w-full" />
+            <label class="text-sm font-medium">{{ form.allDay ? 'Fin del día' : 'Duración' }}</label>
+            <div v-if="!form.allDay" class="flex flex-wrap gap-1">
+              <button
+                v-for="preset in durationPresets"
+                :key="preset.value"
+                type="button"
+                class="text-xs px-2 py-1 rounded-full border transition-colors"
+                :class="form.durationMinutes === preset.value 
+                  ? 'bg-[var(--primary)] text-white border-[var(--primary)]' 
+                  : 'border-[var(--border)] hover:border-[var(--primary)]'"
+                @click="form.durationMinutes = preset.value"
+              >{{ preset.label }}</button>
+            </div>
+            <div v-else class="text-sm text-[var(--text-muted)]">
+              Finaliza al medianoche
+            </div>
           </div>
         </div>
 

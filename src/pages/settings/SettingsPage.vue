@@ -15,6 +15,7 @@ import InputText from 'primevue/inputtext'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Tag from 'primevue/tag'
 import { notificationsService } from '@/services/notifications.service'
+import { calendarSettingsService } from '@/services/calendar-settings.service'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useToast } from '@/composables/useToast'
@@ -131,6 +132,38 @@ async function saveSlaConfig() {
     savingSla.value = false
   }
 }
+
+// ── Google Calendar ─────────────────────────────────────────────────
+const { data: googleStatus, refetch: refetchGoogle } = useQuery({
+  queryKey: ['google-calendar-status'],
+  queryFn: () => calendarSettingsService.getStatus(),
+  enabled: computed(() => !!authStore.user?.id),
+})
+
+const googleConnected = computed(() => googleStatus.value?.connected ?? false)
+const googleEmail = computed(() => googleStatus.value?.email)
+
+// ── Translations for Google Calendar ─────────────────────────
+const googleCalendarLabel = computed(() => googleConnected.value ? 'Conectado' : 'No conectado')
+
+async function disconnectGoogle() {
+  try {
+    await calendarSettingsService.disconnect()
+    await refetchGoogle()
+    toast.success('Google Calendar desconectado')
+  } catch {
+    toast.error('No se pudo desconectar')
+  }
+}
+
+async function syncGoogleNow() {
+  try {
+    await calendarSettingsService.syncNow()
+    toast.success('Sincronización iniciada')
+  } catch {
+    toast.error('No se pudo iniciar sincronización')
+  }
+}
 </script>
 
 <template>
@@ -148,6 +181,7 @@ async function saveSlaConfig() {
         <Tab value="security">{{ t('settings.tabSecurity') }}</Tab>
         <Tab value="notifications">{{ t('settings.tabNotifications') }}</Tab>
         <Tab value="sla">Configuración SLA</Tab>
+        <Tab value="google">Google Calendar</Tab>
       </TabList>
       <TabPanels class="mt-4">
         <TabPanel value="profile">
@@ -251,6 +285,63 @@ async function saveSlaConfig() {
                 :loading="savingSla"
                 @click="saveSlaConfig"
               />
+            </div>
+          </Card>
+        </TabPanel>
+
+        <!-- Google Calendar Tab -->
+        <TabPanel value="google">
+          <Card>
+            <div class="mb-4">
+              <h3 class="text-sm font-semibold text-[var(--text)]">Integración con Google Calendar</h3>
+              <p class="text-xs text-[var(--text-muted)] mt-0.5">
+                Sincroniza tus eventos del calendario con Google Calendar. 
+                Los eventos se bidireccional: los cambios en cualquiera de los calendarios se reflejarán en ambos.
+              </p>
+            </div>
+
+            <div class="rounded-lg border border-[var(--border)] bg-[var(--surface)] p-4">
+              <div class="flex items-center gap-3 mb-4">
+                <div class="w-10 h-10 rounded-full bg-blue-100 dark:bg-blue-900 flex items-center justify-center">
+                  <i class="pi pi-calendar text-blue-600 dark:text-blue-400" />
+                </div>
+                <div>
+                  <p class="text-sm font-medium text-[var(--text)]">Google Calendar</p>
+                  <p class="text-xs" :class="googleConnected ? 'text-green-600' : 'text-[var(--text-muted)]'">
+                    {{ googleCalendarLabel }}
+                  </p>
+                </div>
+                <Tag v-if="googleConnected" severity="success" value="Activo" class="ml-auto" />
+              </div>
+
+              <div v-if="googleEmail" class="text-xs text-[var(--text-muted)] mb-4">
+                <p>Cuenta: {{ googleEmail }}</p>
+              </div>
+
+              <div class="flex gap-2">
+                <Button
+                  v-if="googleConnected"
+                  label="Desconectar"
+                  icon="pi pi-times"
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  @click="disconnectGoogle"
+                />
+                <Button
+                  v-if="googleConnected"
+                  label="Sincronizar ahora"
+                  icon="pi pi-sync"
+                  size="small"
+                  @click="syncGoogleNow"
+                />
+              </div>
+
+              <div v-if="!googleConnected" class="mt-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
+                <p class="text-xs text-[var(--text-muted)]">
+                  <strong>Para conectar:</strong> Crea credenciales OAuth en Google Cloud Console y configura las variables de entorno.
+                </p>
+              </div>
             </div>
           </Card>
         </TabPanel>
