@@ -193,6 +193,7 @@
     "labels": "Labels",
     "workHubTitle": "Work across boards",
     "workHubSubtitle": "Consolidated view of all cards across all boards, grouped by column.",
+    "allUsers": "All users",
     "workAllUsers": "All users",
     "workAllColumns": "All column types",
     "workColumnKind": "Column type",
