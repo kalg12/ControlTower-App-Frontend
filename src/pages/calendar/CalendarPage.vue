@@ -17,6 +17,7 @@ import { useAuthStore } from '@/stores/auth'
 import { calendarService } from '@/services/calendar.service'
 import { clientsService } from '@/services/clients.service'
 import { usersService } from '@/services/users.service'
+import { personsService } from '@/services/persons.service'
 import { remindersService, type ClientReminder } from '@/services/reminders.service'
 import type {
   CalendarEvent,
@@ -25,6 +26,7 @@ import type {
   ContactChannel,
   CreateCalendarEventRequest
 } from '@/types/calendar'
+import type { CreatePersonRequest } from '@/types/person'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 
@@ -86,6 +88,12 @@ const { data: userOptions } = useQuery({
   queryKey: computed(() => ['users-for-calendar', auth.user?.tenantId]),
   queryFn: () => usersService.list({ tenantId: auth.user!.tenantId, page: 0, size: 200 }).then(r => r.content),
   enabled: computed(() => !!auth.user?.tenantId),
+  staleTime: 60_000
+})
+
+const { data: personOptions, refetch: refetchPersons } = useQuery({
+  queryKey: ['persons-for-calendar'],
+  queryFn: () => personsService.list({ size: 200 }).then(r => (r as any).content ?? r),
   staleTime: 60_000
 })
 
@@ -198,6 +206,10 @@ const assigneeDialogOpts = computed(() =>
   (userOptions.value ?? []).map((u: any) => ({ label: u.fullName || u.email, value: u.id }))
 )
 
+const personDialogOpts = computed(() =>
+  (personOptions.value ?? []).map((p: any) => ({ label: p.fullName || `${p.firstName} ${p.lastName ?? ''}`.trim(), value: p.id }))
+)
+
 const eventTypeOpts = computed(() => [
   { label: t('calendar.eventTypeCall'),      value: 'CALL' as CalendarEventType },
   { label: t('calendar.eventTypeMeeting'),   value: 'MEETING' as CalendarEventType },
@@ -231,6 +243,7 @@ const form = ref<{
   allDay: boolean
   durationMinutes: number
   clientId: string | null
+  personId: string | null
   contactChannel: ContactChannel | null
   assigneeIds: string[]
   notes: string
@@ -243,6 +256,7 @@ const form = ref<{
   allDay: false,
   durationMinutes: 60,
   clientId: null,
+  personId: null,
   contactChannel: null,
   assigneeIds: [],
   notes: '',
@@ -286,6 +300,7 @@ function openCreate(date?: dayjs.Dayjs) {
     allDay: false,
     durationMinutes: defaultDuration,
     clientId: filterClient.value,
+    personId: null,
     contactChannel: null,
     assigneeIds: [],
     notes: '',
@@ -308,6 +323,7 @@ function openEdit(event: CalendarEvent) {
     allDay: durationMinutes >= 480,
     durationMinutes: durationMinutes,
     clientId: event.clientId ?? null,
+    personId: event.personId ?? null,
     contactChannel: event.contactChannel ?? null,
     assigneeIds: event.assigneeIds ?? [],
     notes: event.notes ?? '',
@@ -326,6 +342,7 @@ async function saveEvent() {
       startAt: new Date(form.value.startAt).toISOString(),
       endAt: new Date(form.value.endAt).toISOString(),
       clientId: form.value.clientId ?? undefined,
+      personId: form.value.personId ?? undefined,
       contactChannel: form.value.contactChannel ?? undefined,
       assigneeIds: form.value.assigneeIds.length > 0 ? form.value.assigneeIds : undefined,
       notes: form.value.notes.trim() || undefined,
@@ -344,6 +361,34 @@ async function saveEvent() {
     toast.error(t('errors.loadFailed'))
   } finally {
     saving.value = false
+  }
+}
+
+// ── Quick-create person ───────────────────────────────────────────────
+const showNewPersonDialog = ref(false)
+const savingPerson = ref(false)
+const newPersonForm = ref({ firstName: '', lastName: '', email: '', phone: '', whatsapp: '' })
+
+async function createPersonQuick() {
+  if (!newPersonForm.value.firstName.trim()) return
+  savingPerson.value = true
+  try {
+    const created = await personsService.create({
+      firstName: newPersonForm.value.firstName.trim(),
+      lastName: newPersonForm.value.lastName.trim() || undefined,
+      email: newPersonForm.value.email.trim() || undefined,
+      phone: newPersonForm.value.phone.trim() || undefined,
+      whatsapp: newPersonForm.value.whatsapp.trim() || undefined
+    })
+    await refetchPersons()
+    form.value.personId = created.id
+    showNewPersonDialog.value = false
+    newPersonForm.value = { firstName: '', lastName: '', email: '', phone: '', whatsapp: '' }
+    toast.success(t('persons.createSuccess'))
+  } catch {
+    toast.error(t('errors.loadFailed'))
+  } finally {
+    savingPerson.value = false
   }
 }
 
@@ -740,6 +785,30 @@ function formatDateTime(iso: string): string {
         </div>
 
         <div class="flex flex-col gap-1">
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium">{{ t('persons.title') }}</label>
+            <button
+              type="button"
+              class="text-xs text-[var(--primary)] hover:underline flex items-center gap-1"
+              @click="showNewPersonDialog = true"
+            >
+              <span class="pi pi-plus text-[10px]" />
+              {{ t('persons.create') }}
+            </button>
+          </div>
+          <Select
+            v-model="form.personId"
+            :options="personDialogOpts"
+            option-label="label"
+            option-value="value"
+            class="w-full"
+            show-clear
+            filter
+            :placeholder="t('persons.selectPerson') || t('persons.title')"
+          />
+        </div>
+
+        <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">{{ t('calendar.assignees') }}</label>
           <MultiSelect
             v-model="form.assigneeIds"
@@ -765,6 +834,50 @@ function formatDateTime(iso: string): string {
             :loading="saving"
             :disabled="!form.title.trim() || !form.startAt || !form.endAt"
             @click="saveEvent"
+          />
+        </div>
+      </div>
+    </Dialog>
+
+    <!-- Quick-create Person dialog -->
+    <Dialog
+      v-model:visible="showNewPersonDialog"
+      :header="t('persons.create')"
+      modal
+      class="w-full max-w-sm"
+    >
+      <div class="flex flex-col gap-3 pt-2">
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium">{{ t('persons.firstName') }} *</label>
+            <InputText v-model="newPersonForm.firstName" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium">{{ t('persons.lastName') }}</label>
+            <InputText v-model="newPersonForm.lastName" class="w-full" />
+          </div>
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">{{ t('persons.email') }}</label>
+          <InputText v-model="newPersonForm.email" type="email" class="w-full" />
+        </div>
+        <div class="grid grid-cols-2 gap-3">
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium">{{ t('persons.phone') }}</label>
+            <InputText v-model="newPersonForm.phone" class="w-full" />
+          </div>
+          <div class="flex flex-col gap-1">
+            <label class="text-sm font-medium">{{ t('persons.whatsapp') }}</label>
+            <InputText v-model="newPersonForm.whatsapp" class="w-full" />
+          </div>
+        </div>
+        <div class="flex justify-end gap-2 pt-1">
+          <Button :label="t('common.cancel')" severity="secondary" outlined @click="showNewPersonDialog = false" />
+          <Button
+            :label="t('common.save')"
+            :loading="savingPerson"
+            :disabled="!newPersonForm.firstName.trim()"
+            @click="createPersonQuick"
           />
         </div>
       </div>
@@ -806,6 +919,12 @@ function formatDateTime(iso: string): string {
         <div v-if="selectedEvent.clientName" class="text-sm">
           <p class="text-[var(--text-muted)] text-xs">{{ t('calendar.client') }}</p>
           <p class="font-medium text-[var(--text)]">{{ selectedEvent.clientName }}</p>
+        </div>
+
+        <!-- Person -->
+        <div v-if="selectedEvent.personName" class="text-sm">
+          <p class="text-[var(--text-muted)] text-xs">{{ t('persons.title') }}</p>
+          <p class="font-medium text-[var(--text)]">{{ selectedEvent.personName }}</p>
         </div>
 
         <!-- Contacts -->

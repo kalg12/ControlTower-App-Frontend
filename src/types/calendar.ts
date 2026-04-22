@@ -28,6 +28,8 @@ export interface CalendarEvent {
   endAt: string
   clientId?: string
   clientName?: string
+  personId?: string
+  personName?: string
   branchId?: string
   status: CalendarEventStatus
   notes?: string
@@ -45,6 +47,7 @@ export interface CreateCalendarEventRequest {
   startAt: string
   endAt: string
   clientId?: string
+  personId?: string
   branchId?: string
   description?: string
   notes?: string
