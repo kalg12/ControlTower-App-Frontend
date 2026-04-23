@@ -47,7 +47,8 @@ export function connectWebSocket() {
   const token = authStore.accessToken
   if (!token) return
 
-  const wsUrl = `${import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080'}/ws`
+  const baseUrl = (import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080').replace(/\/ws$/, '')
+  const wsUrl = `${baseUrl}/ws`
 
   const client = new StompClient({
     brokerURL: wsUrl,
