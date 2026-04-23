@@ -32,4 +32,7 @@ export const qk = {
   reminders: (filters?: string) => ['reminders', filters ?? ''] as const,
   remindersByClient: (clientId: string) => ['reminders-by-client', clientId] as const,
   reminderHistory: (id: string) => ['reminder-history', id] as const,
+  employees: (filters?: string) => ['payroll-employees', filters ?? ''] as const,
+  payrollPeriods: (page?: number) => ['payroll-periods', page ?? 0] as const,
+  payrollPeriod: (id: string) => ['payroll-period', id] as const,
 }
