@@ -25,7 +25,8 @@ import {
   Briefcase,
   FileText,
   DollarSign,
-  CalendarDays
+  CalendarDays,
+  Banknote
 } from 'lucide-vue-next'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useAuthStore } from '@/stores/auth'
@@ -53,26 +54,45 @@ function visible(items: NavItem[]) {
   return items.filter((i) => !i.permission || auth.hasPermission(i.permission))
 }
 
-const mainItems = computed(() =>
+const dashItem = { to: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard }
+
+const crmItems = computed(() =>
   visible([
-    { to: '/dashboard', label: t('nav.dashboard'), icon: LayoutDashboard },
-    { to: '/tickets', label: t('nav.tickets'), icon: MessageSquare, permission: 'ticket:read' },
-    { to: '/pos-support', label: t('nav.posSupport'), icon: Store, permission: 'ticket:read' },
     { to: '/clients', label: t('nav.clients'), icon: Building2, permission: 'client:read' },
     { to: '/persons', label: t('nav.persons'), icon: Users, permission: 'client:read' },
     { to: '/calendar', label: t('nav.calendar'), icon: CalendarDays, permission: 'client:read' },
+    { to: '/proposals', label: t('nav.proposals'), icon: FileText, permission: 'proposal:read' },
+    { to: '/reminders', label: t('nav.reminders'), icon: Bell, permission: 'client:read' },
+  ])
+)
+
+const opsItems = computed(() =>
+  visible([
+    { to: '/tickets', label: t('nav.tickets'), icon: MessageSquare, permission: 'ticket:read' },
+    { to: '/pos-support', label: t('nav.posSupport'), icon: Store, permission: 'ticket:read' },
     { to: '/kanban', label: t('nav.kanban'), icon: LayoutGrid, permission: 'kanban:read' },
     { to: '/kanban/work', label: t('nav.kanbanWork'), icon: ClipboardList, permission: 'kanban:read' },
+    { to: '/my-work', label: t('nav.myWork'), icon: Briefcase, permission: 'ticket:read' },
     { to: '/health', label: t('nav.health'), icon: Activity, permission: 'health:read' },
+    { to: '/integrations', label: t('nav.integrations'), icon: Plug, permission: 'integration:read' },
+  ])
+)
+
+const financeItems = computed(() =>
+  visible([
+    { to: '/finance', label: t('nav.finance'), icon: DollarSign, permission: 'finance:read' },
+    { to: '/nomina', label: t('nav.payroll'), icon: Banknote, permission: 'payroll:read' },
     { to: '/licenses', label: t('nav.licenses'), icon: CreditCard, permission: 'license:read' },
     { to: '/billing', label: t('nav.billing'), icon: Receipt, permission: 'billing:read' },
-    { to: '/finance', label: t('nav.finance'), icon: DollarSign, permission: 'finance:read' },
-    { to: '/integrations', label: t('nav.integrations'), icon: Plug, permission: 'integration:read' },
+  ])
+)
+
+const contentItems = computed(() =>
+  visible([
     { to: '/campaigns', label: t('nav.campaigns'), icon: Megaphone, permission: 'campaign:read' },
-    { to: '/reports', label: t('nav.reports'), icon: BarChart3, permission: 'report:read' },
+    { to: '/templates', label: t('nav.templates'), icon: FileText, permission: 'template:read' },
     { to: '/knowledge-base', label: t('nav.knowledgeBase'), icon: BookOpen, permission: 'kb:read' },
-    { to: '/my-work', label: t('nav.myWork'), icon: Briefcase, permission: 'ticket:read' },
-    { to: '/templates', label: t('nav.templates'), icon: FileText, permission: 'template:read' }
+    { to: '/reports', label: t('nav.reports'), icon: BarChart3, permission: 'report:read' },
   ])
 )
 
@@ -124,12 +144,30 @@ function badge(to: string): number | null {
     <!-- Navigation -->
     <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-4">
 
-      <!-- Main section -->
+      <!-- Dashboard -->
       <div>
-        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">{{ t('nav.main') }}</p>
+        <RouterLink
+          :to="dashItem.to"
+          :class="[
+            'flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius)] text-sm font-medium transition-all duration-150 group relative',
+            isActive(dashItem.to)
+              ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+              : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--text)]'
+          ]"
+          :title="collapsed ? dashItem.label : undefined"
+          @click="emit('close')"
+        >
+          <component :is="dashItem.icon" :class="['w-4 h-4 flex-shrink-0 transition-colors', isActive(dashItem.to) ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text)]']" />
+          <span v-if="!collapsed" class="flex-1 truncate">{{ dashItem.label }}</span>
+        </RouterLink>
+      </div>
+
+      <!-- CRM -->
+      <div v-if="crmItems.length">
+        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">CRM</p>
         <div class="space-y-0.5">
           <RouterLink
-            v-for="item in mainItems"
+            v-for="item in crmItems"
             :key="item.to"
             :to="item.to"
             :class="[
@@ -141,20 +179,79 @@ function badge(to: string): number | null {
             :title="collapsed ? item.label : undefined"
             @click="emit('close')"
           >
-            <component
-              :is="item.icon"
-              :class="['w-4 h-4 flex-shrink-0 transition-colors', isActive(item.to) ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text)]']"
-            />
+            <component :is="item.icon" :class="['w-4 h-4 flex-shrink-0 transition-colors', isActive(item.to) ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text)]']" />
             <span v-if="!collapsed" class="flex-1 truncate">{{ item.label }}</span>
-            <span
-              v-if="badge(item.to)"
-              :class="[
-                'flex-shrink-0 text-[10px] font-bold text-white bg-red-500 rounded-full leading-none flex items-center justify-center',
-                collapsed ? 'absolute top-1 right-1 w-4 h-4' : 'min-w-[18px] h-4 px-1'
-              ]"
-            >
-              {{ badge(item.to)! > 9 ? '9+' : badge(item.to) }}
-            </span>
+            <span v-if="badge(item.to)" :class="['flex-shrink-0 text-[10px] font-bold text-white bg-red-500 rounded-full leading-none flex items-center justify-center', collapsed ? 'absolute top-1 right-1 w-4 h-4' : 'min-w-[18px] h-4 px-1']">{{ badge(item.to)! > 9 ? '9+' : badge(item.to) }}</span>
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- Operaciones -->
+      <div v-if="opsItems.length">
+        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">{{ t('nav.operations') }}</p>
+        <div class="space-y-0.5">
+          <RouterLink
+            v-for="item in opsItems"
+            :key="item.to"
+            :to="item.to"
+            :class="[
+              'flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius)] text-sm font-medium transition-all duration-150 group relative',
+              isActive(item.to)
+                ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--text)]'
+            ]"
+            :title="collapsed ? item.label : undefined"
+            @click="emit('close')"
+          >
+            <component :is="item.icon" :class="['w-4 h-4 flex-shrink-0 transition-colors', isActive(item.to) ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text)]']" />
+            <span v-if="!collapsed" class="flex-1 truncate">{{ item.label }}</span>
+            <span v-if="badge(item.to)" :class="['flex-shrink-0 text-[10px] font-bold text-white bg-red-500 rounded-full leading-none flex items-center justify-center', collapsed ? 'absolute top-1 right-1 w-4 h-4' : 'min-w-[18px] h-4 px-1']">{{ badge(item.to)! > 9 ? '9+' : badge(item.to) }}</span>
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- Finanzas -->
+      <div v-if="financeItems.length">
+        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">{{ t('nav.finances') }}</p>
+        <div class="space-y-0.5">
+          <RouterLink
+            v-for="item in financeItems"
+            :key="item.to"
+            :to="item.to"
+            :class="[
+              'flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius)] text-sm font-medium transition-all duration-150 group relative',
+              isActive(item.to)
+                ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--text)]'
+            ]"
+            :title="collapsed ? item.label : undefined"
+            @click="emit('close')"
+          >
+            <component :is="item.icon" :class="['w-4 h-4 flex-shrink-0 transition-colors', isActive(item.to) ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text)]']" />
+            <span v-if="!collapsed" class="flex-1 truncate">{{ item.label }}</span>
+          </RouterLink>
+        </div>
+      </div>
+
+      <!-- Contenido -->
+      <div v-if="contentItems.length">
+        <p v-if="!collapsed" class="px-3 mb-1 text-[10px] font-semibold uppercase tracking-widest text-[var(--text-placeholder)]">{{ t('nav.content') }}</p>
+        <div class="space-y-0.5">
+          <RouterLink
+            v-for="item in contentItems"
+            :key="item.to"
+            :to="item.to"
+            :class="[
+              'flex items-center gap-2.5 px-2.5 py-2 rounded-[var(--radius)] text-sm font-medium transition-all duration-150 group relative',
+              isActive(item.to)
+                ? 'bg-[var(--primary)]/10 text-[var(--primary)]'
+                : 'text-[var(--text-muted)] hover:bg-[var(--surface-raised)] hover:text-[var(--text)]'
+            ]"
+            :title="collapsed ? item.label : undefined"
+            @click="emit('close')"
+          >
+            <component :is="item.icon" :class="['w-4 h-4 flex-shrink-0 transition-colors', isActive(item.to) ? 'text-[var(--primary)]' : 'text-[var(--text-muted)] group-hover:text-[var(--text)]']" />
+            <span v-if="!collapsed" class="flex-1 truncate">{{ item.label }}</span>
           </RouterLink>
         </div>
       </div>

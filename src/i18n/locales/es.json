@@ -35,7 +35,13 @@
     "templates": "Plantillas",
     "finance": "Finanzas",
     "calendar": "Calendario",
-    "persons": "Personas"
+    "persons": "Personas",
+    "proposals": "Propuestas",
+    "reminders": "Recordatorios",
+    "payroll": "Nómina",
+    "operations": "Operaciones",
+    "finances": "Finanzas",
+    "content": "Contenido"
   },
   "common": {
     "save": "Guardar",

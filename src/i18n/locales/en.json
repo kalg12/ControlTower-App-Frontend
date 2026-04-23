@@ -35,7 +35,13 @@
     "templates": "Templates",
     "finance": "Finance",
     "calendar": "Calendar",
-    "persons": "Persons"
+    "persons": "Persons",
+    "proposals": "Proposals",
+    "reminders": "Reminders",
+    "payroll": "Payroll",
+    "operations": "Operations",
+    "finances": "Finances",
+    "content": "Content"
   },
   "common": {
     "save": "Save",
