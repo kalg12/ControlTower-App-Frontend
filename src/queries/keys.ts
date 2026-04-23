@@ -29,4 +29,7 @@ export const qk = {
   proposal: (id: string) => ['proposal', id] as const,
   proposalsByClient: (clientId: string, status?: string) => ['proposals-by-client', clientId, status ?? ''] as const,
   expenseSummary: (from: string, to: string) => ['expense-summary', from, to] as const,
+  reminders: (filters?: string) => ['reminders', filters ?? ''] as const,
+  remindersByClient: (clientId: string) => ['reminders-by-client', clientId] as const,
+  reminderHistory: (id: string) => ['reminder-history', id] as const,
 }

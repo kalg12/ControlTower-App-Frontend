@@ -219,6 +219,18 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.proposalEdit', permission: 'proposal:write' }
     },
     {
+      path: '/reminders',
+      name: 'reminders',
+      component: () => import('@/pages/reminders/RemindersPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.reminders', permission: 'client:read' }
+    },
+    {
+      path: '/nomina',
+      name: 'nomina',
+      component: () => import('@/pages/payroll/NominaPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.payroll', permission: 'payroll:read' }
+    },
+    {
       path: '/integrations',
       name: 'integrations',
       component: () => import('@/pages/integrations/IntegrationsPage.vue'),
