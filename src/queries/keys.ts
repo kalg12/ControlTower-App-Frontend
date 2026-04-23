@@ -25,4 +25,8 @@ export const qk = {
   csatTicket: (ticketId: string) => ['csat-ticket', ticketId] as const,
   csatList: (page?: number) => ['csat-list', page ?? 0] as const,
   myWork: () => ['my-work'] as const,
+  proposals: (filters?: string) => ['proposals', filters ?? ''] as const,
+  proposal: (id: string) => ['proposal', id] as const,
+  proposalsByClient: (clientId: string, status?: string) => ['proposals-by-client', clientId, status ?? ''] as const,
+  expenseSummary: (from: string, to: string) => ['expense-summary', from, to] as const,
 }

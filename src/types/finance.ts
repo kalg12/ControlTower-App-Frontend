@@ -140,3 +140,42 @@ export interface ClientFinanceSummary {
   expenseCount: number
   lastInvoiceAt?: string | null
 }
+
+export interface CategoryBreakdown {
+  category: string
+  total: number
+  count: number
+  percentage: number
+}
+
+export interface MonthlyBreakdown {
+  month: string
+  total: number
+  byCategory: Record<string, number>
+}
+
+export interface ExpenseSummary {
+  from: string
+  to: string
+  grandTotal: number
+  byCategory: CategoryBreakdown[]
+  byMonth: MonthlyBreakdown[]
+}
+
+export interface FinanceReportEmailRequest {
+  toEmail: string
+  from: string
+  to: string
+}
+
+export interface ExpenseAdvancedFilters {
+  category?: ExpenseCategory
+  clientId?: string
+  vendor?: string
+  amountMin?: number
+  amountMax?: number
+  from?: string
+  to?: string
+  page?: number
+  size?: number
+}

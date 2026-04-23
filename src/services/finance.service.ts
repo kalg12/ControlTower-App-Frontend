@@ -3,7 +3,8 @@ import type { PaginatedResponse } from '@/types/api'
 import type {
   Invoice, Payment, Expense,
   InvoiceRequest, PaymentRequest, ExpenseRequest,
-  CashFlowSummary, FinanceFilters, ClientFinanceSummary
+  CashFlowSummary, FinanceFilters, ClientFinanceSummary,
+  ExpenseSummary, ExpenseAdvancedFilters, FinanceReportEmailRequest
 } from '@/types/finance'
 
 export const financeService = {
@@ -66,9 +67,18 @@ export const financeService = {
 
   // ── Expenses ─────────────────────────────────────────────────────────
 
-  async listExpenses(filters?: { category?: string; clientId?: string; page?: number; size?: number }): Promise<PaginatedResponse<Expense>> {
+  async listExpenses(filters?: ExpenseAdvancedFilters): Promise<PaginatedResponse<Expense>> {
     const res = await api.get<PaginatedResponse<Expense>>('/finance/expenses', { params: filters })
     return res.data
+  },
+
+  async getExpenseSummary(from: string, to: string): Promise<ExpenseSummary> {
+    const res = await api.get<ExpenseSummary>('/finance/expenses/summary', { params: { from, to } })
+    return res.data
+  },
+
+  async sendFinanceReport(data: FinanceReportEmailRequest): Promise<void> {
+    await api.post('/finance/reports/email', data)
   },
 
   async createExpense(data: ExpenseRequest): Promise<Expense> {
