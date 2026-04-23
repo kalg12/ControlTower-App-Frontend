@@ -195,6 +195,30 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.finance', permission: 'finance:read' }
     },
     {
+      path: '/proposals',
+      name: 'proposals',
+      component: () => import('@/pages/proposals/ProposalsListPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.proposals', permission: 'proposal:read' }
+    },
+    {
+      path: '/proposals/new',
+      name: 'proposal-new',
+      component: () => import('@/pages/proposals/ProposalFormPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.proposalNew', permission: 'proposal:write' }
+    },
+    {
+      path: '/proposals/:id',
+      name: 'proposal-detail',
+      component: () => import('@/pages/proposals/ProposalDetailPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.proposalDetail', permission: 'proposal:read' }
+    },
+    {
+      path: '/proposals/:id/edit',
+      name: 'proposal-edit',
+      component: () => import('@/pages/proposals/ProposalFormPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.proposalEdit', permission: 'proposal:write' }
+    },
+    {
       path: '/integrations',
       name: 'integrations',
       component: () => import('@/pages/integrations/IntegrationsPage.vue'),
