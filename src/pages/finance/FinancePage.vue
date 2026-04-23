@@ -368,6 +368,49 @@ const deleteExpenseMut = useMutation({
   onError: () => toast.error(t('errors.loadFailed'))
 })
 
+// ── Invoice Edit Dialog ──────────────────────────────────────────────
+const showEditInvoiceDialog = ref(false)
+const editingInvoiceId = ref<string | null>(null)
+
+const updateInvoiceMut = useMutation({
+  mutationFn: () => financeService.updateInvoice(editingInvoiceId.value!, {
+    clientId: invClientId.value || undefined,
+    currency: invCurrency.value,
+    taxRate: invTaxRate.value,
+    notes: invNotes.value || undefined,
+    issuedAt: invIssuedAt.value || undefined,
+    dueDate: invDueDate.value || undefined,
+    lineItems: invLines.value.filter(l => l.description.trim())
+  }),
+  onSuccess: () => {
+    toast.success('Factura actualizada')
+    showEditInvoiceDialog.value = false
+    editingInvoiceId.value = null
+    invalidateAll()
+  },
+  onError: () => toast.error(t('errors.loadFailed'))
+})
+
+function openEditDialog(inv: Invoice) {
+  editingInvoiceId.value = inv.id
+  invClientId.value = inv.clientId ?? ''
+  invCurrency.value = inv.currency
+  invTaxRate.value = inv.taxRate ?? 16
+  invNotes.value = inv.notes ?? ''
+  invIssuedAt.value = inv.issuedAt ? dayjs(inv.issuedAt).format('YYYY-MM-DD') : dayjs().format('YYYY-MM-DD')
+  invDueDate.value = inv.dueDate ? dayjs(inv.dueDate).format('YYYY-MM-DD') : ''
+  invLines.value = (inv.lineItems ?? []).map((l, i) => ({
+    description: l.description,
+    quantity: l.quantity,
+    unitPrice: l.unitPrice,
+    position: i
+  }))
+  if (invLines.value.length === 0) {
+    invLines.value = [{ description: '', quantity: 1, unitPrice: 0, position: 0 }]
+  }
+  showEditInvoiceDialog.value = true
+}
+
 // ── Helpers ───────────────────────────────────────────────────────────
 function fmt(n: number, currency = 'MXN') {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(n)
@@ -527,6 +570,7 @@ function confirmDeleteExpense(e: Expense) {
               <Column :header="t('common.actions')" style="width:160px">
                 <template #body="{ data: row }: { data: Invoice }">
                   <div class="flex gap-1 items-center">
+                    <Button v-if="row.status === 'DRAFT'" size="small" icon="pi pi-pencil" severity="secondary" text rounded @click="openEditDialog(row)" v-tooltip="'Editar'" />
                     <Button v-if="row.status === 'DRAFT'" size="small" label="Enviar" severity="info" text @click="sendInvMut.mutate(row.id)" />
                     <Button v-if="row.status === 'SENT' || row.status === 'OVERDUE'" size="small" :label="t('finance.markPaid')" severity="success" text @click="payInvMut.mutate(row.id)" />
                     <Button v-if="row.status === 'SENT' || row.status === 'OVERDUE' || row.status === 'CANCELLED'" size="small" :label="t('finance.void')" severity="warn" text @click="voidInvMut.mutate(row.id)" />
@@ -714,6 +758,66 @@ function confirmDeleteExpense(e: Expense) {
       <div class="flex justify-end gap-2">
         <Button :label="t('common.cancel')" severity="secondary" outlined @click="showInvoiceDialog = false" />
         <Button :label="t('common.create')" :loading="createInvoiceMut.isPending.value" @click="createInvoiceMut.mutate()" />
+      </div>
+    </template>
+  </Dialog>
+
+  <!-- ── EDIT INVOICE DIALOG ──────────────────────────────────────── -->
+  <Dialog v-model:visible="showEditInvoiceDialog" header="Editar factura" modal class="w-full max-w-2xl">
+    <div class="flex flex-col gap-4 pt-2">
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium">{{ t('finance.client') }}</label>
+        <Select v-model="invClientId" :options="clientOptions" option-label="label" option-value="value" filter class="w-full" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">{{ t('finance.currency') }}</label>
+          <Select v-model="invCurrency" :options="[{label:'MXN',value:'MXN'},{label:'USD',value:'USD'}]" option-label="label" option-value="value" class="w-full" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">IVA %</label>
+          <InputNumber v-model="invTaxRate" :min="0" :max="100" :fraction-digits="2" class="w-full" />
+        </div>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">{{ t('finance.issuedAt') }}</label>
+          <InputText v-model="invIssuedAt" type="date" class="w-full" />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">{{ t('finance.dueDate') }}</label>
+          <InputText v-model="invDueDate" type="date" class="w-full" />
+        </div>
+      </div>
+      <div>
+        <div class="flex items-center justify-between mb-2">
+          <label class="text-sm font-medium">{{ t('finance.lineItems') }}</label>
+          <Button :label="t('finance.addLine')" icon="pi pi-plus" size="small" text @click="addLine" />
+        </div>
+        <div class="space-y-2">
+          <div v-for="(line, idx) in invLines" :key="idx" class="grid grid-cols-12 gap-2 items-center">
+            <InputText v-model="line.description" :placeholder="t('finance.lineDescription')" class="col-span-5" />
+            <InputNumber v-model="line.quantity" :min="0.01" :fraction-digits="2" :placeholder="t('finance.qty')" class="col-span-2" />
+            <InputNumber v-model="line.unitPrice" :min="0" :fraction-digits="2" :placeholder="t('finance.unitPrice')" class="col-span-3" mode="currency" currency="MXN" />
+            <span class="col-span-1 text-sm font-medium text-right">{{ fmt(line.quantity * line.unitPrice) }}</span>
+            <Button icon="pi pi-trash" severity="danger" text rounded size="small" class="col-span-1" :disabled="invLines.length <= 1" @click="removeLine(idx)" />
+          </div>
+        </div>
+        <div class="mt-3 border-t border-[var(--border)] pt-3 text-right space-y-1">
+          <p class="text-sm text-[var(--text-muted)]">Subtotal: <strong>{{ fmt(invSubtotal, invCurrency) }}</strong></p>
+          <p class="text-sm text-[var(--text-muted)]">IVA ({{ invTaxRate }}%): <strong>{{ fmt(invTaxAmount, invCurrency) }}</strong></p>
+          <p class="text-base font-bold text-[var(--text)]">Total: {{ fmt(invTotal, invCurrency) }}</p>
+        </div>
+      </div>
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium">{{ t('finance.notes') }}</label>
+        <Textarea v-model="invNotes" :rows="2" class="w-full" />
+      </div>
+    </div>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button :label="t('common.cancel')" severity="secondary" outlined @click="showEditInvoiceDialog = false" />
+        <Button label="Guardar cambios" :loading="updateInvoiceMut.isPending.value" @click="updateInvoiceMut.mutate()" />
       </div>
     </template>
   </Dialog>
