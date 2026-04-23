@@ -40,6 +40,7 @@ import {
 import { ticketsService } from '@/services/tickets.service'
 import type { Ticket as TicketType } from '@/types/ticket'
 import NotesPanel from '@/components/notes/NotesPanel.vue'
+import ClientProposalsTab from '@/components/clients/ClientProposalsTab.vue'
 
 const { t, locale } = useI18n()
 watch(locale, (loc) => { dayjs.locale(loc === 'es' ? 'es' : 'en') }, { immediate: true })
@@ -950,6 +951,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
           <Tab value="pipeline">{{ t('crm.tabPipeline') }}</Tab>
           <Tab value="tickets">Tickets</Tab>
           <Tab value="finance">{{ t('crm.tabFinance') }}</Tab>
+          <Tab value="proposals">Propuestas</Tab>
           <Tab value="integrations">{{ t('integrations.tabIntegrations') }}</Tab>
           <Tab value="calendar">{{ t('calendar.tabCalendar') }}</Tab>
         </TabList>
@@ -1470,6 +1472,11 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
               </div>
             </Dialog>
           </TabPanel>
+          <!-- ── Proposals Tab ──────────────────────────────────────── -->
+          <TabPanel value="proposals">
+            <ClientProposalsTab :client-id="id" />
+          </TabPanel>
+
         </TabPanels>
       </Tabs>
     </template>
