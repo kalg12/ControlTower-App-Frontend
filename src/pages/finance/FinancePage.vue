@@ -12,6 +12,7 @@ import InputNumber from 'primevue/inputnumber'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import Dialog from 'primevue/dialog'
+import DatePicker from 'primevue/datepicker'
 import Tabs from 'primevue/tabs'
 import TabList from 'primevue/tablist'
 import Tab from 'primevue/tab'
@@ -21,6 +22,7 @@ import { DollarSign, TrendingUp, TrendingDown, Activity } from 'lucide-vue-next'
 import { financeService } from '@/services/finance.service'
 import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
+import { qk } from '@/queries/keys'
 import dayjs from 'dayjs'
 import type { Invoice, Payment, Expense, InvoiceLineItemRequest, InvoiceStatus, ExpenseCategory } from '@/types/finance'
 
@@ -69,17 +71,63 @@ const payments = computed(() => paymentsData.value?.content ?? [])
 // ── Expenses ─────────────────────────────────────────────────────────
 const expenseCategoryFilter = ref<ExpenseCategory | ''>('')
 const expenseClientFilter = ref('')
+const expenseVendorFilter = ref('')
+const expenseAmountMin = ref<number | null>(null)
+const expenseAmountMax = ref<number | null>(null)
+const expenseDateRange = ref<Date[] | null>(null)
+
+const expFiltersKey = computed(() => JSON.stringify({
+  cat: expenseCategoryFilter.value, cli: expenseClientFilter.value,
+  ven: expenseVendorFilter.value, min: expenseAmountMin.value,
+  max: expenseAmountMax.value, range: expenseDateRange.value,
+}))
 
 const { data: expensesData, isLoading: expLoading, refetch: refetchExp } = useQuery({
-  queryKey: computed(() => ['finance-expenses', expenseCategoryFilter.value, expenseClientFilter.value]),
+  queryKey: computed(() => ['finance-expenses', expFiltersKey.value]),
   queryFn: () => financeService.listExpenses({
     category: expenseCategoryFilter.value || undefined,
     clientId: expenseClientFilter.value || undefined,
-    page: 0, size: 50
+    vendor: expenseVendorFilter.value || undefined,
+    amountMin: expenseAmountMin.value ?? undefined,
+    amountMax: expenseAmountMax.value ?? undefined,
+    from: expenseDateRange.value?.[0] ? dayjs(expenseDateRange.value[0]).toISOString() : undefined,
+    to: expenseDateRange.value?.[1] ? dayjs(expenseDateRange.value[1]).toISOString() : undefined,
+    page: 0, size: 100,
   }),
-  staleTime: 30_000
+  staleTime: 30_000,
 })
 const expenses = computed(() => expensesData.value?.content ?? [])
+
+// ── Expense Summary ───────────────────────────────────────────────────
+const summaryDateRange = ref<Date[] | null>([
+  dayjs().startOf('month').toDate(),
+  dayjs().endOf('month').toDate(),
+])
+const summaryFrom = computed(() => summaryDateRange.value?.[0] ? dayjs(summaryDateRange.value[0]).toISOString() : dayjs().startOf('month').toISOString())
+const summaryTo   = computed(() => summaryDateRange.value?.[1] ? dayjs(summaryDateRange.value[1]).toISOString() : dayjs().endOf('month').toISOString())
+
+const { data: expenseSummary, isLoading: summaryLoading } = useQuery({
+  queryKey: qk.expenseSummary(summaryFrom.value, summaryTo.value),
+  queryFn: () => financeService.getExpenseSummary(summaryFrom.value, summaryTo.value),
+  staleTime: 60_000,
+})
+
+// ── Finance Report Email Dialog ───────────────────────────────────────
+const showReportDialog = ref(false)
+const reportEmail = ref('')
+const sendReportMut = useMutation({
+  mutationFn: () => financeService.sendFinanceReport({
+    toEmail: reportEmail.value,
+    from: summaryFrom.value,
+    to: summaryTo.value,
+  }),
+  onSuccess: () => {
+    toast.success('Reporte enviado por email')
+    showReportDialog.value = false
+    reportEmail.value = ''
+  },
+  onError: () => toast.error('Error al enviar el reporte'),
+})
 
 // ── Cash Flow ─────────────────────────────────────────────────────────
 const { data: cashFlow, refetch: refetchCf } = useQuery({
@@ -530,13 +578,48 @@ function confirmDeleteExpense(e: Expense) {
 
         <!-- ── EXPENSES TAB ──────────────────────────────────────────── -->
         <TabPanel value="expenses">
-          <div class="space-y-3 pt-4">
+          <div class="space-y-4 pt-4">
+            <!-- Filters row -->
             <div class="flex flex-wrap gap-2 items-center justify-between">
-              <div class="flex gap-2 flex-wrap">
+              <div class="flex gap-2 flex-wrap items-center">
                 <Select v-model="expenseCategoryFilter" :options="expCategoryFilterOptions" option-label="label" option-value="value" class="w-44" @change="refetchExp()" />
                 <Select v-model="expenseClientFilter" :options="clientOptions" option-label="label" option-value="value" class="w-44" :placeholder="t('finance.client')" @change="refetchExp()" />
+                <InputText v-model="expenseVendorFilter" placeholder="Proveedor..." class="w-36" @keyup.enter="refetchExp()" />
+                <InputNumber v-model="expenseAmountMin" placeholder="Mín $" :min="0" :maxFractionDigits="2" class="w-28" @blur="refetchExp()" />
+                <InputNumber v-model="expenseAmountMax" placeholder="Máx $" :min="0" :maxFractionDigits="2" class="w-28" @blur="refetchExp()" />
+                <DatePicker v-model="expenseDateRange" selectionMode="range" placeholder="Período" showIcon class="w-64" dateFormat="dd/mm/yy" @hide="refetchExp()" />
               </div>
               <Button :label="t('finance.newExpense')" icon="pi pi-plus" @click="openExpenseDialog" />
+            </div>
+
+            <!-- Expense Summary panel -->
+            <div class="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 space-y-3">
+              <div class="flex items-center justify-between flex-wrap gap-2">
+                <h3 class="font-semibold text-[var(--text)]">Resumen de gastos</h3>
+                <div class="flex items-center gap-2">
+                  <DatePicker v-model="summaryDateRange" selectionMode="range" placeholder="Período resumen" showIcon class="w-64" dateFormat="dd/mm/yy" />
+                  <Button label="Enviar reporte" icon="pi pi-envelope" outlined size="small" @click="showReportDialog = true" />
+                </div>
+              </div>
+              <div v-if="summaryLoading" class="text-center py-4 text-[var(--text-muted)] text-sm">
+                <i class="pi pi-spin pi-spinner mr-2" />Calculando...
+              </div>
+              <div v-else-if="expenseSummary" class="space-y-2">
+                <p class="text-sm text-[var(--text-muted)]">Total del período: <strong class="text-red-600 dark:text-red-400">{{ fmt(expenseSummary.grandTotal) }}</strong></p>
+                <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
+                  <div
+                    v-for="cat in expenseSummary.byCategory" :key="cat.category"
+                    class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3"
+                  >
+                    <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide">{{ cat.category }}</p>
+                    <p class="font-semibold text-[var(--text)]">{{ fmt(cat.total) }}</p>
+                    <p class="text-xs text-[var(--text-muted)]">{{ cat.percentage.toFixed(1) }}% · {{ cat.count }} gastos</p>
+                    <div class="mt-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
+                      <div class="h-full bg-red-500 rounded-full" :style="{ width: cat.percentage + '%' }" />
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
 
             <DataTable :value="expenses" :loading="expLoading" striped-rows class="rounded-xl border border-[var(--border)]">
@@ -673,6 +756,25 @@ function confirmDeleteExpense(e: Expense) {
       <div class="flex justify-end gap-2">
         <Button :label="t('common.cancel')" severity="secondary" outlined @click="showPaymentDialog = false" />
         <Button :label="t('common.create')" :loading="createPaymentMut.isPending.value" :disabled="!payAmount" @click="createPaymentMut.mutate()" />
+      </div>
+    </template>
+  </Dialog>
+
+  <!-- ── FINANCE REPORT EMAIL DIALOG ─────────────────────────────── -->
+  <Dialog v-model:visible="showReportDialog" header="Enviar reporte de gastos" modal class="w-full max-w-sm">
+    <div class="flex flex-col gap-3 pt-2">
+      <p class="text-sm text-[var(--text-muted)]">
+        Se enviará un resumen de gastos del período seleccionado al correo indicado.
+      </p>
+      <div class="flex flex-col gap-1">
+        <label class="text-sm font-medium">Correo electrónico</label>
+        <InputText v-model="reportEmail" type="email" placeholder="correo@ejemplo.com" class="w-full" />
+      </div>
+    </div>
+    <template #footer>
+      <div class="flex justify-end gap-2">
+        <Button label="Cancelar" severity="secondary" outlined @click="showReportDialog = false" />
+        <Button label="Enviar" icon="pi pi-send" :loading="sendReportMut.isPending.value" :disabled="!reportEmail" @click="sendReportMut.mutate()" />
       </div>
     </template>
   </Dialog>
