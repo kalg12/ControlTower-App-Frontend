@@ -12,6 +12,17 @@ import { qk } from '@/queries/keys'
 import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import type { ProposalStatus } from '@/types/proposal'
+import api from '@/services/api'
+
+async function downloadPdf(proposalId: string, proposalNumber: string) {
+  const res = await api.get(`/proposals/${proposalId}/pdf`, { responseType: 'blob' })
+  const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
+  const a = document.createElement('a')
+  a.href = url
+  a.download = `propuesta-${proposalNumber.replace(/\//g, '-')}.pdf`
+  a.click()
+  URL.revokeObjectURL(url)
+}
 
 const route = useRoute()
 const router = useRouter()
@@ -141,7 +152,7 @@ function formatCurrency(amount: number, currency: string) {
             <Button label="Aceptar" icon="pi pi-check" severity="success" :loading="acceptMutation.isPending.value" @click="acceptMutation.mutate()" />
             <Button label="Rechazar" icon="pi pi-times" severity="danger" outlined :loading="rejectMutation.isPending.value" @click="rejectMutation.mutate()" />
           </template>
-          <Button label="Descargar PDF" icon="pi pi-download" text disabled v-tooltip="'Próximamente'" />
+          <Button label="Descargar PDF" icon="pi pi-download" outlined @click="downloadPdf(proposal.id, proposal.number)" />
         </div>
       </div>
 
