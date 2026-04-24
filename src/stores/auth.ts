@@ -116,5 +116,14 @@ export const useAuthStore = defineStore('auth', () => {
     return p.includes(code)
   }
 
-  return { user, accessToken, loading, isAuthenticated, hasPermission, login, completeMfaLogin, logout }
+  async function updateAvatar(avatarUrl: string) {
+    const { default: api } = await import('@/services/api')
+    await api.put('/account/avatar', { avatarUrl })
+    if (user.value) {
+      user.value.avatarUrl = avatarUrl
+      localStorage.setItem('user', JSON.stringify(user.value))
+    }
+  }
+
+  return { user, accessToken, loading, isAuthenticated, hasPermission, login, completeMfaLogin, logout, updateAvatar }
 })

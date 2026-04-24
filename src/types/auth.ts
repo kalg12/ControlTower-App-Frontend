@@ -30,6 +30,7 @@ export interface CurrentUser {
   permissions: string[]
   roles: string[]
   superAdmin: boolean
+  avatarUrl?: string
 }
 
 export interface ForgotPasswordRequest { email: string }

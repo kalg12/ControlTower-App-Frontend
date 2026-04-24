@@ -5,7 +5,11 @@ import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
 import CommandPalette from '@/components/search/CommandPalette.vue'
 import ConfirmDialog from 'primevue/confirmdialog'
+import ChatInboxPanel from '@/components/chat/ChatInboxPanel.vue'
 import { useWebSocket } from '@/composables/useWebSocket'
+import { useAuthStore } from '@/stores/auth'
+
+const authStore = useAuthStore()
 
 const route = useRoute()
 const sidebarOpen = ref(false)
@@ -73,4 +77,5 @@ onUnmounted(() => document.removeEventListener('keydown', handleGlobalKeydown))
   </div>
   <ConfirmDialog />
   <CommandPalette v-model:open="commandPaletteOpen" />
+  <ChatInboxPanel v-if="authStore.hasPermission('chat:read')" />
 </template>

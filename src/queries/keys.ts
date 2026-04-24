@@ -35,4 +35,9 @@ export const qk = {
   employees: (filters?: string) => ['payroll-employees', filters ?? ''] as const,
   payrollPeriods: (page?: number) => ['payroll-periods', page ?? 0] as const,
   payrollPeriod: (id: string) => ['payroll-period', id] as const,
+  chatConversations: (filters?: string) => ['chat-conversations', filters ?? ''] as const,
+  chatConversation: (id: string) => ['chat-conversation', id] as const,
+  chatMessages: (id: string, page?: number) => ['chat-messages', id, page ?? 0] as const,
+  chatUnreadCount: () => ['chat-unread-count'] as const,
+  chatQuickReplies: () => ['chat-quick-replies'] as const,
 }

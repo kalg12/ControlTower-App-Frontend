@@ -26,8 +26,12 @@ import {
   FileText,
   DollarSign,
   CalendarDays,
-  Banknote
+  Banknote,
+  MessageCircle
 } from 'lucide-vue-next'
+import { useQuery } from '@tanstack/vue-query'
+import { chatService } from '@/services/chat.service'
+import { qk } from '@/queries/keys'
 import { useNotificationsStore } from '@/stores/notifications'
 import { useAuthStore } from '@/stores/auth'
 
@@ -50,6 +54,13 @@ const notifStore = useNotificationsStore()
 const auth = useAuthStore()
 const { t } = useI18n()
 
+const { data: chatWaiting } = useQuery({
+  queryKey: qk.chatUnreadCount(),
+  queryFn: () => chatService.countWaiting(),
+  refetchInterval: 20000,
+  enabled: computed(() => auth.hasPermission('chat:read')),
+})
+
 function visible(items: NavItem[]) {
   return items.filter((i) => !i.permission || auth.hasPermission(i.permission))
 }
@@ -70,6 +81,7 @@ const opsItems = computed(() =>
   visible([
     { to: '/tickets', label: t('nav.tickets'), icon: MessageSquare, permission: 'ticket:read' },
     { to: '/pos-support', label: t('nav.posSupport'), icon: Store, permission: 'ticket:read' },
+    { to: '/chat', label: 'Chat Soporte', icon: MessageCircle, permission: 'chat:read' },
     { to: '/kanban', label: t('nav.kanban'), icon: LayoutGrid, permission: 'kanban:read' },
     { to: '/kanban/work', label: t('nav.kanbanWork'), icon: ClipboardList, permission: 'kanban:read' },
     { to: '/my-work', label: t('nav.myWork'), icon: Briefcase, permission: 'ticket:read' },
@@ -122,6 +134,7 @@ function isActive(path: string): boolean {
 function badge(to: string): number | null {
   if (to === '/notifications') return unreadCount.value || null
   if (to === '/pos-support') return notifStore.posBadgeCount || null
+  if (to === '/chat') return (chatWaiting.value ?? 0) > 0 ? chatWaiting.value! : null
   return null
 }
 </script>

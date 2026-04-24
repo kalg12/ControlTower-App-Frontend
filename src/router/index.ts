@@ -47,6 +47,12 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     {
+      path: '/widget/chat',
+      name: 'chat-widget',
+      component: () => import('@/pages/widget/ChatWidgetPage.vue'),
+      meta: { layout: 'none', public: true }
+    },
+    {
       path: '/login',
       name: 'login',
       component: () => import('@/pages/auth/LoginPage.vue'),
@@ -229,6 +235,12 @@ const router = createRouter({
       name: 'nomina',
       component: () => import('@/pages/payroll/NominaPage.vue'),
       meta: { layout: 'app', titleKey: 'nav.payroll', permission: 'payroll:read' }
+    },
+    {
+      path: '/chat',
+      name: 'chat',
+      component: () => import('@/pages/chat/ChatPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.chat', permission: 'chat:read' }
     },
     {
       path: '/integrations',
