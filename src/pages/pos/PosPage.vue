@@ -120,6 +120,13 @@ function formatDate(d?: string | null) {
   return d ? dayjs(d).format('DD/MM/YYYY HH:mm') : '—'
 }
 
+function normalizeHealthUrl(url: string): string {
+  if (!url) return url
+  const trimmed = url.trim().replace(/\/$/, '')
+  if (/\/health(\/check)?$/i.test(trimmed)) return trimmed
+  return trimmed + '/api/health'
+}
+
 // ── Copy helper ───────────────────────────────────────────────────────────────
 
 const copiedKey = ref<string | null>(null)
@@ -138,6 +145,7 @@ const regClientId = ref<string | null>(null)
 const regBranchId = ref<string | null>(null)
 const regName = ref('')
 const regUrl = ref('')
+const regUrlPreview = computed(() => regUrl.value ? normalizeHealthUrl(regUrl.value) : '')
 const regInterval = ref(300)
 const regLoading = ref(false)
 
@@ -168,7 +176,7 @@ async function submitRegister() {
       clientBranchId: regBranchId.value,
       name: regName.value || undefined,
       type: 'POS',
-      pullUrl: regUrl.value,
+      pullUrl: normalizeHealthUrl(regUrl.value),
       heartbeatIntervalSeconds: regInterval.value,
     })
     qc.invalidateQueries({ queryKey: ['pos-endpoints'] })
@@ -187,8 +195,14 @@ const showGuide = ref(false)
 const guideEndpoint = ref<Integration | null>(null)
 const guideApiKey = ref<string | null>(null)
 const guideIsNew = ref(false)
+const guideIsRegen = ref(false)
+const guideDialogHeader = computed(() => {
+  if (guideIsNew.value) return '¡POS registrado! Configura tu sistema'
+  if (guideIsRegen.value) return 'Clave API regenerada'
+  return 'Guía de conexión'
+})
 
-function openSetupGuide(result: IntegrationCreateResponse | Integration, isNew = false) {
+function openSetupGuide(result: IntegrationCreateResponse | Integration, isNew = false, isRegen = false) {
   if ('endpoint' in result && 'generatedApiKey' in result) {
     guideEndpoint.value = (result as IntegrationCreateResponse).endpoint
     guideApiKey.value = (result as IntegrationCreateResponse).generatedApiKey
@@ -197,6 +211,7 @@ function openSetupGuide(result: IntegrationCreateResponse | Integration, isNew =
     guideApiKey.value = null
   }
   guideIsNew.value = isNew
+  guideIsRegen.value = isRegen
   showGuide.value = true
 }
 
@@ -296,19 +311,18 @@ const showEdit = ref(false)
 const editId = ref<string | null>(null)
 const editName = ref('')
 const editUrl = ref('')
+const editUrlPreview = computed(() => editUrl.value ? normalizeHealthUrl(editUrl.value) : '')
 const editInterval = ref(300)
+const currentEditEndpoint = ref<Integration | null>(null)
 const editLoading = ref(false)
 const regenLoading = ref(false)
-const regenKey = ref<string | null>(null)
-const regenCopied = ref(false)
 
 function openEdit(ep: Integration) {
   editId.value = ep.id
+  currentEditEndpoint.value = ep
   editName.value = ep.name ?? ''
   editUrl.value = ep.pullUrl ?? ''
   editInterval.value = ep.heartbeatIntervalSeconds
-  regenKey.value = null
-  regenCopied.value = false
   showEdit.value = true
 }
 
@@ -318,7 +332,7 @@ async function submitEdit() {
   try {
     await integrationsService.update(editId.value, {
       name: editName.value || undefined,
-      pullUrl: editUrl.value || undefined,
+      pullUrl: editUrl.value ? normalizeHealthUrl(editUrl.value) : undefined,
       heartbeatIntervalSeconds: editInterval.value,
     })
     qc.invalidateQueries({ queryKey: ['pos-endpoints'] })
@@ -332,22 +346,17 @@ async function submitEdit() {
 }
 
 async function regenerateKey() {
-  if (!editId.value) return
+  if (!editId.value || !currentEditEndpoint.value) return
   regenLoading.value = true
   try {
-    regenKey.value = await integrationsService.regenerateApiKey(editId.value)
+    const newKey = await integrationsService.regenerateApiKey(editId.value)
+    showEdit.value = false
+    openSetupGuide({ endpoint: currentEditEndpoint.value, generatedApiKey: newKey }, false, true)
   } catch {
     toast.error('Error al regenerar clave')
   } finally {
     regenLoading.value = false
   }
-}
-
-async function copyRegenKey() {
-  if (!regenKey.value) return
-  await navigator.clipboard.writeText(regenKey.value)
-  regenCopied.value = true
-  setTimeout(() => { regenCopied.value = false }, 2000)
 }
 
 // ── Resolve incident ──────────────────────────────────────────────────────────
@@ -571,8 +580,11 @@ async function resolveIncident(inc: HealthIncident) {
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]">URL del endpoint /health del POS <span class="text-red-500">*</span></label>
-        <InputText v-model="regUrl" placeholder="https://pos.tucliente.com/api/health" class="w-full" />
-        <p class="text-xs text-[var(--text-muted)]">CT consultará esta URL periódicamente para verificar que el POS esté en línea.</p>
+        <InputText v-model="regUrl" placeholder="https://pos.tucliente.com" class="w-full" />
+        <p v-if="regUrlPreview && regUrlPreview !== regUrl.trim()" class="text-xs text-blue-600 dark:text-blue-400">
+          → Se guardará como: <code class="font-mono">{{ regUrlPreview }}</code>
+        </p>
+        <p class="text-xs text-[var(--text-muted)]">Puedes poner la URL base; si no termina en <code class="font-mono">/health</code> se añade <code class="font-mono">/api/health</code> automáticamente.</p>
       </div>
 
       <div class="flex flex-col gap-1">
@@ -591,7 +603,7 @@ async function resolveIncident(inc: HealthIncident) {
   </Dialog>
 
   <!-- ── Setup Guide Dialog ─────────────────────────────────────────── -->
-  <Dialog v-model:visible="showGuide" :header="guideIsNew ? '¡POS registrado! Configura tu sistema' : 'Guía de conexión'" modal :style="{ width: '620px' }">
+  <Dialog v-model:visible="showGuide" :header="guideDialogHeader" modal :style="{ width: '620px' }">
     <div class="flex flex-col gap-5 pt-2">
 
       <!-- API Key (only on new registration) -->
@@ -658,7 +670,10 @@ async function resolveIncident(inc: HealthIncident) {
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]">URL del endpoint /health</label>
-        <InputText v-model="editUrl" placeholder="https://pos.tucliente.com/api/health" class="w-full" />
+        <InputText v-model="editUrl" placeholder="https://pos.tucliente.com" class="w-full" />
+        <p v-if="editUrlPreview && editUrlPreview !== editUrl.trim()" class="text-xs text-blue-600 dark:text-blue-400">
+          → Se guardará como: <code class="font-mono">{{ editUrlPreview }}</code>
+        </p>
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]">Frecuencia de monitoreo (segundos)</label>
@@ -668,19 +683,9 @@ async function resolveIncident(inc: HealthIncident) {
       <!-- Regenerar clave -->
       <div class="rounded-lg border border-[var(--border)] p-3 space-y-2">
         <p class="text-xs font-medium text-[var(--text-muted)]">Regenerar clave API</p>
+        <p class="text-xs text-[var(--text-muted)]">Se generará una nueva clave y se mostrará en la guía de conexión. La clave anterior quedará inválida.</p>
         <Button label="Generar nueva clave" icon="pi pi-refresh" severity="warn" outlined size="small"
           :loading="regenLoading" @click.prevent="regenerateKey" />
-        <div v-if="regenKey" class="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-3 space-y-2">
-          <p class="text-xs text-amber-700 dark:text-amber-400 font-medium">
-            <i class="pi pi-exclamation-triangle mr-1" />Copia esta clave — no se vuelve a mostrar
-          </p>
-          <div class="flex items-center gap-2 font-mono text-xs bg-white dark:bg-zinc-900 border border-[var(--border)] rounded px-3 py-2">
-            <span class="flex-1 break-all">{{ regenKey }}</span>
-            <button class="shrink-0 p-1 rounded hover:bg-[var(--border)]" @click.prevent="copyRegenKey">
-              <i :class="regenCopied ? 'pi pi-check text-green-500' : 'pi pi-copy text-[var(--text-muted)]'" />
-            </button>
-          </div>
-        </div>
       </div>
     </div>
 
