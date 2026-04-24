@@ -36,12 +36,16 @@ export interface WebhookDelivery {
   createdAt: string
 }
 
+export interface IntegrationCreateResponse {
+  endpoint: Integration
+  generatedApiKey: string
+}
+
 export interface CreateIntegrationRequest {
   clientBranchId?: string
   name?: string
   type: IntegrationEndpointType
   pullUrl?: string
-  apiKey?: string
   heartbeatIntervalSeconds?: number
   contractVersion?: string
 }

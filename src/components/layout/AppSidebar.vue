@@ -85,8 +85,7 @@ const opsItems = computed(() =>
     { to: '/kanban', label: t('nav.kanban'), icon: LayoutGrid, permission: 'kanban:read' },
     { to: '/kanban/work', label: t('nav.kanbanWork'), icon: ClipboardList, permission: 'kanban:read' },
     { to: '/my-work', label: t('nav.myWork'), icon: Briefcase, permission: 'ticket:read' },
-    { to: '/health', label: t('nav.health'), icon: Activity, permission: 'health:read' },
-    { to: '/integrations', label: t('nav.integrations'), icon: Plug, permission: 'integration:read' },
+    { to: '/pos', label: 'Puntos de Venta', icon: Store, permission: 'health:read' },
   ])
 )
 

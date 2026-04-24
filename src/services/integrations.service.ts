@@ -1,6 +1,7 @@
 import api from '@/services/api'
 import type {
   Integration,
+  IntegrationCreateResponse,
   IntegrationEvent,
   WebhookDelivery,
   CreateIntegrationRequest,
@@ -16,8 +17,8 @@ export const integrationsService = {
     return res.data
   },
 
-  async create(data: CreateIntegrationRequest): Promise<Integration> {
-    const res = await api.post<Integration>('/integrations', data)
+  async create(data: CreateIntegrationRequest): Promise<IntegrationCreateResponse> {
+    const res = await api.post<IntegrationCreateResponse>('/integrations', data)
     return res.data
   },
 

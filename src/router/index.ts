@@ -117,11 +117,12 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.calendar', permission: 'client:read' }
     },
     {
-      path: '/health',
-      name: 'health',
-      component: () => import('@/pages/health/HealthPage.vue'),
-      meta: { layout: 'app', titleKey: 'nav.health', permission: 'health:read' }
+      path: '/pos',
+      name: 'pos',
+      component: () => import('@/pages/pos/PosPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.pos', permission: 'health:read' }
     },
+    { path: '/health', redirect: '/pos' },
     {
       path: '/kanban',
       name: 'kanban',
@@ -242,12 +243,7 @@ const router = createRouter({
       component: () => import('@/pages/chat/ChatPage.vue'),
       meta: { layout: 'app', titleKey: 'nav.chat', permission: 'chat:read' }
     },
-    {
-      path: '/integrations',
-      name: 'integrations',
-      component: () => import('@/pages/integrations/IntegrationsPage.vue'),
-      meta: { layout: 'app', titleKey: 'nav.integrations', permission: 'integration:read' }
-    },
+    { path: '/integrations', redirect: '/pos' },
     {
       path: '/campaigns',
       name: 'campaigns',
