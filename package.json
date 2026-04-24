@@ -34,7 +34,7 @@
     "vue3-apexcharts": "^1.11.1",
     "vue3-toastify": "^0.2.9",
     "vuedraggable": "^4.1.0",
-    "zod": "^4.3.6"
+    "zod": "^3.24.0"
   },
   "devDependencies": {
     "@tailwindcss/vite": "^4.2.2",
