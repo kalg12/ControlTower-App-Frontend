@@ -33,6 +33,7 @@ export interface Proposal {
   acceptedAt?: string | null
   rejectedAt?: string | null
   sentById?: string | null
+  emailViewedAt?: string | null
   lineItems: ProposalLineItem[]
   createdAt: string
   updatedAt: string

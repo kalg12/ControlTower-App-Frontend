@@ -131,6 +131,7 @@ function formatCurrency(amount: number, currency: string) {
             <div class="flex items-center gap-3">
               <h1 class="text-xl font-bold text-gray-900 dark:text-white font-mono">{{ proposal.number }}</h1>
               <Tag :severity="statusSeverity(proposal.status)" :value="statusLabel(proposal.status)" />
+              <Tag v-if="proposal.emailViewedAt" severity="success" value="📧 Email abierto" :title="'Abierto el ' + formatDate(proposal.emailViewedAt)" />
             </div>
             <p class="text-sm text-gray-500 mt-0.5">{{ proposal.clientName }} · {{ proposal.title }}</p>
           </div>
@@ -173,6 +174,10 @@ function formatCurrency(amount: number, currency: string) {
         <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-4">
           <p class="text-xs text-gray-500 uppercase tracking-wide mb-1">{{ proposal.acceptedAt ? 'Aceptada' : proposal.rejectedAt ? 'Rechazada' : 'Respuesta' }}</p>
           <p class="text-sm text-gray-700 dark:text-gray-300">{{ formatDate(proposal.acceptedAt ?? proposal.rejectedAt) }}</p>
+        </div>
+        <div v-if="proposal.emailViewedAt" class="bg-white dark:bg-gray-800 rounded-xl border border-green-200 dark:border-green-800 p-4">
+          <p class="text-xs text-green-600 uppercase tracking-wide mb-1">Email abierto</p>
+          <p class="text-sm text-gray-700 dark:text-gray-300">{{ formatDate(proposal.emailViewedAt) }}</p>
         </div>
       </div>
 
