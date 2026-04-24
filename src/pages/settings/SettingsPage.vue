@@ -26,6 +26,21 @@ const toast = useToast()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const activeTab = ref('profile')
+
+const avatarUrl = ref(authStore.user?.avatarUrl ?? '')
+const savingAvatar = ref(false)
+
+async function saveAvatar() {
+  savingAvatar.value = true
+  try {
+    await authStore.updateAvatar(avatarUrl.value.trim())
+    toast.success('Foto de perfil actualizada')
+  } catch {
+    toast.error('No se pudo actualizar la foto de perfil')
+  } finally {
+    savingAvatar.value = false
+  }
+}
 const queryClient = useQueryClient()
 
 const { data: preferences } = useQuery({
@@ -185,20 +200,34 @@ async function syncGoogleNow() {
       </TabList>
       <TabPanels class="mt-4">
         <TabPanel value="profile">
-          <Card>
-            <div class="flex items-center gap-4 mb-6">
-              <Avatar :name="authStore.user?.fullName || t('settings.avatarFallback')" size="lg" />
-              <div>
-                <h3 class="text-lg font-semibold text-[var(--text)]">{{ authStore.user?.fullName }}</h3>
-                <p class="text-sm text-[var(--text-muted)]">{{ authStore.user?.email }}</p>
-                <Tag value="User" severity="secondary" class="mt-1 text-xs" />
+          <div class="space-y-4">
+            <Card>
+              <div class="flex items-center gap-4 mb-6">
+                <Avatar :name="authStore.user?.fullName || t('settings.avatarFallback')" :src="authStore.user?.avatarUrl" size="lg" />
+                <div>
+                  <h3 class="text-lg font-semibold text-[var(--text)]">{{ authStore.user?.fullName }}</h3>
+                  <p class="text-sm text-[var(--text-muted)]">{{ authStore.user?.email }}</p>
+                  <Tag value="User" severity="secondary" class="mt-1 text-xs" />
+                </div>
               </div>
-            </div>
-            <div class="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
-              <p class="font-medium">{{ t('settings.readOnly') }}</p>
-              <p class="text-xs mt-1">{{ t('settings.readOnlyHint') }}</p>
-            </div>
-          </Card>
+              <div class="rounded-lg border border-amber-200 bg-amber-50 dark:bg-amber-950/30 dark:border-amber-900 px-4 py-3 text-sm text-amber-700 dark:text-amber-400">
+                <p class="font-medium">{{ t('settings.readOnly') }}</p>
+                <p class="text-xs mt-1">{{ t('settings.readOnlyHint') }}</p>
+              </div>
+            </Card>
+            <Card>
+              <h3 class="text-sm font-semibold text-[var(--text)] mb-3">Foto de perfil</h3>
+              <div class="flex items-center gap-3 mb-3">
+                <Avatar :name="authStore.user?.fullName || 'Usuario'" :src="avatarUrl || undefined" size="lg" />
+                <p class="text-xs text-[var(--text-muted)]">Vista previa</p>
+              </div>
+              <div class="flex gap-2">
+                <InputText v-model="avatarUrl" placeholder="https://..." class="flex-1 text-sm" />
+                <Button label="Guardar" icon="pi pi-check" :loading="savingAvatar" @click="saveAvatar" />
+              </div>
+              <p class="text-xs text-[var(--text-muted)] mt-1">Ingresa la URL de tu foto de perfil (HTTPS recomendado).</p>
+            </Card>
+          </div>
         </TabPanel>
         <TabPanel value="security">
           <div class="space-y-6">

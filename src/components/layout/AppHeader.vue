@@ -120,7 +120,7 @@ async function logout() {
         :title="authStore.user?.fullName || 'Usuario'"
         @click="toggleUserPanel"
       >
-        <Avatar :name="authStore.user?.fullName || 'Usuario'" size="sm" />
+        <Avatar :name="authStore.user?.fullName || 'Usuario'" :src="authStore.user?.avatarUrl" size="sm" />
       </button>
     </div>
   </header>
