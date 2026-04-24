@@ -67,6 +67,7 @@ onMounted(() => {
             senderName: payload.senderName,
             senderAvatarUrl: payload.senderAvatarUrl,
             content: payload.content ?? '',
+            attachmentUrl: payload.attachmentUrl,
             isRead: payload.isRead ?? false,
             createdAt: payload.createdAt,
           })
@@ -137,6 +138,30 @@ function sendTypingSignal() {
     body: JSON.stringify({ conversationId: props.conversation.id }),
   })
   typingTimeout.value = setTimeout(() => { isTyping.value = false }, 2000)
+}
+
+// ── File upload ──────────────────────────────────────────────────────────────
+
+const fileInputEl = ref<HTMLInputElement | null>(null)
+
+function openFilePicker() {
+  fileInputEl.value?.click()
+}
+
+async function onFileSelected(e: Event) {
+  const file = (e.target as HTMLInputElement).files?.[0]
+  if (!file) return
+  const form = new FormData()
+  form.append('file', file)
+  try {
+    const { default: api } = await import('@/services/api')
+    await api.post(`/chat/conversations/${props.conversation.id}/attachments`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+  } catch (err) {
+    console.error('[Chat] upload error', err)
+  }
+  if (fileInputEl.value) fileInputEl.value.value = ''
 }
 
 // ── Close ────────────────────────────────────────────────────────────────────
@@ -236,7 +261,13 @@ function applyQuickReply(r: ChatQuickReply) {
             {{ initials(conversation.visitorName) }}
           </div>
           <div>
-            <div class="bg-white border border-[var(--border)] rounded-2xl rounded-bl-sm px-3 py-2 text-sm">{{ msg.content }}</div>
+            <div class="bg-white border border-[var(--border)] rounded-2xl rounded-bl-sm px-3 py-2 text-sm">
+              <template v-if="msg.content.startsWith('📎')">
+                <i class="pi pi-paperclip mr-1 text-xs" />
+                <a :href="msg.attachmentUrl ?? '#'" target="_blank" class="underline text-blue-600 hover:text-blue-800">{{ msg.content.replace('📎 ', '') }}</a>
+              </template>
+              <template v-else>{{ msg.content }}</template>
+            </div>
             <div class="text-[10px] text-[var(--text-muted)] mt-0.5 ml-1">{{ formatTime(msg.createdAt) }}</div>
           </div>
         </div>
@@ -251,7 +282,13 @@ function applyQuickReply(r: ChatQuickReply) {
             {{ initials(msg.senderName) }}
           </div>
           <div>
-            <div class="bg-[var(--primary)] text-white rounded-2xl rounded-br-sm px-3 py-2 text-sm">{{ msg.content }}</div>
+            <div class="bg-[var(--primary)] text-white rounded-2xl rounded-br-sm px-3 py-2 text-sm">
+              <template v-if="msg.content.startsWith('📎')">
+                <i class="pi pi-paperclip mr-1 text-xs" />
+                <a :href="msg.attachmentUrl ?? '#'" target="_blank" class="underline text-white/90 hover:text-white">{{ msg.content.replace('📎 ', '') }}</a>
+              </template>
+              <template v-else>{{ msg.content }}</template>
+            </div>
             <div class="text-[10px] text-[var(--text-muted)] mt-0.5 mr-1 text-right">{{ formatTime(msg.createdAt) }}</div>
           </div>
         </div>
@@ -282,8 +319,9 @@ function applyQuickReply(r: ChatQuickReply) {
 
     <!-- Input -->
     <div class="border-t border-[var(--border)] px-3 py-2 flex items-center gap-2 flex-shrink-0 bg-[var(--bg)]">
-      <button class="text-[var(--text-muted)] hover:text-[var(--text)] p-1 opacity-40 cursor-not-allowed" title="Próximamente: adjuntar archivos">
-        <i class="pi pi-plus" />
+      <input ref="fileInputEl" type="file" class="hidden" @change="onFileSelected" />
+      <button class="text-[var(--text-muted)] hover:text-[var(--primary)] p-1 transition-colors" title="Adjuntar archivo" @click="openFilePicker">
+        <i class="pi pi-paperclip" />
       </button>
       <textarea
         v-model="inputText"
