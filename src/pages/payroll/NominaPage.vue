@@ -296,6 +296,19 @@ function sendAllReceipts() {
   const pending = items.filter(i => !i.receiptSent && i.employeeId)
   pending.forEach(i => sendReceiptMut.mutate(i.id))
 }
+
+async function downloadExport(type: 'csv' | 'xml') {
+  if (!selectedPeriodId.value) return
+  const { default: api } = await import('@/services/api')
+  const ext = type === 'csv' ? 'export.csv' : 'cfdi.xml'
+  const res = await api.get(`/payroll/periods/${selectedPeriodId.value}/${ext}`, { responseType: 'blob' })
+  const period = selectedPeriod.value
+  const name = `nomina-${period?.year}-P${period?.periodNumber}.${type === 'csv' ? 'csv' : 'xml'}`
+  const url = URL.createObjectURL(new Blob([res.data]))
+  const a = document.createElement('a')
+  a.href = url; a.download = name; a.click()
+  URL.revokeObjectURL(url)
+}
 </script>
 
 <template>
@@ -407,8 +420,10 @@ function sendAllReceipts() {
                 </h2>
                 <p class="text-sm text-[var(--text-muted)]">{{ dayjs(selectedPeriod.startDate).format('DD/MM/YYYY') }} — {{ dayjs(selectedPeriod.endDate).format('DD/MM/YYYY') }}</p>
               </div>
-              <div class="flex gap-2">
+              <div class="flex gap-2 flex-wrap">
                 <Button v-if="selectedPeriod.status !== 'PAID'" label="Enviar todos los recibos" icon="pi pi-send" severity="info" outlined size="small" @click="sendAllReceipts" />
+                <Button label="CSV" icon="pi pi-download" severity="secondary" outlined size="small" title="Exportar nómina a CSV" @click="downloadExport('csv')" />
+                <Button label="CFDI XML" icon="pi pi-file-export" severity="secondary" outlined size="small" title="Descargar stub CFDI SAT XML" @click="downloadExport('xml')" />
               </div>
             </div>
 
