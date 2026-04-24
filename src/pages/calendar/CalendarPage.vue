@@ -26,7 +26,6 @@ import type {
   ContactChannel,
   CreateCalendarEventRequest
 } from '@/types/calendar'
-import type { CreatePersonRequest } from '@/types/person'
 import dayjs from 'dayjs'
 import 'dayjs/locale/es'
 

@@ -1,6 +1,5 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
-import { useRouter } from 'vue-router'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useI18n } from 'vue-i18n'
 import { useToast } from 'primevue/usetoast'
@@ -11,17 +10,15 @@ import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
-import { Users, User, Phone, Mail, Plus, Search, Building2 } from 'lucide-vue-next'
+import { Users, Phone, Search, Building2 } from 'lucide-vue-next'
 import { personsService } from '@/services/persons.service'
 import { clientsService } from '@/services/clients.service'
 import { usersService } from '@/services/users.service'
 import { useAuthStore } from '@/stores/auth'
 import type { Person, CreatePersonRequest, PersonStatus } from '@/types/person'
 import PageInfoButton from '@/components/ui/PageInfoButton.vue'
-import dayjs from 'dayjs'
 
 const { t } = useI18n()
-const router = useRouter()
 const toast = useToast()
 const qc = useQueryClient()
 const auth = useAuthStore()
@@ -31,6 +28,17 @@ const page = ref(0)
 const showDialog = ref(false)
 const editingPerson = ref<Person | null>(null)
 const deleteConfirmId = ref<string | null>(null)
+const showDeleteConfirm = ref(false)
+
+function openDeleteConfirm(id: string) {
+  deleteConfirmId.value = id
+  showDeleteConfirm.value = true
+}
+
+function closeDeleteConfirm() {
+  showDeleteConfirm.value = false
+  deleteConfirmId.value = null
+}
 
 const form = ref<CreatePersonRequest>({
   firstName: '',
@@ -171,10 +179,6 @@ function statusSeverity(s: PersonStatus): 'success' | 'warn' | 'secondary' | 'in
   if (s === 'CONVERTED') return 'warn'
   return 'secondary'
 }
-
-function formatDate(d?: string) {
-  return d ? dayjs(d).format('DD/MM/YYYY') : '—'
-}
 </script>
 
 <template>
@@ -276,7 +280,7 @@ function formatDate(d?: string) {
         <template #body="{ data }">
           <div class="flex gap-1">
             <Button icon="pi pi-pencil" severity="secondary" text size="small" @click="openEdit(data)" />
-            <Button icon="pi pi-trash" severity="danger" text size="small" @click="deleteConfirmId = data.id" />
+            <Button icon="pi pi-trash" severity="danger" text size="small" @click="openDeleteConfirm(data.id)" />
           </div>
         </template>
       </Column>
@@ -367,10 +371,10 @@ function formatDate(d?: string) {
     </Dialog>
 
     <!-- Delete Confirm -->
-    <Dialog v-model:visible="deleteConfirmId" :header="t('persons.deleteConfirmTitle')" :style="{ width: '24rem' }" modal>
+    <Dialog v-model:visible="showDeleteConfirm" :header="t('persons.deleteConfirmTitle')" :style="{ width: '24rem' }" modal>
       <p class="text-[var(--text)]">{{ t('persons.deleteConfirm') }}</p>
       <template #footer>
-        <Button :label="t('common.cancel')" severity="secondary" text @click="deleteConfirmId = null" />
+        <Button :label="t('common.cancel')" severity="secondary" text @click="closeDeleteConfirm" />
         <Button :label="t('common.delete')" severity="danger" :loading="deleteMutation.isPending.value" @click="deleteMutation.mutate(deleteConfirmId!)" />
       </template>
     </Dialog>

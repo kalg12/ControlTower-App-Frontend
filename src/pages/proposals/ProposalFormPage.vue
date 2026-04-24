@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, watch } from 'vue'
+import { ref, computed, watch } from 'vue'
 import { useRoute, useRouter } from 'vue-router'
 import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
@@ -12,7 +12,6 @@ import { proposalsService } from '@/services/proposals.service'
 import { useToast } from '@/composables/useToast'
 import { qk } from '@/queries/keys'
 import dayjs from 'dayjs'
-import type { ProposalLineItemRequest } from '@/types/proposal'
 
 const route = useRoute()
 const router = useRouter()

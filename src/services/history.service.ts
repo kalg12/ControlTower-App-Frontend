@@ -1,4 +1,4 @@
-import axios from '@/services/axios'
+import api from '@/services/api'
 
 export interface HistoryEntry {
   id: string
@@ -31,25 +31,25 @@ export interface HistoryPage {
 
 export const historyService = {
   getClientHistory(clientId: string, page = 0, size = 20) {
-    return axios.get<HistoryPage>(`/crm/history/client/${clientId}`, {
+    return api.get<HistoryPage>(`/crm/history/client/${clientId}`, {
       params: { page, size },
     })
   },
 
   getBranchHistory(branchId: string, page = 0, size = 20) {
-    return axios.get<HistoryPage>(`/crm/history/branch/${branchId}`, {
+    return api.get<HistoryPage>(`/crm/history/branch/${branchId}`, {
       params: { page, size },
     })
   },
 
   getOpportunityHistory(opportunityId: string, page = 0, size = 20) {
-    return axios.get<HistoryPage>(`/crm/history/opportunity/${opportunityId}`, {
+    return api.get<HistoryPage>(`/crm/history/opportunity/${opportunityId}`, {
       params: { page, size },
     })
   },
 
   getContactHistory(contactId: string, page = 0, size = 20) {
-    return axios.get<HistoryPage>(`/crm/history/contact/${contactId}`, {
+    return api.get<HistoryPage>(`/crm/history/contact/${contactId}`, {
       params: { page, size },
     })
   },

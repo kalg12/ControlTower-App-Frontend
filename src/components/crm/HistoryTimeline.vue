@@ -84,8 +84,8 @@ const loadHistory = async () => {
       response = await historyService.getContactHistory(props.contactId, page.value, size)
     }
     
-    if (response?.data?.data) {
-      const data: HistoryPage = response.data.data
+    if (response?.data) {
+      const data: HistoryPage = response.data
       history.value = data.content
       totalPages.value = data.totalPages
     }

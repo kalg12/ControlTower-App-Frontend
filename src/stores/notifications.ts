@@ -13,7 +13,7 @@ export const useNotificationsStore = defineStore('notifications', () => {
 
   const unreadByCategory = computed(() => {
     const counts: Record<NotificationCategory, number> = {
-      ALL: 0, TICKETS: 0, KANBAN: 0, FINANCE: 0, SYSTEM: 0
+      ALL: 0, TICKETS: 0, KANBAN: 0, FINANCE: 0, CRM: 0, SYSTEM: 0
     }
     items.value.filter(n => !n.read).forEach(n => {
       const cat = getCategory(n.type)

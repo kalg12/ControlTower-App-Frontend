@@ -1,7 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useQuery } from '@tanstack/vue-query'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
@@ -9,14 +9,11 @@ import Button from 'primevue/button'
 import Select from 'primevue/select'
 import { proposalsService } from '@/services/proposals.service'
 import { qk } from '@/queries/keys'
-import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import type { ProposalStatus } from '@/types/proposal'
 
 const props = defineProps<{ clientId: string }>()
 const router = useRouter()
-const queryClient = useQueryClient()
-const toast = useToast()
 
 const statusFilter = ref<ProposalStatus | undefined>(undefined)
 
