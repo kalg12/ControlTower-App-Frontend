@@ -52,6 +52,7 @@ export interface KanbanBoard {
   description?: string | null
   visibility: BoardVisibility
   createdBy?: string | null
+  clientId?: string | null
   columns?: KanbanColumn[]
   createdAt?: string
   updatedAt?: string
@@ -61,6 +62,7 @@ export interface BoardRequest {
   name: string
   description?: string
   visibility?: BoardVisibility
+  clientId?: string
 }
 
 export interface CardRequest {
