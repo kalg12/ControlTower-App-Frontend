@@ -7,7 +7,7 @@ import { isAxiosError } from 'axios'
 import Button from 'primevue/button'
 import Select from 'primevue/select'
 import InputText from 'primevue/inputtext'
-import Calendar from 'primevue/calendar'
+import DatePicker from 'primevue/datepicker'
 import Tag from 'primevue/tag'
 import { useAuthStore } from '@/stores/auth'
 import { kanbanService } from '@/services/kanban.service'
@@ -223,154 +223,139 @@ function clearFilters() {
 
 <template>
   <div class="space-y-4">
-    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+
+    <!-- Header -->
+    <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
       <div>
         <h1 class="text-xl font-semibold text-[var(--text)] flex items-center gap-2">
-          <ClipboardList class="w-6 h-6 text-[var(--primary)]" />
+          <ClipboardList class="w-5 h-5 text-[var(--primary)]" />
           {{ t('kanban.workHubTitle') }}
           <PageInfoButton :title="t('kanban.workHubTitle')" :description="t('pageInfo.workHub')" />
         </h1>
-        <p class="text-sm text-[var(--text-muted)] mt-1">{{ t('kanban.workHubSubtitle') }}</p>
+        <p class="text-sm text-[var(--text-muted)] mt-0.5">{{ t('kanban.workHubSubtitle') }}</p>
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex gap-2 shrink-0">
         <Button
           :label="t('kanban.backToBoards')"
           icon="pi pi-arrow-left"
           severity="secondary"
           outlined
+          size="small"
           @click="router.push({ name: 'kanban' })"
         />
-        <Button :label="t('common.retry')" icon="pi pi-refresh" severity="secondary" outlined @click="() => refetch()" />
+        <Button
+          :label="t('common.retry')"
+          icon="pi pi-refresh"
+          severity="secondary"
+          outlined
+          size="small"
+          @click="() => refetch()"
+        />
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-2 items-center p-3 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-      <div class="flex items-center gap-4 text-sm">
-        <div class="flex items-center gap-1">
-          <BarChart3 class="w-4 h-4 text-[var(--primary)]" />
-          <span class="font-medium">{{ metrics.total }}</span>
-          <span class="text-[var(--text-muted)]">{{ t('kanban.total') }}</span>
-        </div>
-        <div class="flex items-center gap-1">
-          <Clock class="w-4 h-4 text-orange-500" />
-          <span class="font-medium text-orange-500">{{ metrics.todo }}</span>
-          <span class="text-[var(--text-muted)]">{{ t('kanban.colTodo') }}</span>
-        </div>
-        <div class="flex items-center gap-1">
-          <div class="w-4 h-4 rounded-full border-2 border-blue-500"></div>
-          <span class="font-medium text-blue-500">{{ metrics.inProgress }}</span>
-          <span class="text-[var(--text-muted)]">{{ t('kanban.colInProgress') }}</span>
-        </div>
-        <div class="flex items-center gap-1">
-          <CheckCircle class="w-4 h-4 text-green-500" />
-          <span class="font-medium text-green-500">{{ metrics.done }}</span>
-          <span class="text-[var(--text-muted)]">{{ t('kanban.colDone') }}</span>
-        </div>
-        <div v-if="metrics.overdue > 0" class="flex items-center gap-1">
+    <!-- Metrics bar -->
+    <div class="flex flex-wrap items-center gap-x-5 gap-y-2 px-4 py-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] text-sm">
+      <div class="flex items-center gap-1.5">
+        <BarChart3 class="w-4 h-4 text-[var(--primary)]" />
+        <span class="font-semibold text-[var(--text)]">{{ metrics.total }}</span>
+        <span class="text-[var(--text-muted)]">{{ t('kanban.total') }}</span>
+      </div>
+      <div class="w-px h-4 bg-[var(--border)] hidden sm:block" />
+      <div class="flex items-center gap-1.5">
+        <Clock class="w-4 h-4 text-orange-500" />
+        <span class="font-semibold text-orange-500">{{ metrics.todo }}</span>
+        <span class="text-[var(--text-muted)]">{{ t('kanban.colTodo') }}</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <div class="w-3.5 h-3.5 rounded-full border-2 border-blue-500" />
+        <span class="font-semibold text-blue-500">{{ metrics.inProgress }}</span>
+        <span class="text-[var(--text-muted)]">{{ t('kanban.colInProgress') }}</span>
+      </div>
+      <div class="flex items-center gap-1.5">
+        <CheckCircle class="w-4 h-4 text-green-500" />
+        <span class="font-semibold text-green-500">{{ metrics.done }}</span>
+        <span class="text-[var(--text-muted)]">{{ t('kanban.colDone') }}</span>
+      </div>
+      <template v-if="metrics.overdue > 0">
+        <div class="w-px h-4 bg-[var(--border)] hidden sm:block" />
+        <div class="flex items-center gap-1.5">
           <AlertTriangle class="w-4 h-4 text-red-500" />
-          <span class="font-medium text-red-500">{{ metrics.overdue }}</span>
+          <span class="font-semibold text-red-500">{{ metrics.overdue }}</span>
           <span class="text-[var(--text-muted)]">{{ t('kanban.overdue') }}</span>
         </div>
-        <div v-if="metrics.attended > 0" class="flex items-center gap-1">
-          <CheckCircle class="w-4 h-4 text-green-600" />
-          <span class="font-medium text-green-600">{{ metrics.attended }}</span>
+      </template>
+      <template v-if="metrics.attended > 0">
+        <div class="flex items-center gap-1.5">
+          <CheckCircle class="w-4 h-4 text-emerald-600" />
+          <span class="font-semibold text-emerald-600">{{ metrics.attended }}</span>
           <span class="text-[var(--text-muted)]">{{ t('kanban.attended') }}</span>
         </div>
-      </div>
+      </template>
     </div>
 
-    <div class="flex flex-wrap gap-3 items-end">
-      <div v-if="isSuperAdmin" class="flex flex-col gap-1 min-w-[180px]">
-        <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-          <Users class="w-3 h-3" /> {{ t('kanban.company') }}
-        </label>
-        <Select
-          v-model="filterTenant"
-          :options="tenantOpts"
-          option-label="label"
-          option-value="value"
-          class="w-full"
-          :placeholder="t('kanban.allTenants')"
-        />
-      </div>
+    <!-- Filter bar -->
+    <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 space-y-3">
+      <div class="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3">
+        <div v-if="isSuperAdmin" class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
+            <Users class="w-3 h-3" /> {{ t('kanban.company') }}
+          </label>
+          <Select v-model="filterTenant" :options="tenantOpts" option-label="label" option-value="value"
+            class="w-full" :placeholder="t('kanban.allTenants')" />
+        </div>
 
-      <div class="flex flex-col gap-1 min-w-[180px]">
-        <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-          <LayoutGrid class="w-3 h-3" /> {{ t('kanban.board') }}
-        </label>
-        <Select
-          v-model="filterBoard"
-          :options="boardOpts"
-          option-label="label"
-          option-value="value"
-          class="w-full"
-          :placeholder="t('kanban.allBoards')"
-          show-clear
-        />
-      </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
+            <LayoutGrid class="w-3 h-3" /> {{ t('kanban.board') }}
+          </label>
+          <Select v-model="filterBoard" :options="boardOpts" option-label="label" option-value="value"
+            class="w-full" :placeholder="t('kanban.allBoards')" show-clear />
+        </div>
 
-      <div class="flex flex-col gap-1 min-w-[180px]">
-        <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-          <Users class="w-3 h-3" /> {{ t('kanban.assignee') }}
-        </label>
-        <Select
-          v-model="filterAssignee"
-          :options="assigneeOpts"
-          option-label="label"
-          option-value="value"
-          class="w-full"
-          :placeholder="t('kanban.allUsers')"
-        />
-      </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
+            <Users class="w-3 h-3" /> {{ t('kanban.assignee') }}
+          </label>
+          <Select v-model="filterAssignee" :options="assigneeOpts" option-label="label" option-value="value"
+            class="w-full" :placeholder="t('kanban.allUsers')" show-clear />
+        </div>
 
-      <div class="flex flex-col gap-1 min-w-[140px]">
-        <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-          <Flag class="w-3 h-3" /> {{ t('kanban.priority') }}
-        </label>
-        <Select
-          v-model="filterPriority"
-          :options="priorityOpts"
-          option-label="label"
-          option-value="value"
-          class="w-full"
-          :placeholder="t('kanban.allPriorities')"
-        />
-      </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
+            <Flag class="w-3 h-3" /> {{ t('kanban.priority') }}
+          </label>
+          <Select v-model="filterPriority" :options="priorityOpts" option-label="label" option-value="value"
+            class="w-full" :placeholder="t('kanban.allPriorities')" show-clear />
+        </div>
 
-      <div class="flex flex-col gap-1 min-w-[140px]">
-        <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-          <Search class="w-3 h-3" /> {{ t('kanban.search') }}
-        </label>
-        <InputText
-          v-model="searchText"
-          :placeholder="t('kanban.searchPlaceholder')"
-          class="w-full"
-        />
-      </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
+            <Search class="w-3 h-3" /> {{ t('kanban.search') }}
+          </label>
+          <InputText v-model="searchText" :placeholder="t('kanban.searchPlaceholder')" class="w-full" />
+        </div>
 
-      <div class="flex flex-col gap-1 min-w-[140px]">
-        <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-          <Calendar class="w-3 h-3" /> {{ t('kanban.dueFrom') }}
-        </label>
-        <Calendar v-model="filterDueFrom" date-format="yy-mm-dd" placeholder="yyyy-mm-dd" class="w-full" show-icon />
-      </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
+            <TagIcon class="w-3 h-3" /> {{ t('kanban.label') }}
+          </label>
+          <InputText v-model="filterLabel" :placeholder="t('kanban.labelPlaceholder')" class="w-full" />
+        </div>
 
-      <div class="flex flex-col gap-1 min-w-[140px]">
-        <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-          <Calendar class="w-3 h-3" /> {{ t('kanban.dueTo') }}
-        </label>
-        <Calendar v-model="filterDueTo" date-format="yy-mm-dd" placeholder="yyyy-mm-dd" class="w-full" show-icon />
-      </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-[var(--text-muted)]">{{ t('kanban.dueFrom') }}</label>
+          <DatePicker v-model="filterDueFrom" date-format="yy-mm-dd" placeholder="yyyy-mm-dd" class="w-full" show-icon icon-display="input" />
+        </div>
 
-      <div class="flex flex-col gap-1 min-w-[140px]">
-        <label class="text-xs font-medium text-[var(--text-muted)] flex items-center gap-1">
-          <TagIcon class="w-3 h-3" /> {{ t('kanban.label') }}
-        </label>
-        <InputText v-model="filterLabel" :placeholder="t('kanban.labelPlaceholder')" class="w-full" />
-      </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-xs font-medium text-[var(--text-muted)]">{{ t('kanban.dueTo') }}</label>
+          <DatePicker v-model="filterDueTo" date-format="yy-mm-dd" placeholder="yyyy-mm-dd" class="w-full" show-icon icon-display="input" />
+        </div>
 
-      <div class="flex items-end gap-2">
-        <Button :label="t('kanban.clearFilters')" severity="secondary" text size="small" @click="clearFilters" />
+        <div class="flex items-end">
+          <Button :label="t('kanban.clearFilters')" icon="pi pi-filter-slash" severity="secondary" outlined size="small" class="w-full" @click="clearFilters" />
+        </div>
       </div>
     </div>
 

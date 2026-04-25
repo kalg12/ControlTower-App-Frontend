@@ -46,6 +46,7 @@ export interface CreateIntegrationRequest {
   name?: string
   type: IntegrationEndpointType
   pullUrl?: string
+  apiKey?: string
   heartbeatIntervalSeconds?: number
   contractVersion?: string
 }

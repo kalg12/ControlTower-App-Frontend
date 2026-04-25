@@ -1,6 +1,6 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, nextTick, watch } from 'vue'
-import { useMutation, useQuery, useQueryClient } from '@tanstack/vue-query'
+import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
+import { useMutation, useQuery } from '@tanstack/vue-query'
 import { Client as StompClient } from '@stomp/stompjs'
 import { useAuthStore } from '@/stores/auth'
 import { chatService } from '@/services/chat.service'
@@ -15,12 +15,15 @@ const emit = defineEmits<{
 }>()
 
 const auth = useAuthStore()
-const qc = useQueryClient()
 const messagesEl = ref<HTMLElement | null>(null)
 const inputText = ref('')
 const isTyping = ref(false)
 const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const showQuickReplies = ref(false)
+
+function hideQuickRepliesDelayed() {
+  window.setTimeout(() => { showQuickReplies.value = false }, 200)
+}
 const messages = ref<ChatMessage[]>([])
 const remoteTyping = ref(false)
 let remoteTypingTimer: ReturnType<typeof setTimeout> | null = null
@@ -330,7 +333,7 @@ function applyQuickReply(r: ChatQuickReply) {
         placeholder="Escribe un mensaje... (Ctrl+Enter para enviar)"
         @keydown="onKeyDown"
         @focus="showQuickReplies = inputText.startsWith('/')"
-        @blur="setTimeout(() => showQuickReplies = false, 200)"
+        @blur="hideQuickRepliesDelayed()"
       />
       <button
         class="w-9 h-9 rounded-full bg-[var(--primary)] text-white flex items-center justify-center hover:opacity-90 transition-opacity flex-shrink-0"

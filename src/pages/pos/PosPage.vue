@@ -24,7 +24,6 @@ import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
 import type { Integration, IntegrationCreateResponse } from '@/types/integration'
 import type { HealthCheck, HealthIncident } from '@/types/health'
-import type { Client, ClientBranch } from '@/types/client'
 
 dayjs.extend(relativeTime)
 dayjs.locale('es')
@@ -215,7 +214,6 @@ function openSetupGuide(result: IntegrationCreateResponse | Integration, isNew =
   showGuide.value = true
 }
 
-const guideBranchSlug = computed(() => guideEndpoint.value?.clientBranchId ?? '')
 const guideDotEnv = computed(() => {
   const ep = guideEndpoint.value
   if (!ep) return ''
@@ -272,8 +270,8 @@ async function checkNow(ep: Integration) {
 // ── Toggle active ─────────────────────────────────────────────────────────────
 
 const toggleMut = useMutation({
-  mutationFn: (ep: Integration) =>
-    ep.active ? integrationsService.deactivate(ep.id) : integrationsService.activate(ep.id),
+  mutationFn: async (ep: Integration): Promise<Integration | void> =>
+    ep.active ? await integrationsService.deactivate(ep.id) : await integrationsService.activate(ep.id),
   onSuccess: () => qc.invalidateQueries({ queryKey: ['pos-endpoints'] }),
   onError: () => toast.error('Error al cambiar estado'),
 })

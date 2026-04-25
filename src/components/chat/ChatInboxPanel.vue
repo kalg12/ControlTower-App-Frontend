@@ -1,11 +1,11 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
+import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { Client as StompClient } from '@stomp/stompjs'
 import { useAuthStore } from '@/stores/auth'
 import { chatService } from '@/services/chat.service'
 import { qk } from '@/queries/keys'
-import type { ChatConversation, ChatMessagePayload } from '@/types/chat'
+import type { ChatConversation } from '@/types/chat'
 import ChatConversationView from './ChatConversationView.vue'
 import ChatTransferDialog from './ChatTransferDialog.vue'
 import { useConfirm } from 'primevue/useconfirm'

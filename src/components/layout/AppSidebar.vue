@@ -15,7 +15,6 @@ import {
   Zap,
   Building,
   ClipboardList,
-  Plug,
   Megaphone,
   LayoutGrid,
   Shield,
