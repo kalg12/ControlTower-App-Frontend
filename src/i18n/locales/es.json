@@ -229,7 +229,9 @@
     "total": "total",
     "search": "Buscar",
     "searchPlaceholder": "Buscar tâche...",
-    "cardMoved": "Tarjeta movida"
+    "cardMoved": "Tarjeta movida",
+    "client": "Cliente",
+    "noClient": "Sin cliente"
   },
   "rolesPage": {
     "title": "Roles y permisos",

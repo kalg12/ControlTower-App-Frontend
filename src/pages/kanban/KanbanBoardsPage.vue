@@ -11,8 +11,10 @@ import Tag from 'primevue/tag'
 import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from '@/composables/useToast'
 import { useBoardsList, useKanbanMutations } from '@/queries/kanban'
+import { useQuery } from '@tanstack/vue-query'
+import { clientsService } from '@/services/clients.service'
 import type { BoardVisibility } from '@/types/kanban'
-import { LayoutGrid, Pencil, Trash2 } from 'lucide-vue-next'
+import { LayoutGrid, Pencil, Trash2, Building2 } from 'lucide-vue-next'
 import SkeletonCard from '@/components/ui/SkeletonCard.vue'
 import EmptyState from '@/components/ui/EmptyState.vue'
 import PageInfoButton from '@/components/ui/PageInfoButton.vue'
@@ -44,6 +46,21 @@ const editName = ref('')
 const editDesc = ref('')
 const editVis = ref<BoardVisibility>('TEAM')
 
+const { data: clientsData } = useQuery({
+  queryKey: ['clients-list-kanban'],
+  queryFn: () => clientsService.list({ page: 0, size: 200 }),
+  staleTime: 60_000
+})
+const allClients = computed(() => clientsData.value?.content ?? [])
+const clientOpts = computed(() => [
+  { label: t('kanban.noClient'), value: null },
+  ...allClients.value.map(c => ({ label: c.name, value: c.id }))
+])
+const clientNameMap = computed(() => Object.fromEntries(allClients.value.map(c => [c.id, c.name])))
+
+const formClientId = ref<string | null>(null)
+const editClientId = ref<string | null>(null)
+
 const visOptions = computed(() => [
   { label: t('kanban.visibilityTeam'), value: 'TEAM' as const },
   { label: t('kanban.visibilityPrivate'), value: 'PRIVATE' as const }
@@ -53,6 +70,7 @@ function openCreate() {
   formName.value = ''
   formDesc.value = ''
   formVis.value = 'TEAM'
+  formClientId.value = null
   showCreate.value = true
 }
 
@@ -64,7 +82,8 @@ async function submitCreate() {
     const b = await createBoard.mutateAsync({
       name,
       description: formDesc.value.trim() || undefined,
-      visibility: formVis.value
+      visibility: formVis.value,
+      clientId: formClientId.value || undefined
     })
     showCreate.value = false
     router.push({ name: 'kanban-board', params: { id: b.id } })
@@ -75,11 +94,12 @@ async function submitCreate() {
   }
 }
 
-function openEdit(b: { id: string; name: string; description?: string | null; visibility: BoardVisibility }) {
+function openEdit(b: { id: string; name: string; description?: string | null; visibility: BoardVisibility; clientId?: string | null }) {
   editingId.value = b.id
   editName.value = b.name
   editDesc.value = b.description ?? ''
   editVis.value = b.visibility
+  editClientId.value = b.clientId ?? null
   showEdit.value = true
 }
 
@@ -94,7 +114,8 @@ async function submitEdit() {
       body: {
         name,
         description: editDesc.value.trim() || undefined,
-        visibility: editVis.value
+        visibility: editVis.value,
+        clientId: editClientId.value || undefined
       }
     })
     showEdit.value = false
@@ -189,6 +210,10 @@ function confirmDeleteBoard(id: string) {
           </div>
           <Tag :value="b.visibility" severity="secondary" class="text-[10px] shrink-0" />
         </div>
+        <div v-if="b.clientId && clientNameMap[b.clientId]" class="flex items-center gap-1.5 text-xs text-[var(--text-muted)]">
+          <Building2 class="w-3.5 h-3.5 shrink-0" />
+          <span class="truncate">{{ clientNameMap[b.clientId] }}</span>
+        </div>
         <div class="flex items-center gap-2 mt-auto pt-2">
           <Button
             :label="t('kanban.openBoard')"
@@ -232,6 +257,10 @@ function confirmDeleteBoard(id: string) {
           <label class="text-sm font-medium text-[var(--text)]">{{ t('kanban.visibility') }}</label>
           <Select v-model="editVis" :options="visOptions" option-label="label" option-value="value" class="w-full" />
         </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--text)]">{{ t('kanban.client') }}</label>
+          <Select v-model="editClientId" :options="clientOpts" option-label="label" option-value="value" class="w-full" :placeholder="t('kanban.noClient')" show-clear />
+        </div>
         <div class="flex justify-end gap-2 pt-2">
           <Button :label="t('common.cancel')" severity="secondary" outlined @click="showEdit = false" />
           <Button :label="t('common.save')" icon="pi pi-check" :loading="savingEdit" :disabled="!editName.trim()" @click="submitEdit" />
@@ -252,6 +281,10 @@ function confirmDeleteBoard(id: string) {
         <div class="flex flex-col gap-2">
           <label class="text-sm font-medium text-[var(--text)]">{{ t('kanban.visibility') }}</label>
           <Select v-model="formVis" :options="visOptions" option-label="label" option-value="value" class="w-full" />
+        </div>
+        <div class="flex flex-col gap-2">
+          <label class="text-sm font-medium text-[var(--text)]">{{ t('kanban.client') }}</label>
+          <Select v-model="formClientId" :options="clientOpts" option-label="label" option-value="value" class="w-full" :placeholder="t('kanban.noClient')" show-clear />
         </div>
         <p
           class="text-xs text-[var(--text-muted)] leading-relaxed rounded-lg border border-dashed border-[var(--border)] bg-[var(--surface-raised)]/40 p-3"

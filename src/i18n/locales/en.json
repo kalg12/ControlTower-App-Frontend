@@ -236,7 +236,9 @@
     "total": "total",
     "search": "Search",
     "searchPlaceholder": "Search task...",
-    "cardMoved": "Card moved"
+    "cardMoved": "Card moved",
+    "client": "Client",
+    "noClient": "No client"
   },
   "rolesPage": {
     "title": "Roles & permissions",
