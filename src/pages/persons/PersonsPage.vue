@@ -5,6 +5,8 @@ import { useI18n } from "vue-i18n";
 import { useToast } from "primevue/usetoast";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
+import IconField from "primevue/iconfield";
+import InputIcon from "primevue/inputicon";
 import Select from "primevue/select";
 import Dialog from "primevue/dialog";
 import Tag from "primevue/tag";
@@ -269,16 +271,16 @@ function statusSeverity(
     </div>
 
     <div class="flex gap-3 items-center">
-      <div class="relative flex-1 max-w-xs">
-        <Search
-          class="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)]"
-        />
+      <IconField class="flex-1 max-w-xs">
+        <InputIcon>
+          <Search class="w-4 h-4 text-[var(--text-muted)]" />
+        </InputIcon>
         <InputText
           v-model="search"
           :placeholder="t('persons.searchPlaceholder')"
-          class="pl-9 w-full"
+          class="w-full"
         />
-      </div>
+      </IconField>
     </div>
 
     <DataTable
