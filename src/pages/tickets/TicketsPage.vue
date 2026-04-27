@@ -507,7 +507,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       <Column selection-mode="multiple" style="width: 3rem" />
       <Column field="title" :header="t('tickets.formTitle')" sortable style="min-width: 240px">
         <template #body="{ data: row }: { data: Ticket }">
-          <span class="font-medium text-[var(--text)] line-clamp-1">{{ row.title }}</span>
+          <button
+            class="font-medium text-[var(--text)] line-clamp-1 text-left hover:text-[var(--primary)] hover:underline cursor-pointer"
+            @click="router.push('/tickets/' + row.id)"
+          >
+            {{ row.title }}
+          </button>
         </template>
       </Column>
 
