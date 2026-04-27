@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useI18n } from 'vue-i18n'
 import { useConfirm } from 'primevue/useconfirm'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
@@ -28,6 +29,7 @@ import type { HealthCheck, HealthIncident } from '@/types/health'
 dayjs.extend(relativeTime)
 dayjs.locale('es')
 
+const { t } = useI18n()
 const qc = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
@@ -562,23 +564,23 @@ async function resolveIncident(inc: HealthIncident) {
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]">Cliente <span class="text-red-500">*</span></label>
         <Select v-model="regClientId" :options="allClients" option-label="name" option-value="id"
-          placeholder="Selecciona un cliente" class="w-full" filter show-clear />
+          :placeholder="t('pos.selectClient')" class="w-full" filter show-clear />
       </div>
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]">Sucursal <span class="text-red-500">*</span></label>
         <Select v-model="regBranchId" :options="regBranches" option-label="name" option-value="id"
-          placeholder="Selecciona una sucursal" class="w-full" :disabled="!regClientId" show-clear />
+          :placeholder="t('pos.selectBranch')" class="w-full" :disabled="!regClientId" show-clear />
       </div>
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]">Nombre del POS (opcional)</label>
-        <InputText v-model="regName" placeholder="Ej: Caja 1 — Sucursal Norte" class="w-full" />
+        <InputText v-model="regName" :placeholder="t('pos.posNamePlaceholder')" class="w-full" />
       </div>
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]">URL del endpoint /health del POS <span class="text-red-500">*</span></label>
-        <InputText v-model="regUrl" placeholder="https://pos.tucliente.com" class="w-full" />
+        <InputText v-model="regUrl" :placeholder="t('pos.posUrlPlaceholder')" class="w-full" />
         <p v-if="regUrlPreview && regUrlPreview !== regUrl.trim()" class="text-xs text-blue-600 dark:text-blue-400">
           → Se guardará como: <code class="font-mono">{{ regUrlPreview }}</code>
         </p>
@@ -664,11 +666,11 @@ async function resolveIncident(inc: HealthIncident) {
     <div class="flex flex-col gap-4 pt-2">
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]">Nombre del POS</label>
-        <InputText v-model="editName" placeholder="Ej: Caja 1 — Sucursal Norte" class="w-full" />
+        <InputText v-model="editName" :placeholder="t('pos.posNamePlaceholder')" class="w-full" />
       </div>
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]">URL del endpoint /health</label>
-        <InputText v-model="editUrl" placeholder="https://pos.tucliente.com" class="w-full" />
+        <InputText v-model="editUrl" :placeholder="t('pos.posUrlPlaceholder')" class="w-full" />
         <p v-if="editUrlPreview && editUrlPreview !== editUrl.trim()" class="text-xs text-blue-600 dark:text-blue-400">
           → Se guardará como: <code class="font-mono">{{ editUrlPreview }}</code>
         </p>
