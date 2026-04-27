@@ -11,6 +11,8 @@ import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
 import Tag from 'primevue/tag'
 import InputText from 'primevue/inputtext'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
@@ -489,12 +491,15 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     </div>
 
     <div class="flex flex-wrap gap-3">
-      <InputText
-        v-model="globalFilter"
-        :placeholder="t('clientsPage.searchPlaceholder')"
-        class="max-w-md w-full bg-[var(--surface)] text-[var(--text)] border border-[var(--border)] placeholder:text-[var(--text-placeholder)]"
-        @input="onSearch"
-      />
+      <IconField class="max-w-md w-full">
+        <InputIcon class="pi pi-search" />
+        <InputText
+          v-model="globalFilter"
+          :placeholder="t('clientsPage.searchPlaceholder')"
+          class="w-full"
+          @input="onSearch"
+        />
+      </IconField>
     </div>
 
     <section class="min-h-[min(360px,55vh)] rounded-xl border border-[var(--border)] bg-[var(--surface)] p-3 md:p-4">
