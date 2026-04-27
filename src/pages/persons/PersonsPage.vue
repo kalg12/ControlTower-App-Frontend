@@ -297,7 +297,7 @@ function statusSeverity(s: PersonStatus): 'success' | 'warn' | 'secondary' | 'in
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-[var(--text-muted)]">{{ t('persons.firstName') }} *</label>
-<InputText v-model="form.firstName" :placeholder="t('persons.firstNamePlaceholder')" class="w-full" />
+            <InputText v-model="form.firstName" :placeholder="t('persons.firstNamePlaceholder')" class="w-full" />
             <InputText v-model="form.lastName" :placeholder="t('persons.lastNamePlaceholder')" class="w-full" />
             <InputText v-model="form.email" type="email" :placeholder="t('persons.emailPlaceholder')" class="w-full" />
             <InputText v-model="form.phone" :placeholder="t('persons.phonePlaceholder')" class="w-full" />
