@@ -773,7 +773,19 @@
     "status": "Estado",
     "statusPlaceholder": "Estado",
     "noLimit": "Sin límite",
-    "recurrences": "Número de repeticiones"
+    "recurrences": "Número de repeticiones",
+    "all": "Todos",
+    "active": "Activo",
+    "paused": "Pausado",
+    "completed": "Completado",
+    "daily": "Diario",
+    "weekly": "Semanal",
+    "biweekly": "Quincenal",
+    "monthly": "Mensual",
+    "custom": "Personalizado",
+    "every": "Cada",
+    "days": "días",
+    "selectClient": "Seleccionar cliente"
   },
   "proposals": {
     "title": "Propuestas",

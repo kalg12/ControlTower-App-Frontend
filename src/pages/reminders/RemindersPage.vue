@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -17,6 +18,7 @@ import { useToast } from '@/composables/useToast'
 import { useConfirm } from 'primevue/useconfirm'
 import dayjs from 'dayjs'
 
+const { t } = useI18n()
 const queryClient = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
@@ -40,33 +42,39 @@ const { data: clientsData } = useQuery({
   staleTime: 60_000,
 })
 const clientOptions = computed(() => [
-  { label: '— Todos —', value: undefined },
+  { label: t('reminders.all'), value: undefined },
   ...(clientsData.value?.content ?? []).map(c => ({ label: c.name, value: c.id }))
 ])
 
 const statusOptions = [
-  { label: '— Todos —', value: undefined },
-  { label: 'Activo', value: 'ACTIVE' },
-  { label: 'Pausado', value: 'PAUSED' },
-  { label: 'Completado', value: 'COMPLETED' },
+  { label: t('reminders.all'), value: undefined },
+  { label: t('reminders.active'), value: 'ACTIVE' },
+  { label: t('reminders.paused'), value: 'PAUSED' },
+  { label: t('reminders.completed'), value: 'COMPLETED' },
 ]
 
 const recurrenceOptions = [
-  { label: 'Diario', value: 'DAILY' },
-  { label: 'Semanal', value: 'WEEKLY' },
-  { label: 'Quincenal', value: 'BIWEEKLY' },
-  { label: 'Mensual', value: 'MONTHLY' },
-  { label: 'Personalizado', value: 'CUSTOM' },
+  { label: t('reminders.daily'), value: 'DAILY' },
+  { label: t('reminders.weekly'), value: 'WEEKLY' },
+  { label: t('reminders.biweekly'), value: 'BIWEEKLY' },
+  { label: t('reminders.monthly'), value: 'MONTHLY' },
+  { label: t('reminders.custom'), value: 'CUSTOM' },
 ]
 
 function statusSeverity(s: ClientReminder['status']) {
   return s === 'ACTIVE' ? 'success' : s === 'PAUSED' ? 'warn' : 'secondary'
 }
 function statusLabel(s: ClientReminder['status']) {
-  return s === 'ACTIVE' ? 'Activo' : s === 'PAUSED' ? 'Pausado' : 'Completado'
+  return s === 'ACTIVE' ? t('reminders.active') : s === 'PAUSED' ? t('reminders.paused') : t('reminders.completed')
 }
 function recurrenceLabel(r: ClientReminder['recurrenceType'], days?: number) {
-  const map: Record<string, string> = { DAILY: 'Diario', WEEKLY: 'Semanal', BIWEEKLY: 'Quincenal', MONTHLY: 'Mensual', CUSTOM: `Cada ${days ?? '?'} días` }
+  const map: Record<string, string> = { 
+    DAILY: t('reminders.daily'), 
+    WEEKLY: t('reminders.weekly'), 
+    BIWEEKLY: t('reminders.biweekly'), 
+    MONTHLY: t('reminders.monthly'), 
+    CUSTOM: `${t('reminders.every')} ${days ?? '?'} ${t('reminders.days')}` 
+  }
   return map[r] ?? r
 }
 
@@ -187,8 +195,8 @@ function openHistory(r: ClientReminder) {
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-3">
-      <Select v-model="statusFilter" :options="statusOptions" option-label="label" option-value="value" placeholder="Estado" class="w-40" />
-      <Select v-model="clientFilter" :options="clientOptions" option-label="label" option-value="value" placeholder="Cliente" filter class="w-52" />
+      <Select v-model="statusFilter" :options="statusOptions" option-label="label" option-value="value" :placeholder="t('reminders.statusPlaceholder')" class="w-40" />
+      <Select v-model="clientFilter" :options="clientOptions" option-label="label" option-value="value" :placeholder="t('reminders.clientPlaceholder')" filter class="w-52" />
     </div>
 
     <DataTable :value="reminders" :loading="isLoading" stripedRows>
@@ -227,7 +235,7 @@ function openHistory(r: ClientReminder) {
       <div class="flex flex-col gap-4 pt-2">
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Cliente *</label>
-          <Select v-model="formClientId" :options="clientOptions.slice(1)" option-label="label" option-value="value" filter placeholder="Seleccionar cliente" class="w-full" />
+          <Select v-model="formClientId" :options="clientOptions.slice(1)" option-label="label" option-value="value" filter :placeholder="t('reminders.selectClient')" class="w-full" />
         </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">Título *</label>
@@ -254,7 +262,7 @@ function openHistory(r: ClientReminder) {
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium">Máx. ocurrencias</label>
-            <InputNumber v-model="formMaxOccurrences" :min="1" placeholder="Sin límite" class="w-full" />
+            <InputNumber v-model="formMaxOccurrences" :min="1" :placeholder="t('reminders.noLimit')" class="w-full" />
           </div>
         </div>
       </div>
