@@ -297,29 +297,11 @@ function statusSeverity(s: PersonStatus): 'success' | 'warn' | 'secondary' | 'in
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-[var(--text-muted)]">{{ t('persons.firstName') }} *</label>
-            <InputText v-model="form.firstName" :placeholder="t('persons.firstName')" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{ t('persons.lastName') }}</label>
+<InputText v-model="form.firstName" :placeholder="t('persons.firstName')" class="w-full" />
             <InputText v-model="form.lastName" :placeholder="t('persons.lastName')" class="w-full" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{ t('persons.email') }}</label>
-            <InputText v-model="form.email" type="email" placeholder="nombre@email.com" class="w-full" />
-          </div>
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{ t('persons.phone') }}</label>
-            <InputText v-model="form.phone" placeholder="+52 55 0000 0000" class="w-full" />
-          </div>
-        </div>
-
-        <div class="grid grid-cols-2 gap-3">
-          <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">WhatsApp</label>
-            <InputText v-model="form.whatsapp" placeholder="+52 55 0000 0000" class="w-full" />
+            <InputText v-model="form.email" type="email" :placeholder="t('persons.emailPlaceholder')" class="w-full" />
+            <InputText v-model="form.phone" :placeholder="t('persons.phonePlaceholder')" class="w-full" />
+            <InputText v-model="form.whatsapp" :placeholder="t('persons.whatsappPlaceholder')" class="w-full" />
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-xs font-medium text-[var(--text-muted)]">{{ t('persons.leadSource') }}</label>
@@ -345,7 +327,7 @@ function statusSeverity(s: PersonStatus): 'success' | 'warn' | 'secondary' | 'in
 
         <div class="flex flex-col gap-1">
           <label class="text-xs font-medium text-[var(--text-muted)]">{{ t('persons.address') }}</label>
-          <InputText v-model="form.address" :placeholder="t('persons.address')" class="w-full" />
+          <InputText v-model="form.address" :placeholder="t('persons.addressPlaceholder')" class="w-full" />
         </div>
 
         <div class="flex flex-col gap-1">
