@@ -756,7 +756,7 @@ const branchOptions = computed(() => {
       <FormField :label="t('health.formPullUrl')" name="pullUrl" :error="posErrors.pullUrl" required>
         <InputText
           v-model="pullUrlValue"
-          :placeholder="t('health.formPullUrl')"
+          :placeholder="t('health.formPullUrlPlaceholder')"
           :disabled="isSubmittingPos"
           class="w-full"
         />
@@ -765,7 +765,7 @@ const branchOptions = computed(() => {
       <FormField :label="t('health.formApiKey')" name="apiKey" :error="posErrors.apiKey">
         <InputText
           v-model="apiKeyValue"
-          :placeholder="t('health.formApiKey')"
+          :placeholder="t('health.formApiKeyPlaceholder')"
           :disabled="isSubmittingPos"
           class="w-full"
         />

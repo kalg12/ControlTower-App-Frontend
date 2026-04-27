@@ -628,10 +628,10 @@ function confirmDeleteExpense(e: Expense) {
               <div class="flex gap-2 flex-wrap items-center">
                 <Select v-model="expenseCategoryFilter" :options="expCategoryFilterOptions" option-label="label" option-value="value" class="w-44" @change="refetchExp()" />
                 <Select v-model="expenseClientFilter" :options="clientOptions" option-label="label" option-value="value" class="w-44" :placeholder="t('finance.client')" @change="refetchExp()" />
-                <InputText v-model="expenseVendorFilter" placeholder="Proveedor..." class="w-36" @keyup.enter="refetchExp()" />
-                <InputNumber v-model="expenseAmountMin" placeholder="Mín $" :min="0" :maxFractionDigits="2" class="w-28" @blur="refetchExp()" />
-                <InputNumber v-model="expenseAmountMax" placeholder="Máx $" :min="0" :maxFractionDigits="2" class="w-28" @blur="refetchExp()" />
-                <DatePicker v-model="expenseDateRange" selectionMode="range" placeholder="Período" showIcon class="w-64" dateFormat="dd/mm/yy" @hide="refetchExp()" />
+                <InputText v-model="expenseVendorFilter" :placeholder="t('finance.vendorPlaceholder')" class="w-36" @keyup.enter="refetchExp()" />
+                <InputNumber v-model="expenseAmountMin" :placeholder="t('finance.amountMinPlaceholder')" :min="0" :maxFractionDigits="2" class="w-28" @blur="refetchExp()" />
+                <InputNumber v-model="expenseAmountMax" :placeholder="t('finance.amountMaxPlaceholder')" :min="0" :maxFractionDigits="2" class="w-28" @blur="refetchExp()" />
+                <DatePicker v-model="expenseDateRange" selectionMode="range" :placeholder="t('finance.periodPlaceholder')" showIcon class="w-64" dateFormat="dd/mm/yy" @hide="refetchExp()" />
               </div>
               <Button :label="t('finance.newExpense')" icon="pi pi-plus" @click="openExpenseDialog" />
             </div>
@@ -639,9 +639,9 @@ function confirmDeleteExpense(e: Expense) {
             <!-- Expense Summary panel -->
             <div class="bg-[var(--surface)] border border-[var(--border)] rounded-xl p-4 space-y-3">
               <div class="flex items-center justify-between flex-wrap gap-2">
-                <h3 class="font-semibold text-[var(--text)]">Resumen de gastos</h3>
+                <h3 class="font-semibold text-[var(--text)]">{{ t('finance.expenseSummary') }}</h3>
                 <div class="flex items-center gap-2">
-                  <DatePicker v-model="summaryDateRange" selectionMode="range" placeholder="Período resumen" showIcon class="w-64" dateFormat="dd/mm/yy" />
+                  <DatePicker v-model="summaryDateRange" selectionMode="range" :placeholder="t('finance.summaryPeriodPlaceholder')" showIcon class="w-64" dateFormat="dd/mm/yy" />
                   <Button label="Enviar reporte" icon="pi pi-envelope" outlined size="small" @click="showReportDialog = true" />
                 </div>
               </div>
@@ -868,11 +868,11 @@ function confirmDeleteExpense(e: Expense) {
   <Dialog v-model:visible="showReportDialog" header="Enviar reporte de gastos" modal class="w-full max-w-sm">
     <div class="flex flex-col gap-3 pt-2">
       <p class="text-sm text-[var(--text-muted)]">
-        Se enviará un resumen de gastos del período seleccionado al correo indicado.
+        {{ t('finance.reportEmailDesc') }}
       </p>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium">Correo electrónico</label>
-        <InputText v-model="reportEmail" type="email" placeholder="correo@ejemplo.com" class="w-full" />
+        <label class="text-sm font-medium">{{ t('finance.email') }}</label>
+        <InputText v-model="reportEmail" type="email" :placeholder="t('finance.emailPlaceholder')" class="w-full" />
       </div>
     </div>
     <template #footer>
