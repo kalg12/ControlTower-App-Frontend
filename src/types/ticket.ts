@@ -31,6 +31,7 @@ export interface Ticket {
   posContext?: PosContext
   createdAt: string
   updatedAt: string
+  deletedAt?: string | null
   resolvedAt?: string
   /** @deprecated use slaDueAt. Kept for backward compat. */
   slaDeadline?: string

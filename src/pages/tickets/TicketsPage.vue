@@ -14,6 +14,11 @@ import InputText from 'primevue/inputtext'
 import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import Button from 'primevue/button'
+import Tabs from 'primevue/tabs'
+import TabList from 'primevue/tablist'
+import Tab from 'primevue/tab'
+import TabPanels from 'primevue/tabpanels'
+import TabPanel from 'primevue/tabpanel'
 import { AlertTriangle } from 'lucide-vue-next'
 import AppDialog from '@/components/ui/AppDialog.vue'
 import FormField from '@/components/ui/FormField.vue'
@@ -92,6 +97,26 @@ const tickets = computed(() => {
   )
 })
 const totalRecords = computed(() => result.value?.totalElements ?? 0)
+
+const trashPage = ref(0)
+const { data: trashResult, isLoading: trashLoading } = useQuery({
+  queryKey: computed(() => ['tickets-trash', trashPage.value]),
+  queryFn: () => ticketsService.listTrash(trashPage.value, 50),
+  staleTime: 30_000,
+})
+const trashTickets = computed(() => trashResult.value?.content ?? [])
+const trashTotal = computed(() => trashResult.value?.totalElements ?? 0)
+
+async function restoreTicket(ticket: Ticket) {
+  try {
+    await ticketsService.restore(ticket.id)
+    await queryClient.invalidateQueries({ queryKey: ['tickets-trash'] })
+    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
+    toast.success(t('tickets.restoreSuccess'))
+  } catch {
+    toast.error(t('tickets.restoreFailed'))
+  }
+}
 
 const statusOptionsFilter = computed(() => [
   { label: t('tickets.allStatus'), value: null as TicketStatus | null },
@@ -405,201 +430,267 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       </div>
     </div>
 
-    <!-- Filters -->
-    <div class="flex flex-col sm:flex-row gap-3">
-      <InputText
-        v-model="globalFilter"
-        :placeholder="t('tickets.searchPlaceholder')"
-        class="flex-1"
-        @input="onSearch"
-      />
-      <Select
-        v-model="statusFilter"
-        :options="statusOptionsFilter"
-        option-label="label"
-        option-value="value"
-        :placeholder="t('tickets.allStatus')"
-        class="w-48"
-        @change="applyFilters"
-      />
-      <Select
-        v-model="priorityFilter"
-        :options="priorityOptionsFilter"
-        option-label="label"
-        option-value="value"
-        :placeholder="t('tickets.allPriority')"
-        class="w-44"
-        @change="applyFilters"
-      />
-      <Select
-        v-model="sourceFilter"
-        :options="sourceOptionsFilter"
-        option-label="label"
-        option-value="value"
-        :placeholder="t('tickets.allSources')"
-        class="w-44"
-        @change="applyFilters"
-      />
-      <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
-    </div>
+    <Tabs value="active">
+      <TabList>
+        <Tab value="active">{{ t('tickets.activeTab') }}</Tab>
+        <Tab value="trash">
+          {{ t('tickets.trashTab') }}
+          <span v-if="trashTotal > 0" class="ml-1.5 inline-flex items-center justify-center text-xs bg-[var(--surface-d)] rounded-full px-1.5 min-w-[1.25rem]">{{ trashTotal }}</span>
+        </Tab>
+      </TabList>
 
-    <!-- Error state -->
-    <div v-if="isError" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
-      <span>{{ t('tickets.loadFailed') }}</span>
-      <Button :label="t('common.retry')" size="small" severity="danger" text @click="refetch()" />
-    </div>
+      <TabPanels class="!px-0 !pt-4">
+        <!-- Active tickets panel -->
+        <TabPanel value="active" class="!px-0">
+          <div class="space-y-4">
+            <!-- Filters -->
+            <div class="flex flex-col sm:flex-row gap-3">
+              <InputText
+                v-model="globalFilter"
+                :placeholder="t('tickets.searchPlaceholder')"
+                class="flex-1"
+                @input="onSearch"
+              />
+              <Select
+                v-model="statusFilter"
+                :options="statusOptionsFilter"
+                option-label="label"
+                option-value="value"
+                :placeholder="t('tickets.allStatus')"
+                class="w-48"
+                @change="applyFilters"
+              />
+              <Select
+                v-model="priorityFilter"
+                :options="priorityOptionsFilter"
+                option-label="label"
+                option-value="value"
+                :placeholder="t('tickets.allPriority')"
+                class="w-44"
+                @change="applyFilters"
+              />
+              <Select
+                v-model="sourceFilter"
+                :options="sourceOptionsFilter"
+                option-label="label"
+                option-value="value"
+                :placeholder="t('tickets.allSources')"
+                class="w-44"
+                @change="applyFilters"
+              />
+              <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
+            </div>
 
-    <!-- Skeleton on first load -->
-    <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="5" />
+            <!-- Error state -->
+            <div v-if="isError" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
+              <span>{{ t('tickets.loadFailed') }}</span>
+              <Button :label="t('common.retry')" size="small" severity="danger" text @click="refetch()" />
+            </div>
 
-    <!-- Bulk actions toolbar -->
-    <div
-      v-if="selectedTickets.length > 0"
-      class="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 flex-wrap"
-    >
-      <span class="text-sm font-medium text-[var(--text)] shrink-0">{{ selectedTickets.length }} seleccionado(s)</span>
-      <div class="flex items-center gap-2">
-        <Select
-          v-model="bulkAssigneeId"
-          :options="userOptions"
-          option-label="fullName"
-          option-value="id"
-          placeholder="Asignar a..."
-          class="w-40 text-xs"
-          :disabled="isBulkProcessing"
-        />
-        <Button label="Asignar" size="small" :loading="isBulkProcessing" :disabled="!bulkAssigneeId" @click="bulkAssign" />
-      </div>
-      <div class="flex items-center gap-2">
-        <Select
-          v-model="bulkStatus"
-          :options="formStatusOptions"
-          option-label="label"
-          option-value="value"
-          placeholder="Cambiar estado..."
-          class="w-44 text-xs"
-          :disabled="isBulkProcessing"
-        />
-        <Button label="Aplicar" size="small" severity="secondary" :loading="isBulkProcessing" :disabled="!bulkStatus" @click="bulkChangeStatus" />
-      </div>
-      <Button icon="pi pi-trash" severity="danger" outlined size="small" :loading="isBulkProcessing" v-tooltip.top="'Eliminar seleccionados'" @click="bulkDeleteConfirm" />
-      <Button icon="pi pi-times" severity="secondary" text size="small" @click="selectedTickets = []" />
-    </div>
+            <!-- Skeleton on first load -->
+            <SkeletonTable v-if="isLoading && !result" :rows="5" :cols="5" />
 
-    <!-- DataTable -->
-    <DataTable
-      v-else
-      v-model:selection="selectedTickets"
-      lazy
-      :first="page * pageSize"
-      :value="tickets"
-      :loading="isFetching"
-      :rows="pageSize"
-      :total-records="totalRecords"
-      paginator
-      :paginator-template="'PrevPageLink PageLinks NextPageLink RowsPerPageDropdown'"
-      :rows-per-page-options="[10, 20, 50]"
-      removable-sort
-      striped-rows
-      class="rounded-xl overflow-hidden"
-      @page="onPage"
-    >
-      <Column selection-mode="multiple" style="width: 3rem" />
-      <Column field="title" :header="t('tickets.formTitle')" sortable style="min-width: 240px">
-        <template #body="{ data: row }: { data: Ticket }">
-          <button
-            class="font-medium text-[var(--text)] line-clamp-1 text-left hover:text-[var(--primary)] hover:underline cursor-pointer"
-            @click="router.push('/tickets/' + row.id)"
-          >
-            {{ row.title }}
-          </button>
-        </template>
-      </Column>
+            <!-- Bulk actions toolbar -->
+            <div
+              v-if="selectedTickets.length > 0"
+              class="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 flex-wrap"
+            >
+              <span class="text-sm font-medium text-[var(--text)] shrink-0">{{ selectedTickets.length }} seleccionado(s)</span>
+              <div class="flex items-center gap-2">
+                <Select
+                  v-model="bulkAssigneeId"
+                  :options="userOptions"
+                  option-label="fullName"
+                  option-value="id"
+                  placeholder="Asignar a..."
+                  class="w-40 text-xs"
+                  :disabled="isBulkProcessing"
+                />
+                <Button label="Asignar" size="small" :loading="isBulkProcessing" :disabled="!bulkAssigneeId" @click="bulkAssign" />
+              </div>
+              <div class="flex items-center gap-2">
+                <Select
+                  v-model="bulkStatus"
+                  :options="formStatusOptions"
+                  option-label="label"
+                  option-value="value"
+                  placeholder="Cambiar estado..."
+                  class="w-44 text-xs"
+                  :disabled="isBulkProcessing"
+                />
+                <Button label="Aplicar" size="small" severity="secondary" :loading="isBulkProcessing" :disabled="!bulkStatus" @click="bulkChangeStatus" />
+              </div>
+              <Button icon="pi pi-trash" severity="danger" outlined size="small" :loading="isBulkProcessing" v-tooltip.top="'Eliminar seleccionados'" @click="bulkDeleteConfirm" />
+              <Button icon="pi pi-times" severity="secondary" text size="small" @click="selectedTickets = []" />
+            </div>
 
-      <Column field="status" :header="t('tickets.status')" style="width: 150px">
-        <template #body="{ data: row }: { data: Ticket }">
-          <Tag :severity="statusSeverity(row.status)" :value="row.status.replace('_', ' ')" />
-        </template>
-      </Column>
+            <!-- DataTable -->
+            <DataTable
+              v-else
+              v-model:selection="selectedTickets"
+              lazy
+              :first="page * pageSize"
+              :value="tickets"
+              :loading="isFetching"
+              :rows="pageSize"
+              :total-records="totalRecords"
+              paginator
+              :paginator-template="'PrevPageLink PageLinks NextPageLink RowsPerPageDropdown'"
+              :rows-per-page-options="[10, 20, 50]"
+              removable-sort
+              striped-rows
+              class="rounded-xl overflow-hidden"
+              @page="onPage"
+            >
+              <Column selection-mode="multiple" style="width: 3rem" />
+              <Column field="title" :header="t('tickets.formTitle')" sortable style="min-width: 240px">
+                <template #body="{ data: row }: { data: Ticket }">
+                  <button
+                    class="font-medium text-[var(--text)] line-clamp-1 text-left hover:text-[var(--primary)] hover:underline cursor-pointer"
+                    @click="router.push('/tickets/' + row.id)"
+                  >
+                    {{ row.title }}
+                  </button>
+                </template>
+              </Column>
 
-      <Column field="priority" :header="t('tickets.priority')" style="width: 130px">
-        <template #body="{ data: row }: { data: Ticket }">
-          <div class="flex items-center gap-1.5">
-            <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
-            <span v-if="(row as any).escalatedAt" v-tooltip.top="t('ticketDetail.escalated')" class="text-orange-500">
-              <AlertTriangle class="w-3.5 h-3.5" />
-            </span>
+              <Column field="status" :header="t('tickets.status')" style="width: 150px">
+                <template #body="{ data: row }: { data: Ticket }">
+                  <Tag :severity="statusSeverity(row.status)" :value="row.status.replace('_', ' ')" />
+                </template>
+              </Column>
+
+              <Column field="priority" :header="t('tickets.priority')" style="width: 130px">
+                <template #body="{ data: row }: { data: Ticket }">
+                  <div class="flex items-center gap-1.5">
+                    <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
+                    <span v-if="(row as any).escalatedAt" v-tooltip.top="t('ticketDetail.escalated')" class="text-orange-500">
+                      <AlertTriangle class="w-3.5 h-3.5" />
+                    </span>
+                  </div>
+                </template>
+              </Column>
+
+              <Column header="SLA" style="width: 90px">
+                <template #body="{ data: row }: { data: Ticket }">
+                  <span
+                    v-if="slaChip(row)"
+                    v-tooltip.top="slaChip(row)!.tooltip"
+                    class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold cursor-default"
+                    :class="slaChip(row)!.cls"
+                  >
+                    {{ slaChip(row)!.label }}
+                  </span>
+                  <span v-else class="text-muted-foreground text-xs">—</span>
+                </template>
+              </Column>
+
+              <Column field="source" :header="t('tickets.source')" style="width: 140px">
+                <template #body="{ data: row }: { data: Ticket }">
+                  <SourceBadge :source="row.source" />
+                </template>
+              </Column>
+
+              <Column field="clientId" :header="t('tickets.client')" style="min-width: 140px">
+                <template #body="{ data: row }: { data: Ticket }">
+                  <span class="text-[var(--text-muted)] text-sm">{{ row.clientName ?? row.clientId ?? '—' }}</span>
+                </template>
+              </Column>
+
+              <Column field="createdAt" :header="t('tickets.createdAt')" sortable style="width: 130px">
+                <template #body="{ data: row }: { data: Ticket }">
+                  <span class="text-[var(--text-muted)] text-sm">{{ formatDate(row.createdAt) }}</span>
+                </template>
+              </Column>
+
+              <Column :header="t('common.actions')" style="width: 140px">
+                <template #body="{ data: row }: { data: Ticket }">
+                  <div class="flex gap-1">
+                    <Button
+                      icon="pi pi-pencil"
+                      severity="secondary"
+                      text
+                      rounded
+                      v-tooltip.top="t('common.edit')"
+                      @click="openEditDialog(row)"
+                    />
+                    <Button
+                      icon="pi pi-eye"
+                      severity="secondary"
+                      text
+                      rounded
+                      v-tooltip.top="t('common.edit')"
+                      @click="router.push('/tickets/' + row.id)"
+                    />
+                    <Button
+                      icon="pi pi-trash"
+                      severity="danger"
+                      text
+                      rounded
+                      v-tooltip.top="t('common.delete')"
+                      @click="confirmDeleteTicket(row)"
+                    />
+                  </div>
+                </template>
+              </Column>
+
+              <template #empty>
+                <div class="text-center py-8 text-[var(--text-muted)]">{{ t('common.noRows') }}</div>
+              </template>
+            </DataTable>
           </div>
-        </template>
-      </Column>
+        </TabPanel>
 
-      <Column header="SLA" style="width: 90px">
-        <template #body="{ data: row }: { data: Ticket }">
-          <span
-            v-if="slaChip(row)"
-            v-tooltip.top="slaChip(row)!.tooltip"
-            class="inline-flex items-center rounded-full px-2 py-0.5 text-xs font-semibold cursor-default"
-            :class="slaChip(row)!.cls"
+        <!-- Trash panel -->
+        <TabPanel value="trash" class="!px-0">
+          <SkeletonTable v-if="trashLoading && !trashResult" :rows="5" :cols="3" />
+          <DataTable
+            v-else
+            :value="trashTickets"
+            :loading="trashLoading"
+            :rows="50"
+            :total-records="trashTotal"
+            striped-rows
+            class="rounded-xl overflow-hidden"
           >
-            {{ slaChip(row)!.label }}
-          </span>
-          <span v-else class="text-muted-foreground text-xs">—</span>
-        </template>
-      </Column>
+            <Column field="title" :header="t('tickets.formTitle')" style="min-width: 240px">
+              <template #body="{ data: row }: { data: Ticket }">
+                <span class="font-medium text-[var(--text)] line-clamp-1">{{ row.title }}</span>
+              </template>
+            </Column>
 
-      <Column field="source" :header="t('tickets.source')" style="width: 140px">
-        <template #body="{ data: row }: { data: Ticket }">
-          <SourceBadge :source="row.source" />
-        </template>
-      </Column>
+            <Column field="priority" :header="t('tickets.priority')" style="width: 130px">
+              <template #body="{ data: row }: { data: Ticket }">
+                <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
+              </template>
+            </Column>
 
-      <Column field="clientId" :header="t('tickets.client')" style="min-width: 140px">
-        <template #body="{ data: row }: { data: Ticket }">
-          <span class="text-[var(--text-muted)] text-sm">{{ row.clientName ?? row.clientId ?? '—' }}</span>
-        </template>
-      </Column>
+            <Column :header="t('tickets.deletedAt')" style="width: 160px">
+              <template #body="{ data: row }: { data: Ticket }">
+                <span class="text-[var(--text-muted)] text-sm">{{ row.deletedAt ? formatDate(row.deletedAt) : '—' }}</span>
+              </template>
+            </Column>
 
-      <Column field="createdAt" :header="t('tickets.createdAt')" sortable style="width: 130px">
-        <template #body="{ data: row }: { data: Ticket }">
-          <span class="text-[var(--text-muted)] text-sm">{{ formatDate(row.createdAt) }}</span>
-        </template>
-      </Column>
+            <Column :header="t('common.actions')" style="width: 130px">
+              <template #body="{ data: row }: { data: Ticket }">
+                <Button
+                  icon="pi pi-arrow-up-left"
+                  :label="t('tickets.restore')"
+                  severity="secondary"
+                  outlined
+                  size="small"
+                  @click="restoreTicket(row)"
+                />
+              </template>
+            </Column>
 
-      <Column :header="t('common.actions')" style="width: 140px">
-        <template #body="{ data: row }: { data: Ticket }">
-          <div class="flex gap-1">
-            <Button
-              icon="pi pi-pencil"
-              severity="secondary"
-              text
-              rounded
-              v-tooltip.top="t('common.edit')"
-              @click="openEditDialog(row)"
-            />
-            <Button
-              icon="pi pi-eye"
-              severity="secondary"
-              text
-              rounded
-              v-tooltip.top="t('common.edit')"
-              @click="router.push('/tickets/' + row.id)"
-            />
-            <Button
-              icon="pi pi-trash"
-              severity="danger"
-              text
-              rounded
-              v-tooltip.top="t('common.delete')"
-              @click="confirmDeleteTicket(row)"
-            />
-          </div>
-        </template>
-      </Column>
-
-      <template #empty>
-        <div class="text-center py-8 text-[var(--text-muted)]">{{ t('common.noRows') }}</div>
-      </template>
-    </DataTable>
+            <template #empty>
+              <div class="text-center py-8 text-[var(--text-muted)]">{{ t('tickets.trashEmpty') }}</div>
+            </template>
+          </DataTable>
+        </TabPanel>
+      </TabPanels>
+    </Tabs>
   </div>
 
   <!-- Create Ticket Dialog -->

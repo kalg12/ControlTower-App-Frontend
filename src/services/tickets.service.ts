@@ -91,5 +91,15 @@ export const ticketsService = {
       transformResponse: [(data) => data]
     })
     return res.data as Blob
+  },
+
+  async listTrash(page = 0, size = 50): Promise<PaginatedResponse<Ticket>> {
+    const res = await api.get<PaginatedResponse<Ticket>>('/tickets/trash', { params: { page, size } })
+    return res.data
+  },
+
+  async restore(id: string): Promise<Ticket> {
+    const res = await api.post<Ticket>(`/tickets/${id}/restore`)
+    return res.data
   }
 }

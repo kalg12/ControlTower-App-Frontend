@@ -414,7 +414,14 @@
     "sourceManual": "Manual",
     "sourceHealthAlert": "Alerta de salud",
     "sourceWebhook": "Webhook",
-    "sourceEmail": "Correo"
+    "sourceEmail": "Correo",
+    "activeTab": "Tickets",
+    "trashTab": "Papelera",
+    "deletedAt": "Eliminado",
+    "restore": "Restaurar",
+    "restoreSuccess": "Ticket restaurado",
+    "restoreFailed": "No se pudo restaurar el ticket",
+    "trashEmpty": "La papelera está vacía"
   },
   "ticketDetail": {
     "backToTickets": "Volver a tickets",

@@ -461,7 +461,14 @@
     "sourceManual": "Manual",
     "sourceHealthAlert": "Health Alert",
     "sourceWebhook": "Webhook",
-    "sourceEmail": "Email"
+    "sourceEmail": "Email",
+    "activeTab": "Tickets",
+    "trashTab": "Trash",
+    "deletedAt": "Deleted",
+    "restore": "Restore",
+    "restoreSuccess": "Ticket restored",
+    "restoreFailed": "Could not restore ticket",
+    "trashEmpty": "Trash is empty"
   },
   "ticketDetail": {
     "backToTickets": "Back to tickets",
