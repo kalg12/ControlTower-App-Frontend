@@ -27,7 +27,7 @@ function updateQ(v: string) {
   debounce = setTimeout(() => { debouncedQ.value = v }, 300)
 }
 
-const { data, isLoading } = useQuery({
+const { data, isLoading, isError, refetch } = useQuery({
   queryKey: computed(() => qk.templates(JSON.stringify({ q: debouncedQ.value, category: category.value }))),
   queryFn: () => templatesService.list({ q: debouncedQ.value || undefined, category: category.value || undefined, size: 100 }),
   staleTime: 30_000
@@ -140,6 +140,13 @@ const categories = computed(() => {
     <!-- Loading -->
     <div v-if="isLoading" class="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
       <div v-for="n in 6" :key="n" class="h-32 rounded-xl bg-[var(--surface-raised)] animate-pulse" />
+    </div>
+
+    <!-- Error -->
+    <div v-else-if="isError" class="py-20 text-center">
+      <FileText class="w-12 h-12 mx-auto text-red-400 opacity-40 mb-3" />
+      <p class="text-[var(--text-muted)]">{{ t('errors.server') }}</p>
+      <Button :label="t('common.retry')" severity="secondary" class="mt-4" @click="() => refetch()" />
     </div>
 
     <!-- Empty -->
