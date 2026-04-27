@@ -311,6 +311,7 @@
     "name": "Name",
     "legalName": "Legal name",
     "country": "Country",
+    "selectCountry": "Select country",
     "status": "Status",
     "taxId": "Tax ID",
     "created": "Created",

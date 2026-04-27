@@ -119,6 +119,48 @@ function formatDate(dateStr: string | undefined) {
 const showCreateDialog = ref(false)
 const isSubmitting = ref(false)
 
+// Country options for searchable select
+const countryOptions = [
+  { label: 'México', value: 'MX' },
+  { label: 'Estados Unidos', value: 'US' },
+  { label: 'Argentina', value: 'AR' },
+  { label: 'Bolivia', value: 'BO' },
+  { label: 'Brasil', value: 'BR' },
+  { label: 'Canadá', value: 'CA' },
+  { label: 'Chile', value: 'CL' },
+  { label: 'Colombia', value: 'CO' },
+  { label: 'Costa Rica', value: 'CR' },
+  { label: 'Cuba', value: 'CU' },
+  { label: 'Ecuador', value: 'EC' },
+  { label: 'El Salvador', value: 'SV' },
+  { label: 'España', value: 'ES' },
+  { label: 'Francia', value: 'FR' },
+  { label: 'Guatemala', value: 'GT' },
+  { label: 'Honduras', value: 'HN' },
+  { label: 'Italia', value: 'IT' },
+  { label: 'Nicaragua', value: 'NI' },
+  { label: 'Panamá', value: 'PA' },
+  { label: 'Paraguay', value: 'PY' },
+  { label: 'Perú', value: 'PE' },
+  { label: 'Portugal', value: 'PT' },
+  { label: 'Puerto Rico', value: 'PR' },
+  { label: 'Reino Unido', value: 'GB' },
+  { label: 'República Dominicana', value: 'DO' },
+  { label: 'Uruguay', value: 'UY' },
+  { label: 'Venezuela', value: 'VE' },
+  { label: 'Alemania', value: 'DE' },
+  { label: 'Australia', value: 'AU' },
+  { label: 'China', value: 'CN' },
+  { label: 'Corea del Sur', value: 'KR' },
+  { label: 'India', value: 'IN' },
+  { label: 'Japón', value: 'JP' },
+  { label: 'Países Bajos', value: 'NL' },
+  { label: 'Rusia', value: 'RU' },
+  { label: 'Singapur', value: 'SG' },
+  { label: 'Suiza', value: 'CH' },
+  { label: 'Turquía', value: 'TR' },
+]
+
 // Do not use Zod .default() with toTypedSchema — Zod 4 breaks @vee-validate/zod; use initialValues.
 const segmentOptions = computed(() => [
   { label: t('clientsPage.segmentNone'),       value: '' },
@@ -432,7 +474,19 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       </FormField>
 
       <FormField :label="t('clientsPage.country')" name="country" :error="createForm.errors.value.country" required>
-        <InputText id="country" v-model="countryValue" v-bind="countryAttrs" class="w-full" :disabled="isSubmitting" />
+        <Select
+          id="country"
+          v-model="countryValue"
+          v-bind="countryAttrs"
+          :options="countryOptions"
+          option-label="label"
+          option-value="value"
+          :placeholder="t('clientsPage.selectCountry')"
+          filter
+          show-clear
+          class="w-full"
+          :disabled="isSubmitting"
+        />
       </FormField>
       <FormField :label="t('clientsPage.website')" name="website" :error="createForm.errors.value.website">
         <InputText id="website" v-model="websiteValue" v-bind="websiteAttrs" placeholder="https://example.com" class="w-full" :disabled="isSubmitting" />
@@ -515,7 +569,19 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       </FormField>
 
       <FormField :label="t('clientsPage.country')" name="edit-country" :error="editForm.errors.value.country" required>
-        <InputText id="edit-country" v-model="editCountry" v-bind="editCountryAttrs" class="w-full" :disabled="isEditSubmitting" />
+        <Select
+          id="edit-country"
+          v-model="editCountry"
+          v-bind="editCountryAttrs"
+          :options="countryOptions"
+          option-label="label"
+          option-value="value"
+          :placeholder="t('clientsPage.selectCountry')"
+          filter
+          show-clear
+          class="w-full"
+          :disabled="isEditSubmitting"
+        />
       </FormField>
       <FormField :label="t('clientsPage.website')" name="edit-website" :error="editForm.errors.value.website">
         <InputText id="edit-website" v-model="editWebsite" v-bind="editWebsiteAttrs" placeholder="https://example.com" class="w-full" :disabled="isEditSubmitting" />

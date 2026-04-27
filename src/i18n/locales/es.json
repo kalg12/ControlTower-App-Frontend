@@ -304,6 +304,7 @@
     "name": "Nombre",
     "legalName": "Razón social",
     "country": "País",
+    "selectCountry": "Seleccionar país",
     "status": "Estado",
     "taxId": "RFC / ID fiscal",
     "created": "Creado",
