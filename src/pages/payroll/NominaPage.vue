@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -21,6 +22,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import dayjs from 'dayjs'
 import type { Employee, PayrollPeriod, EmployeeRequest, PayrollPeriodRequest, EmployeeStatus, PayrollItemUpdateRequest } from '@/types/payroll'
 
+const { t } = useI18n()
 const queryClient = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
@@ -40,22 +42,22 @@ const { data: empResult, isLoading: empLoading } = useQuery({
 const employees = computed(() => empResult.value?.content ?? [])
 
 const empStatusOptions = [
-  { label: '— Todos —', value: undefined },
-  { label: 'Activo', value: 'ACTIVE' },
-  { label: 'Inactivo', value: 'INACTIVE' },
-  { label: 'Dado de baja', value: 'TERMINATED' },
+  { label: t('nomina.all'), value: undefined },
+  { label: t('nomina.active'), value: 'ACTIVE' },
+  { label: t('nomina.inactive'), value: 'INACTIVE' },
+  { label: t('nomina.terminated'), value: 'TERMINATED' },
 ]
 
 const salaryTypeOptions = [
-  { label: 'Mensual', value: 'MONTHLY' },
-  { label: 'Quincenal', value: 'BIWEEKLY' },
+  { label: t('nomina.monthly'), value: 'MONTHLY' },
+  { label: t('nomina.biweekly'), value: 'BIWEEKLY' },
 ]
 
 function statusSeverity(s: EmployeeStatus) {
   return s === 'ACTIVE' ? 'success' : s === 'INACTIVE' ? 'warn' : 'danger'
 }
 function statusLabel(s: EmployeeStatus) {
-  return s === 'ACTIVE' ? 'Activo' : s === 'INACTIVE' ? 'Inactivo' : 'Baja'
+  return s === 'ACTIVE' ? t('nomina.active') : s === 'INACTIVE' ? t('nomina.inactive') : t('nomina.terminated')
 }
 
 // ── Employee dialog ───────────────────────────────────────────────
@@ -331,7 +333,7 @@ async function downloadExport(type: 'csv' | 'xml') {
         <TabPanel value="employees">
           <div class="space-y-3">
             <div class="flex items-center justify-between flex-wrap gap-3">
-              <Select v-model="empStatusFilter" :options="empStatusOptions" option-label="label" option-value="value" placeholder="Estado" class="w-40" />
+              <Select v-model="empStatusFilter" :options="empStatusOptions" option-label="label" option-value="value" :placeholder="t('nomina.statusPlaceholder')" class="w-40" />
               <Button label="Nuevo empleado" icon="pi pi-plus" @click="openCreateEmp" />
             </div>
 
@@ -498,7 +500,7 @@ async function downloadExport(type: 'csv' | 'xml') {
           </div>
           <div class="flex flex-col gap-1">
             <label class="text-sm font-medium">RFC *</label>
-            <InputText v-model="empRfc" class="w-full" @blur="validateRfc" placeholder="AAAA######AAA" />
+            <InputText v-model="empRfc" class="w-full" @blur="validateRfc" :placeholder="t('nomina.rfcPlaceholder')" />
             <p v-if="rfcError" class="text-xs text-red-500">{{ rfcError }}</p>
           </div>
           <div class="flex flex-col gap-1">

@@ -766,7 +766,13 @@
     "state": "State",
     "statusPlaceholder": "Status",
     "rfc": "RFC",
-    "rfcPlaceholder": "AAAA######AAA"
+    "rfcPlaceholder": "AAAA######AAA",
+    "all": "All",
+    "active": "Active",
+    "inactive": "Inactive",
+    "terminated": "Terminated",
+    "monthly": "Monthly",
+    "biweekly": "Biweekly"
   },
   "reminders": {
     "title": "Reminders",

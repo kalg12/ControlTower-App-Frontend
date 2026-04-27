@@ -758,7 +758,13 @@
     "state": "Estado",
     "statusPlaceholder": "Estado",
     "rfc": "RFC",
-    "rfcPlaceholder": "AAAA######AAA"
+    "rfcPlaceholder": "AAAA######AAA",
+    "all": "Todos",
+    "active": "Activo",
+    "inactive": "Inactivo",
+    "terminated": "Dado de baja",
+    "monthly": "Mensual",
+    "biweekly": "Quincenal"
   },
   "reminders": {
     "title": "Recordatorios",
