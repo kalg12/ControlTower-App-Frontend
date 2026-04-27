@@ -146,8 +146,8 @@ function badge(to: string): number | null {
   >
     <!-- Logo -->
     <div class="flex items-center gap-2.5 px-3 h-14 border-b border-[var(--border)] flex-shrink-0 overflow-hidden">
-      <div class="w-7 h-7 rounded-lg bg-[var(--primary)] flex items-center justify-center flex-shrink-0">
-        <Zap class="w-4 h-4 text-white" />
+      <div class="w-10 h-10 rounded-lg bg-[var(--primary)] flex items-center justify-center flex-shrink-0">
+        <Zap class="w-5 h-5 text-white" />
       </div>
       <span v-if="!collapsed" class="font-bold text-[var(--text)] text-sm tracking-tight whitespace-nowrap">{{ t('app.name') }}</span>
     </div>
