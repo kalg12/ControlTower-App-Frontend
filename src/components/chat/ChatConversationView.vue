@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useMutation, useQuery } from '@tanstack/vue-query'
+import { useI18n } from 'vue-i18n'
 import { Client as StompClient } from '@stomp/stompjs'
 import { useAuthStore } from '@/stores/auth'
 import { chatService } from '@/services/chat.service'
 import { qk } from '@/queries/keys'
 import type { ChatConversation, ChatMessage, ChatMessagePayload, ChatQuickReply } from '@/types/chat'
+
+const { t } = useI18n()
 
 const props = defineProps<{ conversation: ChatConversation }>()
 const emit = defineEmits<{
@@ -221,16 +224,16 @@ function applyQuickReply(r: ChatQuickReply) {
         <div>
           <div class="font-semibold text-sm leading-none">{{ conversation.visitorName }}</div>
           <div class="text-[10px] opacity-80 mt-0.5">
-            {{ conversation.status === 'ACTIVE' ? '● En vivo' : conversation.status === 'WAITING' ? 'Esperando agente' : conversation.status }}
+            {{ conversation.status === 'ACTIVE' ? t('chatModule.status.active') : conversation.status === 'WAITING' ? t('chatModule.status.waiting') : t(`chatModule.status.${conversation.status.toLowerCase()}`) }}
           </div>
         </div>
       </div>
       <div class="flex items-center gap-2">
         <button v-if="conversation.status === 'ACTIVE'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" @click="emit('transfer')">
-          Transferir
+          {{ t('chatModule.actions.transfer') }}
         </button>
         <button v-if="conversation.status === 'ACTIVE'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" @click="closeMut.mutate()">
-          Cerrar
+          {{ t('chatModule.actions.close') }}
         </button>
       </div>
     </div>
@@ -323,14 +326,14 @@ function applyQuickReply(r: ChatQuickReply) {
     <!-- Input -->
     <div class="border-t border-[var(--border)] px-3 py-2 flex items-center gap-2 flex-shrink-0 bg-[var(--bg)]">
       <input ref="fileInputEl" type="file" class="hidden" @change="onFileSelected" />
-      <button class="text-[var(--text-muted)] hover:text-[var(--primary)] p-1 transition-colors" title="Adjuntar archivo" @click="openFilePicker">
+      <button class="text-[var(--text-muted)] hover:text-[var(--primary)] p-1 transition-colors" :title="t('chatModule.attachFile')" @click="openFilePicker">
         <i class="pi pi-paperclip" />
       </button>
       <textarea
         v-model="inputText"
         class="flex-1 resize-none text-sm bg-[var(--bg-subtle)] rounded-xl px-3 py-2 outline-none border border-[var(--border)] focus:border-[var(--primary)] transition-colors"
         rows="1"
-        placeholder="Escribe un mensaje... (Ctrl+Enter para enviar)"
+        :placeholder="t('chatModule.messagePlaceholder')"
         @keydown="onKeyDown"
         @focus="showQuickReplies = inputText.startsWith('/')"
         @blur="hideQuickRepliesDelayed()"

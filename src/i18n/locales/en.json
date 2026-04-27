@@ -79,6 +79,14 @@
         "minutes": "min",
         "hours": "h",
         "days": "d"
+      },
+      "attachFile": "Attach file",
+      "messagePlaceholder": "Type a message... (Ctrl+Enter to send)",
+      "transferDialog": {
+        "title": "Transfer conversation",
+        "selectAgent": "Select agent",
+        "note": "Note to agent (optional)",
+        "notePlaceholder": "Conversation context..."
       }
     },
     "operations": "Operations",

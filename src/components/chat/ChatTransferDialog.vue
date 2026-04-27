@@ -1,11 +1,14 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useI18n } from 'vue-i18n'
 import { chatService } from '@/services/chat.service'
 import type { ChatConversation } from '@/types/chat'
 import Dialog from 'primevue/dialog'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
+
+const { t } = useI18n()
 
 const props = defineProps<{ conversation: ChatConversation }>()
 const emit = defineEmits<{ close: []; transferred: [] }>()
@@ -49,11 +52,11 @@ function avatarColor(name: string) {
 </script>
 
 <template>
-  <Dialog :visible="true" modal header="Transferir conversación" :style="{ width: '420px' }" @update:visible="emit('close')">
+  <Dialog :visible="true" modal :header="t('chatModule.transferDialog.title')" :style="{ width: '420px' }" @update:visible="emit('close')">
     <div class="space-y-4">
       <!-- Agent list -->
       <div>
-        <label class="text-sm font-medium text-[var(--text)] mb-2 block">Seleccionar agente</label>
+        <label class="text-sm font-medium text-[var(--text)] mb-2 block">{{ t('chatModule.transferDialog.selectAgent') }}</label>
         <div class="space-y-1 max-h-48 overflow-y-auto border border-[var(--border)] rounded-lg divide-y divide-[var(--border)]">
           <div
             v-for="agent in agents"
@@ -80,15 +83,15 @@ function avatarColor(name: string) {
 
       <!-- Note -->
       <div>
-        <label class="text-sm font-medium text-[var(--text)] mb-1 block">Nota para el agente (opcional)</label>
-        <Textarea v-model="note" rows="2" class="w-full" placeholder="Contexto de la conversación..." />
+        <label class="text-sm font-medium text-[var(--text)] mb-1 block">{{ t('chatModule.transferDialog.note') }}</label>
+        <Textarea v-model="note" rows="2" class="w-full" :placeholder="t('chatModule.transferDialog.notePlaceholder')" />
       </div>
     </div>
 
     <template #footer>
-      <Button label="Cancelar" severity="secondary" @click="emit('close')" />
+      <Button :label="t('common.cancel')" severity="secondary" @click="emit('close')" />
       <Button
-        label="Transferir"
+        :label="t('chatModule.actions.transfer')"
         icon="pi pi-arrow-right"
         :disabled="!selectedAgentId || transferMut.isPending.value"
         :loading="transferMut.isPending.value"
