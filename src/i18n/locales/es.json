@@ -792,7 +792,23 @@
     "status": "Estado",
     "statusPlaceholder": "Estado",
     "dateRange": "Rango de fechas",
-    "dateRangePlaceholder": "Rango de fechas"
+    "dateRangePlaceholder": "Rango de fechas",
+    "title": "Propuestas Económicas",
+    "subtitle": "Gestiona y envía propuestas formales a tus clientes",
+    "new": "Nueva propuesta",
+    "all": "Todos",
+    "deleteConfirm": "¿Eliminar esta propuesta?",
+    "deleteHeader": "Confirmar",
+    "deleteSuccess": "Propuesta eliminada",
+    "deleteFailed": "Error al eliminar la propuesta",
+    "status": {
+      "draft": "Borrador",
+      "sent": "Enviada",
+      "viewed": "Vista",
+      "accepted": "Aceptada",
+      "rejected": "Rechazada",
+      "expired": "Vencida"
+    }
   },
   "persons": {
     "title": "Personas",

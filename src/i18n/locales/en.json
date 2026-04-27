@@ -800,7 +800,23 @@
     "status": "Status",
     "statusPlaceholder": "Status",
     "dateRange": "Date range",
-    "dateRangePlaceholder": "Date range"
+    "dateRangePlaceholder": "Date range",
+    "title": "Economic Proposals",
+    "subtitle": "Manage and send formal proposals to your clients",
+    "new": "New proposal",
+    "all": "All",
+    "deleteConfirm": "Delete this proposal?",
+    "deleteHeader": "Confirm",
+    "deleteSuccess": "Proposal deleted",
+    "deleteFailed": "Error deleting proposal",
+    "status": {
+      "draft": "Draft",
+      "sent": "Sent",
+      "viewed": "Viewed",
+      "accepted": "Accepted",
+      "rejected": "Rejected",
+      "expired": "Expired"
+    }
   },
   "persons": {
     "title": "Persons",

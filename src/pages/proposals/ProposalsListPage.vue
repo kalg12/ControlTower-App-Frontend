@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
 import { useRouter } from 'vue-router'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { useConfirm } from 'primevue/useconfirm'
 import DataTable from 'primevue/datatable'
@@ -15,6 +16,7 @@ import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import type { ProposalStatus } from '@/types/proposal'
 
+const { t } = useI18n()
 const router = useRouter()
 const queryClient = useQueryClient()
 const toast = useToast()
@@ -47,15 +49,15 @@ const deleteMutation = useMutation({
   mutationFn: (id: string) => proposalsService.remove(id),
   onSuccess: () => {
     queryClient.invalidateQueries({ queryKey: ['proposals'] })
-    toast.success('Propuesta eliminada')
+    toast.success(t('proposals.deleteSuccess'))
   },
-  onError: () => toast.error('Error al eliminar la propuesta'),
+  onError: () => toast.error(t('proposals.deleteFailed')),
 })
 
 function confirmDelete(id: string) {
   confirm.require({
-    message: '¿Eliminar esta propuesta?',
-    header: 'Confirmar',
+    message: t('proposals.deleteConfirm'),
+    header: t('proposals.deleteHeader'),
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: () => deleteMutation.mutate(id),
@@ -75,25 +77,17 @@ function statusSeverity(status: ProposalStatus) {
 }
 
 function statusLabel(status: ProposalStatus) {
-  const map: Record<ProposalStatus, string> = {
-    DRAFT: 'Borrador',
-    SENT: 'Enviada',
-    VIEWED: 'Vista',
-    ACCEPTED: 'Aceptada',
-    REJECTED: 'Rechazada',
-    EXPIRED: 'Vencida',
-  }
-  return map[status] ?? status
+  return t(`proposals.status.${status.toLowerCase()}`)
 }
 
 const statusOptions = [
-  { label: 'Todos', value: undefined },
-  { label: 'Borrador', value: 'DRAFT' },
-  { label: 'Enviada', value: 'SENT' },
-  { label: 'Vista', value: 'VIEWED' },
-  { label: 'Aceptada', value: 'ACCEPTED' },
-  { label: 'Rechazada', value: 'REJECTED' },
-  { label: 'Vencida', value: 'EXPIRED' },
+  { label: t('proposals.all'), value: undefined },
+  { label: t('proposals.status.draft'), value: 'DRAFT' },
+  { label: t('proposals.status.sent'), value: 'SENT' },
+  { label: t('proposals.status.viewed'), value: 'VIEWED' },
+  { label: t('proposals.status.accepted'), value: 'ACCEPTED' },
+  { label: t('proposals.status.rejected'), value: 'REJECTED' },
+  { label: t('proposals.status.expired'), value: 'EXPIRED' },
 ]
 
 function formatCurrency(amount: number, currency: string) {
@@ -109,10 +103,10 @@ function formatDate(d?: string | null) {
   <div class="p-6 space-y-4">
     <div class="flex items-center justify-between">
       <div>
-        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">Propuestas Económicas</h1>
-        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">Gestiona y envía propuestas formales a tus clientes</p>
+        <h1 class="text-2xl font-semibold text-gray-900 dark:text-white">{{ t('proposals.title') }}</h1>
+        <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">{{ t('proposals.subtitle') }}</p>
       </div>
-      <Button label="Nueva propuesta" icon="pi pi-plus" @click="router.push('/proposals/new')" />
+      <Button :label="t('proposals.new')" icon="pi pi-plus" @click="router.push('/proposals/new')" />
     </div>
 
     <!-- Filters -->
@@ -122,13 +116,13 @@ function formatDate(d?: string | null) {
         :options="statusOptions"
         optionLabel="label"
         optionValue="value"
-        placeholder="Estado"
+        :placeholder="t('proposals.statusPlaceholder')"
         class="w-44"
       />
       <DatePicker
         v-model="dateRange"
         selectionMode="range"
-        placeholder="Rango de fechas"
+        :placeholder="t('proposals.dateRangePlaceholder')"
         showIcon
         class="w-72"
         dateFormat="dd/mm/yy"
