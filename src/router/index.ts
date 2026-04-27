@@ -65,6 +65,12 @@ const router = createRouter({
       meta: { layout: 'auth', public: true }
     },
     {
+      path: '/signup',
+      name: 'signup',
+      component: () => import('@/pages/auth/SignupPage.vue'),
+      meta: { layout: 'auth', public: true }
+    },
+    {
       path: '/',
       redirect: '/dashboard'
     },
@@ -305,7 +311,7 @@ router.beforeEach((to, _from, next) => {
   const authStore = useAuthStore()
 
   if (to.meta.public) {
-    if (authStore.isAuthenticated && (to.name === 'login' || to.name === 'forgot-password')) {
+    if (authStore.isAuthenticated && (to.name === 'login' || to.name === 'forgot-password' || to.name === 'signup')) {
       return next('/dashboard')
     }
     return next()

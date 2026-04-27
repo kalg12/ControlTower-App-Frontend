@@ -112,5 +112,11 @@ const onSubmit = loginForm.handleSubmit(async (values) => {
         <RouterLink to="/forgot-password" class="text-sm text-[var(--primary)] hover:underline">{{ t('auth.forgotPassword') }}</RouterLink>
       </div>
     </form>
+
+    <div class="text-center mt-2">
+      <RouterLink to="/signup" class="text-sm text-[var(--text-muted)] hover:text-[var(--text)] transition-colors">
+        {{ t('auth.createOrganization') }}
+      </RouterLink>
+    </div>
   </div>
 </template>
