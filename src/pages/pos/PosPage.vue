@@ -221,7 +221,7 @@ const guideDotEnv = computed(() => {
 CT_BASE_URL=${ctBaseUrl}
 CT_API_KEY=${guideApiKey.value ?? '<regenera la clave desde Editar>'}
 CT_ENDPOINT_ID=${ep.id}
-CT_BRANCH_SLUG=${ep.clientBranchId ?? '<id-sucursal>'}`
+CT_BRANCH_SLUG=${ep.branchSlug ?? '<slug-sucursal>'}`
 })
 
 const guideHealthFormat = `{
@@ -239,7 +239,7 @@ const guideUrls = computed(() => {
   const ep = guideEndpoint.value
   if (!ep) return ''
   return `# Heartbeat (POS → CT, opcional)
-POST ${ctBaseUrl}/api/v1/health/heartbeat/${ep.clientBranchId ?? '{branch-slug}'}
+POST ${ctBaseUrl}/api/v1/health/heartbeat/${ep.branchSlug ?? '{branch-slug}'}
 
 # Push de eventos (tickets, soporte)
 POST ${ctBaseUrl}/api/v1/integrations/events

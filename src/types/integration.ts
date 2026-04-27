@@ -8,6 +8,7 @@ export interface Integration {
   clientId?: string
   clientName?: string
   branchName?: string
+  branchSlug?: string
   name?: string
   type: IntegrationEndpointType
   pullUrl?: string
