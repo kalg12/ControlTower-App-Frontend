@@ -655,7 +655,7 @@ function webhookSeverity(status: WebhookDelivery['status']) {
         <InputText
           v-model="regUrl"
           v-bind="regUrlAttrs"
-          placeholder="https://pos.example.com/api/health"
+          :placeholder="t('integrations.pullUrlPlaceholder')"
           class="w-full"
           :disabled="isRegistering"
         />
@@ -665,7 +665,7 @@ function webhookSeverity(status: WebhookDelivery['status']) {
           v-model="regKey"
           v-bind="regKeyAttrs"
           type="password"
-          :placeholder="t('integrations.apiKeyHint')"
+          :placeholder="t('integrations.apiKeyKeepHint')"
           class="w-full"
           :disabled="isRegistering"
         />
@@ -744,7 +744,7 @@ function webhookSeverity(status: WebhookDelivery['status']) {
         <InputText
           v-model="editUrl"
           v-bind="editUrlAttrs"
-          placeholder="https://pos.example.com/api/health"
+          :placeholder="t('integrations.pullUrlPlaceholder')"
           class="w-full"
           :disabled="isEditing"
         />
