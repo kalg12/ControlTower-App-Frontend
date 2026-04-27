@@ -874,7 +874,7 @@
     "lastNamePlaceholder": "Eg: Smith",
     "contact": "Contact",
     "email": "Email",
-    "emailPlaceholder": "Eg: john@email.com",
+    "emailPlaceholder": "Eg: john{'@'}email.com",
     "phone": "Phone",
     "phonePlaceholder": "Eg: +1 555 123 4567",
     "whatsapp": "WhatsApp",
@@ -1513,7 +1513,7 @@
     "summaryPeriodPlaceholder": "Summary period",
     "reportEmailDesc": "An expense summary for the selected period will be sent to the indicated email.",
     "email": "Email",
-    "emailPlaceholder": "email@example.com",
+    "emailPlaceholder": "email{'@'}example.com",
     "summary": {
       "totalInvoiced": "Total invoiced",
       "totalPaid": "Total paid",
