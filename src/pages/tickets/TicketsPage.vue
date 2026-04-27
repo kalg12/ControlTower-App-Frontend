@@ -502,11 +502,11 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   :options="userOptions"
                   option-label="fullName"
                   option-value="id"
-                  placeholder="Asignar a..."
+                  :placeholder="t('tickets.assignTo')"
                   class="w-40 text-xs"
                   :disabled="isBulkProcessing"
                 />
-                <Button label="Asignar" size="small" :loading="isBulkProcessing" :disabled="!bulkAssigneeId" @click="bulkAssign" />
+                <Button :label="t('tickets.assign')" size="small" :loading="isBulkProcessing" :disabled="!bulkAssigneeId" @click="bulkAssign" />
               </div>
               <div class="flex items-center gap-2">
                 <Select
@@ -514,7 +514,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   :options="formStatusOptions"
                   option-label="label"
                   option-value="value"
-                  placeholder="Cambiar estado..."
+                  :placeholder="t('tickets.changeStatus')"
                   class="w-44 text-xs"
                   :disabled="isBulkProcessing"
                 />
