@@ -3,6 +3,34 @@
     "name": "Control Tower",
     "version": "CT v1.0"
   },
+  "common": {
+    "save": "Guardar",
+    "cancel": "Cancelar",
+    "delete": "Eliminar",
+    "edit": "Editar",
+    "create": "Crear",
+    "back": "Volver",
+    "loading": "Cargando…",
+    "retry": "Reintentar",
+    "success": "Éxito",
+    "error": "Error",
+    "yes": "Sí",
+    "no": "No",
+    "none": "Ninguno",
+    "all": "Todos",
+    "search": "Buscar",
+    "filter": "Filtrar",
+    "clear": "Limpiar",
+    "apply": "Aplicar",
+    "confirm": "Confirmar",
+    "close": "Cerrar",
+    "open": "Abrir",
+    "noRows": "Sin resultados",
+    "loadingFailed": "Error al cargar. Revisa tu conexión.",
+    "deleteFailed": "Error al eliminar",
+    "saveFailed": "Error al guardar",
+    "actions": "Acciones"
+  },
   "nav": {
     "main": "Principal",
     "admin": "Administración",
@@ -39,93 +67,61 @@
     "proposals": "Propuestas",
     "reminders": "Recordatorios",
     "payroll": "Nómina",
-    "chat": "Chat Soporte",
-    "operations": "Operaciones",
-    "finances": "Finanzas",
-    "content": "Contenido"
+"chat": "Chat Soporte",
+  "operations": "Operaciones",
+  "finances": "Finanzas",
+  "content": "Contenido"
+},
+"chatModule": {
+  "title": "Chat de Soporte",
+  "searchPlaceholder": "Buscar por nombre o email…",
+  "conversations": "conversaciones",
+  "tabs": {
+    "all": "Todos",
+    "waiting": "Esperando",
+    "active": "Activos",
+    "closed": "Cerrados"
   },
-  "chatModule": {
-    "title": "Chat de Soporte",
-    "searchPlaceholder": "Buscar por nombre o email…",
-    "conversations": "conversaciones",
-    "tabs": {
-      "all": "Todos",
-      "waiting": "Esperando",
-      "active": "Activos",
-      "closed": "Cerrados"
-    },
-    "empty": {
-      "all": "No hay conversaciones",
-      "waiting": "No hay chats esperando",
-      "active": "No hay chats activos",
-      "closed": "No hay chats cerrados",
-      "noResults": "Sin resultados"
-    },
-    "status": {
-      "waiting": "Esperando",
-      "active": "Activo",
-      "transferred": "Transferido",
-      "closed": "Cerrado",
-      "archived": "Archivado"
-    },
-    "visitor": "Visitante",
-    "noMessages": "Sin mensajes aún",
-    "attachment": "Archivo adjunto",
-    "noConversationSelected": "Selecciona una conversación para verla",
-    "actions": {
-      "take": "Tomar",
-      "close": "Cerrar",
-      "archive": "Archivar",
-      "transfer": "Transferir"
-    },
-    "time": {
-      "now": "ahora",
-      "minutes": "min",
-      "hours": "h",
-      "days": "d"
-    },
-    "attachFile": "Adjuntar archivo",
-    "messagePlaceholder": "Escribe un mensaje... (Ctrl+Enter para enviar)",
-    "transferDialog": {
-      "title": "Transferir conversación",
-      "selectAgent": "Seleccionar agente",
-      "note": "Nota para el agente (opcional)",
-      "notePlaceholder": "Contexto de la conversación..."
-    }
+  "empty": {
+    "all": "No hay conversaciones",
+    "waiting": "No hay chats esperando",
+    "active": "No hay chats activos",
+    "closed": "No hay chats cerrados",
+    "noResults": "Sin resultados"
   },
-  "common": {
-    "save": "Guardar",
-    "cancel": "Cancelar",
-    "delete": "Eliminar",
-    "edit": "Editar",
-    "create": "Crear",
-    "back": "Volver",
-    "loading": "Cargando…",
-    "retry": "Reintentar",
-    "search": "Buscar",
-    "actions": "Acciones",
-    "yes": "Sí",
-    "no": "No",
+  "status": {
+    "waiting": "Esperando",
+    "active": "Activo",
+    "transferred": "Transferido",
+    "closed": "Cerrado",
+    "archived": "Archivado"
+  },
+  "visitor": "Visitante",
+  "noMessages": "Sin mensajes aún",
+  "attachment": "Archivo adjunto",
+  "noConversationSelected": "Selecciona una conversación para verla",
+  "actions": {
+    "take": "Tomar",
     "close": "Cerrar",
-    "submit": "Enviar",
-    "optional": "Opcional",
-    "required": "Obligatorio",
-    "none": "—",
-    "language": "Idioma",
-    "english": "Inglés",
-    "spanish": "Español",
-    "noRows": "No hay registros",
-    "confirm": "Confirmar",
-    "success": "Éxito",
-    "error": "Error",
-    "refresh": "Actualizar",
-    "noData": "Sin datos disponibles",
-    "previous": "Anterior",
-    "next": "Siguiente",
-    "view": "Ver",
-    "loadMore": "Cargar más"
+    "archive": "Archivar",
+    "transfer": "Transferir"
   },
-  "errors": {
+  "time": {
+    "now": "ahora",
+    "minutes": "min",
+    "hours": "h",
+    "days": "d"
+  },
+  "attachFile": "Adjuntar archivo",
+  "messagePlaceholder": "Escribe un mensaje... (Ctrl+Enter para enviar)",
+  "transferDialog": {
+    "title": "Transferir conversación",
+    "selectAgent": "Seleccionar agente",
+    "note": "Nota para el agente (opcional)",
+    "notePlaceholder": "Contexto de la conversación..."
+  }
+},
+"errors": {
     "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
     "forbidden": "No tienes permiso para esta acción.",
     "server": "Error del servidor. Intenta de nuevo más tarde.",
@@ -1307,46 +1303,7 @@
       "all": "Todos",
       "navigation": "Navegación",
       "action": "Acciones"
-    }
-  },
-  "persons": {
-    "title": "Personas",
-    "subtitle": "Contactos individuales de tu CRM: prospectos, clientes activos y contactos convertidos.",
-    "create": "Nueva persona",
-    "edit": "Editar persona",
-    "created": "Persona creada correctamente.",
-    "updated": "Persona actualizada correctamente.",
-    "deleted": "Persona eliminada.",
-    "empty": "No hay personas registradas. Crea una para empezar.",
-    "searchPlaceholder": "Buscar por nombre, email o teléfono…",
-    "name": "Nombre",
-    "firstName": "Nombre",
-    "lastName": "Apellido",
-    "contact": "Contacto",
-    "email": "Correo",
-    "phone": "Teléfono",
-    "whatsapp": "WhatsApp",
-    "leadSource": "Origen",
-    "selectSource": "Selecciona origen",
-    "status": "Estado",
-    "company": "Empresa",
-    "assignedTo": "Asignado a",
-    "unassigned": "Sin asignar",
-    "noCompany": "Sin empresa",
-    "address": "Dirección",
-    "notes": "Notas",
-    "notesPlaceholder": "Observaciones, historial, datos relevantes…",
-    "deleteConfirmTitle": "Eliminar persona",
-    "deleteConfirm": "¿Estás seguro de que quieres eliminar esta persona? No se puede deshacer.",
-    "statusProspect": "Prospecto",
-    "statusActive": "Activo",
-    "statusInactive": "Inactivo",
-    "statusConverted": "Convertido",
-    "calendarTab": "Citas",
-    "scheduleAppointment": "Agendar cita",
-    "noAppointments": "Sin citas próximas.",
-    "selectPerson": "Selecciona persona",
-    "createSuccess": "Persona creada correctamente."
+}
   },
   "pageInfo": {
     "persons": "Gestiona tus contactos individuales: prospectos, leads de redes sociales, clientes B2C. Crea personas desde el calendario y dales seguimiento completo.",
