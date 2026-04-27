@@ -870,7 +870,14 @@
     "deleteConfirm": "¿Eliminar esta propuesta?",
     "deleteHeader": "Confirmar",
     "deleteSuccess": "Propuesta eliminada",
-    "deleteFailed": "Error al eliminar la propuesta"
+    "deleteFailed": "Error al eliminar la propuesta",
+    "number": "Número",
+    "client": "Cliente",
+    "titleCol": "Título",
+    "total": "Total",
+    "validUntil": "Válida hasta",
+    "createdAt": "Creada",
+    "empty": "No hay propuestas. Crea la primera."
   },
   "persons": {
     "title": "Personas",

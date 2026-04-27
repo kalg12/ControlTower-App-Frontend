@@ -882,7 +882,14 @@
     "deleteConfirm": "Delete this proposal?",
     "deleteHeader": "Confirm",
     "deleteSuccess": "Proposal deleted",
-    "deleteFailed": "Error deleting proposal"
+    "deleteFailed": "Error deleting proposal",
+    "number": "Number",
+    "client": "Client",
+    "titleCol": "Title",
+    "total": "Total",
+    "validUntil": "Valid until",
+    "createdAt": "Created",
+    "empty": "No proposals. Create the first one."
   },
   "persons": {
     "title": "Persons",

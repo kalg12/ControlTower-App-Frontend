@@ -138,44 +138,44 @@ function formatDate(d?: string | null) {
       :rowsPerPageOptions="[10, 20, 50]"
       tableStyle="min-width: 60rem"
     >
-      <Column field="number" header="Número" style="width: 140px">
+      <Column field="number" :header="t('proposals.number')" style="width: 140px">
         <template #body="{ data }">
           <span class="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400">{{ data.number }}</span>
         </template>
       </Column>
-      <Column field="clientName" header="Cliente" />
-      <Column field="title" header="Título" />
-      <Column field="status" header="Estado" style="width: 120px">
+      <Column field="clientName" :header="t('proposals.client')" />
+      <Column field="title" :header="t('proposals.titleCol')" />
+      <Column field="status" :header="t('proposals.status')" style="width: 120px">
         <template #body="{ data }">
           <Tag :severity="statusSeverity(data.status)" :value="statusLabel(data.status)" />
         </template>
       </Column>
-      <Column field="total" header="Total" style="width: 160px">
+      <Column field="total" :header="t('proposals.total')" style="width: 160px">
         <template #body="{ data }">
           <span class="font-semibold">{{ formatCurrency(data.total, data.currency) }}</span>
         </template>
       </Column>
-      <Column field="validityDate" header="Válida hasta" style="width: 130px">
+      <Column field="validityDate" :header="t('proposals.validUntil')" style="width: 130px">
         <template #body="{ data }">{{ formatDate(data.validityDate) }}</template>
       </Column>
-      <Column field="createdAt" header="Creada" style="width: 120px">
+      <Column field="createdAt" :header="t('proposals.createdAt')" style="width: 120px">
         <template #body="{ data }">{{ formatDate(data.createdAt) }}</template>
       </Column>
-      <Column header="Acciones" style="width: 150px">
+      <Column :header="t('common.actions')" style="width: 150px">
         <template #body="{ data }">
           <div class="flex gap-2">
-            <Button icon="pi pi-eye" size="small" text @click="router.push(`/proposals/${data.id}`)" v-tooltip="'Ver'" />
+            <Button icon="pi pi-eye" size="small" text @click="router.push(`/proposals/${data.id}`)" :tooltip="t('common.view')" />
             <Button
               v-if="data.status === 'DRAFT'"
               icon="pi pi-pencil" size="small" text severity="secondary"
               @click="router.push(`/proposals/${data.id}/edit`)"
-              v-tooltip="'Editar'"
+              :tooltip="t('common.edit')"
             />
             <Button
               v-if="data.status === 'DRAFT'"
               icon="pi pi-trash" size="small" text severity="danger"
               @click="confirmDelete(data.id)"
-              v-tooltip="'Eliminar'"
+              :tooltip="t('common.delete')"
             />
           </div>
         </template>
@@ -183,7 +183,7 @@ function formatDate(d?: string | null) {
       <template #empty>
         <div class="text-center py-12 text-gray-500">
           <i class="pi pi-file-edit text-4xl mb-3 block opacity-40" />
-          <p>No hay propuestas. Crea la primera.</p>
+          <p>{{ t('proposals.empty') }}</p>
         </div>
       </template>
     </DataTable>
