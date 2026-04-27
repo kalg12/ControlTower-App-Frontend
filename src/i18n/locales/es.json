@@ -40,58 +40,58 @@
     "reminders": "Recordatorios",
     "payroll": "Nómina",
     "chat": "Chat Soporte",
-    "chatModule": {
-      "title": "Chat de Soporte",
-      "searchPlaceholder": "Buscar por nombre o email…",
-      "conversations": "conversaciones",
-      "tabs": {
-        "all": "Todos",
-        "waiting": "Esperando",
-        "active": "Activos",
-        "closed": "Cerrados"
-      },
-      "empty": {
-        "all": "No hay conversaciones",
-        "waiting": "No hay chats esperando",
-        "active": "No hay chats activos",
-        "closed": "No hay chats cerrados",
-        "noResults": "Sin resultados"
-      },
-      "status": {
-        "waiting": "Esperando",
-        "active": "Activo",
-        "transferred": "Transferido",
-        "closed": "Cerrado",
-        "archived": "Archivado"
-      },
-      "visitor": "Visitante",
-      "noMessages": "Sin mensajes aún",
-      "attachment": "Archivo adjunto",
-      "noConversationSelected": "Selecciona una conversación para verla",
-      "actions": {
-        "take": "Tomar",
-        "close": "Cerrar",
-        "archive": "Archivar",
-        "transfer": "Transferir"
-      },
-      "time": {
-        "now": "ahora",
-        "minutes": "min",
-        "hours": "h",
-        "days": "d"
-      },
-      "attachFile": "Adjuntar archivo",
-      "messagePlaceholder": "Escribe un mensaje... (Ctrl+Enter para enviar)",
-      "transferDialog": {
-        "title": "Transferir conversación",
-        "selectAgent": "Seleccionar agente",
-        "note": "Nota para el agente (opcional)",
-        "notePlaceholder": "Contexto de la conversación..."
-      }
-    },
     "operations": "Operaciones",
     "finances": "Finanzas",
     "content": "Contenido"
+  },
+  "chatModule": {
+    "title": "Chat de Soporte",
+    "searchPlaceholder": "Buscar por nombre o email…",
+    "conversations": "conversaciones",
+    "tabs": {
+      "all": "Todos",
+      "waiting": "Esperando",
+      "active": "Activos",
+      "closed": "Cerrados"
+    },
+    "empty": {
+      "all": "No hay conversaciones",
+      "waiting": "No hay chats esperando",
+      "active": "No hay chats activos",
+      "closed": "No hay chats cerrados",
+      "noResults": "Sin resultados"
+    },
+    "status": {
+      "waiting": "Esperando",
+      "active": "Activo",
+      "transferred": "Transferido",
+      "closed": "Cerrado",
+      "archived": "Archivado"
+    },
+    "visitor": "Visitante",
+    "noMessages": "Sin mensajes aún",
+    "attachment": "Archivo adjunto",
+    "noConversationSelected": "Selecciona una conversación para verla",
+    "actions": {
+      "take": "Tomar",
+      "close": "Cerrar",
+      "archive": "Archivar",
+      "transfer": "Transferir"
+    },
+    "time": {
+      "now": "ahora",
+      "minutes": "min",
+      "hours": "h",
+      "days": "d"
+    },
+    "attachFile": "Adjuntar archivo",
+    "messagePlaceholder": "Escribe un mensaje... (Ctrl+Enter para enviar)",
+    "transferDialog": {
+      "title": "Transferir conversación",
+      "selectAgent": "Seleccionar agente",
+      "note": "Nota para el agente (opcional)",
+      "notePlaceholder": "Contexto de la conversación..."
+    }
   },
   "common": {
     "save": "Guardar",

@@ -40,58 +40,58 @@
     "reminders": "Reminders",
     "payroll": "Payroll",
     "chat": "Support Chat",
-    "chatModule": {
-      "title": "Support Chat",
-      "searchPlaceholder": "Search by name or email…",
-      "conversations": "conversations",
-      "tabs": {
-        "all": "All",
-        "waiting": "Waiting",
-        "active": "Active",
-        "closed": "Closed"
-      },
-      "empty": {
-        "all": "No conversations",
-        "waiting": "No chats waiting",
-        "active": "No active chats",
-        "closed": "No closed chats",
-        "noResults": "No results"
-      },
-      "status": {
-        "waiting": "Waiting",
-        "active": "Active",
-        "transferred": "Transferred",
-        "closed": "Closed",
-        "archived": "Archived"
-      },
-      "visitor": "Visitor",
-      "noMessages": "No messages yet",
-      "attachment": "Attachment",
-      "noConversationSelected": "Select a conversation to view it",
-      "actions": {
-        "take": "Take",
-        "close": "Close",
-        "archive": "Archive",
-        "transfer": "Transfer"
-      },
-      "time": {
-        "now": "now",
-        "minutes": "min",
-        "hours": "h",
-        "days": "d"
-      },
-      "attachFile": "Attach file",
-      "messagePlaceholder": "Type a message... (Ctrl+Enter to send)",
-      "transferDialog": {
-        "title": "Transfer conversation",
-        "selectAgent": "Select agent",
-        "note": "Note to agent (optional)",
-        "notePlaceholder": "Conversation context..."
-      }
-    },
     "operations": "Operations",
     "finances": "Finances",
     "content": "Content"
+  },
+  "chatModule": {
+    "title": "Support Chat",
+    "searchPlaceholder": "Search by name or email…",
+    "conversations": "conversations",
+    "tabs": {
+      "all": "All",
+      "waiting": "Waiting",
+      "active": "Active",
+      "closed": "Closed"
+    },
+    "empty": {
+      "all": "No conversations",
+      "waiting": "No chats waiting",
+      "active": "No active chats",
+      "closed": "No closed chats",
+      "noResults": "No results"
+    },
+    "status": {
+      "waiting": "Waiting",
+      "active": "Active",
+      "transferred": "Transferred",
+      "closed": "Closed",
+      "archived": "Archived"
+    },
+    "visitor": "Visitor",
+    "noMessages": "No messages yet",
+    "attachment": "Attachment",
+    "noConversationSelected": "Select a conversation to view it",
+    "actions": {
+      "take": "Take",
+      "close": "Close",
+      "archive": "Archive",
+      "transfer": "Transfer"
+    },
+    "time": {
+      "now": "now",
+      "minutes": "min",
+      "hours": "h",
+      "days": "d"
+    },
+    "attachFile": "Attach file",
+    "messagePlaceholder": "Type a message... (Ctrl+Enter to send)",
+    "transferDialog": {
+      "title": "Transfer conversation",
+      "selectAgent": "Select agent",
+      "note": "Note to agent (optional)",
+      "notePlaceholder": "Conversation context..."
+    }
   },
   "common": {
     "save": "Save",
