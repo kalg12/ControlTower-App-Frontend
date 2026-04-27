@@ -10,6 +10,7 @@ import InputIcon from "primevue/inputicon";
 import Select from "primevue/select";
 import Dialog from "primevue/dialog";
 import Tag from "primevue/tag";
+import AppDialog from "@/components/ui/AppDialog.vue";
 import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import { Users, Phone, Search, Building2 } from "lucide-vue-next";
@@ -404,11 +405,9 @@ function statusSeverity(
     </DataTable>
 
     <!-- Create / Edit Dialog -->
-    <Dialog
+    <AppDialog
       v-model:visible="showDialog"
-      :header="editingPerson ? t('persons.edit') : t('persons.create')"
-      :style="{ width: '36rem' }"
-      modal
+      :title="editingPerson ? t('persons.edit') : t('persons.create')"
     >
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
@@ -570,7 +569,7 @@ function statusSeverity(
           @click="submit"
         />
       </template>
-    </Dialog>
+    </AppDialog>
 
     <!-- Delete Confirm -->
     <Dialog
