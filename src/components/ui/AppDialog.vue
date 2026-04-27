@@ -14,7 +14,7 @@ const visible = defineModel<boolean>("visible", { default: false });
     :draggable="false"
     class="w-full max-w-lg"
   >
-    <p v-if="subtitle" class="text-sm text-(--text-muted) mb-4 -mt-2">
+    <p v-if="subtitle" class="text-sm text-[var(--text-muted)] mb-4 mt-2 px-1">
       {{ subtitle }}
     </p>
     <slot />

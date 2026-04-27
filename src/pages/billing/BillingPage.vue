@@ -29,6 +29,11 @@ function formatDate(dateStr: string) {
   return dayjs(dateStr).format('DD MMM YYYY, HH:mm')
 }
 
+function eventTypeLabel(type: string) {
+  const key = `billing.type.${type}` as const
+  return t(key as any, t('billing.type.default'))
+}
+
 function formatAmount(amount: number, currency: string) {
   return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount / 100)
 }
@@ -66,7 +71,7 @@ function onPage(event: { page: number }) {
       </Column>
       <Column field="type" :header="t('billing.eventType')" style="min-width: 180px">
         <template #body="{ data: row }: { data: BillingEvent }">
-          <span class="text-sm font-medium text-[var(--text)]">{{ row.eventType }}</span>
+          <span class="text-sm font-medium text-[var(--text)]">{{ eventTypeLabel(row.eventType) }}</span>
         </template>
       </Column>
       <Column field="amount" :header="t('billing.amount')" style="width: 130px">
