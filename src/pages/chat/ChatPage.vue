@@ -9,6 +9,8 @@ import { qk } from '@/queries/keys'
 import type { ChatConversation, ConversationStatus } from '@/types/chat'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
+import IconField from 'primevue/iconfield'
+import InputIcon from 'primevue/inputicon'
 import Tag from 'primevue/tag'
 import ChatConversationView from '@/components/chat/ChatConversationView.vue'
 import ChatTransferDialog from '@/components/chat/ChatTransferDialog.vue'
@@ -166,14 +168,16 @@ onUnmounted(() => stompClient.value?.deactivate())
       </div>
 
       <!-- Search -->
-      <div class="relative mb-3">
-        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-base" />
+      <IconField class="mb-3 w-full">
+        <InputIcon>
+          <i class="pi pi-search text-(--text-muted) text-base" />
+        </InputIcon>
         <InputText
           v-model="search"
           :placeholder="t('chatModule.searchPlaceholder')"
-          class="w-full pl-10 text-sm"
+          class="w-full text-sm"
         />
-      </div>
+      </IconField>
 
       <!-- Tabs -->
       <div class="flex gap-1 mb-3 border-b border-[var(--border)]">
