@@ -1,425 +1,498 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useQuery, useQueryClient } from '@tanstack/vue-query'
-import { useRouter } from 'vue-router'
-import { useConfirm } from 'primevue/useconfirm'
-import { useForm } from 'vee-validate'
-import { toTypedSchema } from '@vee-validate/zod'
-import { z } from 'zod'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Tag from 'primevue/tag'
-import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
-import Select from 'primevue/select'
-import Button from 'primevue/button'
-import Tabs from 'primevue/tabs'
-import TabList from 'primevue/tablist'
-import Tab from 'primevue/tab'
-import TabPanels from 'primevue/tabpanels'
-import TabPanel from 'primevue/tabpanel'
-import { AlertTriangle } from 'lucide-vue-next'
-import AppDialog from '@/components/ui/AppDialog.vue'
-import FormField from '@/components/ui/FormField.vue'
-import SkeletonTable from '@/components/ui/SkeletonTable.vue'
-import PageInfoButton from '@/components/ui/PageInfoButton.vue'
-import { ticketsService } from '@/services/tickets.service'
-import { clientsService } from '@/services/clients.service'
-import { useToast } from '@/composables/useToast'
-import { useUsers } from '@/queries/users'
-import dayjs from 'dayjs'
-import type { Ticket, TicketStatus, TicketPriority, TicketSource } from '@/types/ticket'
-import SourceBadge from '@/components/tickets/SourceBadge.vue'
+import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
+import { useQuery, useQueryClient } from "@tanstack/vue-query";
+import { useRouter } from "vue-router";
+import { useConfirm } from "primevue/useconfirm";
+import { useForm } from "vee-validate";
+import { toTypedSchema } from "@vee-validate/zod";
+import { z } from "zod";
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Tag from "primevue/tag";
+import InputText from "primevue/inputtext";
+import Textarea from "primevue/textarea";
+import Select from "primevue/select";
+import Button from "primevue/button";
+import Tabs from "primevue/tabs";
+import TabList from "primevue/tablist";
+import Tab from "primevue/tab";
+import TabPanels from "primevue/tabpanels";
+import TabPanel from "primevue/tabpanel";
+import { AlertTriangle } from "lucide-vue-next";
+import AppDialog from "@/components/ui/AppDialog.vue";
+import FormField from "@/components/ui/FormField.vue";
+import SkeletonTable from "@/components/ui/SkeletonTable.vue";
+import PageInfoButton from "@/components/ui/PageInfoButton.vue";
+import { ticketsService } from "@/services/tickets.service";
+import { clientsService } from "@/services/clients.service";
+import { useToast } from "@/composables/useToast";
+import { useUsers } from "@/queries/users";
+import dayjs from "dayjs";
+import type {
+  Ticket,
+  TicketStatus,
+  TicketPriority,
+  TicketSource,
+} from "@/types/ticket";
+import SourceBadge from "@/components/tickets/SourceBadge.vue";
 
-const { t } = useI18n()
-const router = useRouter()
-const queryClient = useQueryClient()
-const toast = useToast()
-const confirm = useConfirm()
+const { t } = useI18n();
+const router = useRouter();
+const queryClient = useQueryClient();
+const toast = useToast();
+const confirm = useConfirm();
 
 function confirmDeleteTicket(ticket: Ticket) {
   confirm.require({
-    message: t('tickets.deleteConfirm', { title: ticket.title }),
-    header: t('tickets.deleteHeader'),
-    icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
-    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    message: t("tickets.deleteConfirm", { title: ticket.title }),
+    header: t("tickets.deleteHeader"),
+    icon: "pi pi-exclamation-triangle",
+    rejectProps: {
+      label: t("common.cancel"),
+      severity: "secondary",
+      outlined: true,
+    },
+    acceptProps: { label: t("common.delete"), severity: "danger" },
     accept: async () => {
       try {
-        await ticketsService.delete(ticket.id)
-        await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-        toast.success(t('tickets.deleteSuccess'))
+        await ticketsService.delete(ticket.id);
+        await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+        toast.success(t("tickets.deleteSuccess"));
       } catch {
-        toast.error(t('tickets.deleteFailed'))
+        toast.error(t("tickets.deleteFailed"));
       }
-    }
-  })
+    },
+  });
 }
 
-const page = ref(0)
+const page = ref(0);
 /** Must stay in sync with DataTable paginator (rows per page). */
-const pageSize = ref(20)
-const statusFilter = ref<TicketStatus | null>(null)
-const priorityFilter = ref<TicketPriority | null>(null)
-const sourceFilter = ref<TicketSource | null>(null)
-const globalFilter = ref('')
+const pageSize = ref(20);
+const statusFilter = ref<TicketStatus | null>(null);
+const priorityFilter = ref<TicketPriority | null>(null);
+const sourceFilter = ref<TicketSource | null>(null);
+const globalFilter = ref("");
 
 const { data: clientsData } = useQuery({
-  queryKey: ['clients', 'list'],
+  queryKey: ["clients", "list"],
   queryFn: () => clientsService.list({ page: 0, size: 200 }),
-  staleTime: 60000
-})
-const clientOptions = computed(() =>
-  clientsData.value?.content.map(c => ({ label: c.name, value: c.id })) ?? []
-)
+  staleTime: 60000,
+});
+const clientOptions = computed(
+  () =>
+    clientsData.value?.content.map((c) => ({ label: c.name, value: c.id })) ??
+    [],
+);
 
-const { data: result, isLoading, isError, isFetching, refetch } = useQuery({
-  queryKey: computed(() => ['tickets', page.value, pageSize.value, statusFilter.value, priorityFilter.value, sourceFilter.value]),
-  queryFn: () => ticketsService.list({
-    page: page.value,
-    size: pageSize.value,
-    status: statusFilter.value ?? undefined,
-    priority: priorityFilter.value ?? undefined,
-    source: sourceFilter.value ?? undefined
-  }),
-  staleTime: 15000
-})
+const {
+  data: result,
+  isLoading,
+  isError,
+  isFetching,
+  refetch,
+} = useQuery({
+  queryKey: computed(() => [
+    "tickets",
+    page.value,
+    pageSize.value,
+    statusFilter.value,
+    priorityFilter.value,
+    sourceFilter.value,
+  ]),
+  queryFn: () =>
+    ticketsService.list({
+      page: page.value,
+      size: pageSize.value,
+      status: statusFilter.value ?? undefined,
+      priority: priorityFilter.value ?? undefined,
+      source: sourceFilter.value ?? undefined,
+    }),
+  staleTime: 15000,
+});
 
-const ticketsPage = computed(() => result.value?.content ?? [])
+const ticketsPage = computed(() => result.value?.content ?? []);
 const tickets = computed(() => {
-  const q = globalFilter.value.trim().toLowerCase()
-  if (!q) return ticketsPage.value
+  const q = globalFilter.value.trim().toLowerCase();
+  if (!q) return ticketsPage.value;
   return ticketsPage.value.filter(
-    t =>
+    (t) =>
       t.title.toLowerCase().includes(q) ||
-      (t.description && t.description.toLowerCase().includes(q))
-  )
-})
-const totalRecords = computed(() => result.value?.totalElements ?? 0)
+      (t.description && t.description.toLowerCase().includes(q)),
+  );
+});
+const totalRecords = computed(() => result.value?.totalElements ?? 0);
 
-const trashPage = ref(0)
+const trashPage = ref(0);
 const { data: trashResult, isLoading: trashLoading } = useQuery({
-  queryKey: computed(() => ['tickets-trash', trashPage.value]),
+  queryKey: computed(() => ["tickets-trash", trashPage.value]),
   queryFn: () => ticketsService.listTrash(trashPage.value, 50),
   staleTime: 30_000,
-})
-const trashTickets = computed(() => trashResult.value?.content ?? [])
-const trashTotal = computed(() => trashResult.value?.totalElements ?? 0)
+});
+const trashTickets = computed(() => trashResult.value?.content ?? []);
+const trashTotal = computed(() => trashResult.value?.totalElements ?? 0);
 
 async function restoreTicket(ticket: Ticket) {
   try {
-    await ticketsService.restore(ticket.id)
-    await queryClient.invalidateQueries({ queryKey: ['tickets-trash'] })
-    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-    toast.success(t('tickets.restoreSuccess'))
+    await ticketsService.restore(ticket.id);
+    await queryClient.invalidateQueries({ queryKey: ["tickets-trash"] });
+    await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+    toast.success(t("tickets.restoreSuccess"));
   } catch {
-    toast.error(t('tickets.restoreFailed'))
+    toast.error(t("tickets.restoreFailed"));
   }
 }
 
 const statusOptionsFilter = computed(() => [
-  { label: t('tickets.allStatus'), value: null as TicketStatus | null },
-  { label: t('tickets.statusOpen'), value: 'OPEN' as TicketStatus },
-  { label: t('tickets.statusInProgress'), value: 'IN_PROGRESS' as TicketStatus },
-  { label: t('tickets.statusWaiting'), value: 'WAITING' as TicketStatus },
-  { label: t('tickets.statusResolved'), value: 'RESOLVED' as TicketStatus },
-  { label: t('tickets.statusClosed'), value: 'CLOSED' as TicketStatus }
-])
+  { label: t("tickets.allStatus"), value: null as TicketStatus | null },
+  { label: t("tickets.statusOpen"), value: "OPEN" as TicketStatus },
+  {
+    label: t("tickets.statusInProgress"),
+    value: "IN_PROGRESS" as TicketStatus,
+  },
+  { label: t("tickets.statusWaiting"), value: "WAITING" as TicketStatus },
+  { label: t("tickets.statusResolved"), value: "RESOLVED" as TicketStatus },
+  { label: t("tickets.statusClosed"), value: "CLOSED" as TicketStatus },
+]);
 
 const priorityOptionsFilter = computed(() => [
-  { label: t('tickets.allPriority'), value: null as TicketPriority | null },
-  { label: t('tickets.priorityLow'), value: 'LOW' as TicketPriority },
-  { label: t('tickets.priorityMedium'), value: 'MEDIUM' as TicketPriority },
-  { label: t('tickets.priorityHigh'), value: 'HIGH' as TicketPriority },
-  { label: t('tickets.priorityCritical'), value: 'CRITICAL' as TicketPriority }
-])
+  { label: t("tickets.allPriority"), value: null as TicketPriority | null },
+  { label: t("tickets.priorityLow"), value: "LOW" as TicketPriority },
+  { label: t("tickets.priorityMedium"), value: "MEDIUM" as TicketPriority },
+  { label: t("tickets.priorityHigh"), value: "HIGH" as TicketPriority },
+  { label: t("tickets.priorityCritical"), value: "CRITICAL" as TicketPriority },
+]);
 
 const sourceOptionsFilter = computed(() => [
-  { label: t('tickets.allSources'), value: null as TicketSource | null },
-  { label: t('tickets.sourcePos'), value: 'POS' as TicketSource },
-  { label: t('tickets.sourceManual'), value: 'MANUAL' as TicketSource },
-  { label: t('tickets.sourceHealthAlert'), value: 'HEALTH_ALERT' as TicketSource },
-  { label: t('tickets.sourceWebhook'), value: 'WEBHOOK' as TicketSource },
-  { label: t('tickets.sourceEmail'), value: 'EMAIL' as TicketSource }
-])
+  { label: t("tickets.allSources"), value: null as TicketSource | null },
+  { label: t("tickets.sourcePos"), value: "POS" as TicketSource },
+  { label: t("tickets.sourceManual"), value: "MANUAL" as TicketSource },
+  {
+    label: t("tickets.sourceHealthAlert"),
+    value: "HEALTH_ALERT" as TicketSource,
+  },
+  { label: t("tickets.sourceWebhook"), value: "WEBHOOK" as TicketSource },
+  { label: t("tickets.sourceEmail"), value: "EMAIL" as TicketSource },
+]);
 
 const formPriorityOptions = computed(() => [
-  { label: t('tickets.priorityLow'), value: 'LOW' as const },
-  { label: t('tickets.priorityMedium'), value: 'MEDIUM' as const },
-  { label: t('tickets.priorityHigh'), value: 'HIGH' as const },
-  { label: t('tickets.priorityCritical'), value: 'CRITICAL' as const }
-])
+  { label: t("tickets.priorityLow"), value: "LOW" as const },
+  { label: t("tickets.priorityMedium"), value: "MEDIUM" as const },
+  { label: t("tickets.priorityHigh"), value: "HIGH" as const },
+  { label: t("tickets.priorityCritical"), value: "CRITICAL" as const },
+]);
 
 const formStatusOptions = computed(() => [
-  { label: t('tickets.statusOpen'), value: 'OPEN' as const },
-  { label: t('tickets.statusInProgress'), value: 'IN_PROGRESS' as const },
-  { label: t('tickets.statusWaiting'), value: 'WAITING' as const },
-  { label: t('tickets.statusResolved'), value: 'RESOLVED' as const },
-  { label: t('tickets.statusClosed'), value: 'CLOSED' as const }
-])
+  { label: t("tickets.statusOpen"), value: "OPEN" as const },
+  { label: t("tickets.statusInProgress"), value: "IN_PROGRESS" as const },
+  { label: t("tickets.statusWaiting"), value: "WAITING" as const },
+  { label: t("tickets.statusResolved"), value: "RESOLVED" as const },
+  { label: t("tickets.statusClosed"), value: "CLOSED" as const },
+]);
 
-function statusSeverity(status: TicketStatus): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
-  const map: Record<TicketStatus, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
-    OPEN: 'info',
-    IN_PROGRESS: 'warn',
-    WAITING: 'warn',
-    RESOLVED: 'success',
-    CLOSED: 'secondary'
-  }
-  return map[status] ?? 'secondary'
+function statusSeverity(
+  status: TicketStatus,
+): "info" | "warn" | "success" | "danger" | "secondary" {
+  const map: Record<
+    TicketStatus,
+    "info" | "warn" | "success" | "danger" | "secondary"
+  > = {
+    OPEN: "info",
+    IN_PROGRESS: "warn",
+    WAITING: "warn",
+    RESOLVED: "success",
+    CLOSED: "secondary",
+  };
+  return map[status] ?? "secondary";
 }
 
-function prioritySeverity(priority: TicketPriority): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
-  const map: Record<TicketPriority, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
-    LOW: 'secondary',
-    MEDIUM: 'warn',
-    HIGH: 'danger',
-    CRITICAL: 'danger'
-  }
-  return map[priority] ?? 'secondary'
+function prioritySeverity(
+  priority: TicketPriority,
+): "info" | "warn" | "success" | "danger" | "secondary" {
+  const map: Record<
+    TicketPriority,
+    "info" | "warn" | "success" | "danger" | "secondary"
+  > = {
+    LOW: "secondary",
+    MEDIUM: "warn",
+    HIGH: "danger",
+    CRITICAL: "danger",
+  };
+  return map[priority] ?? "secondary";
 }
 
 function formatDate(dateStr: string) {
-  return dayjs(dateStr).format('DD MMM YYYY')
+  return dayjs(dateStr).format("DD MMM YYYY");
 }
 
 /** Returns SLA chip info for display in the tickets list. */
-function slaChip(ticket: Ticket): { label: string; cls: string; tooltip: string } | null {
-  const dueAt = ticket.slaDueAt ?? ticket.slaDeadline
-  if (!dueAt) return null
+function slaChip(
+  ticket: Ticket,
+): { label: string; cls: string; tooltip: string } | null {
+  const dueAt = ticket.slaDueAt ?? ticket.slaDeadline;
+  if (!dueAt) return null;
 
-  const isDone = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED'
-  const dueMs  = new Date(dueAt).getTime()
-  const totalMs = dueMs - new Date(ticket.createdAt).getTime()
+  const isDone = ticket.status === "RESOLVED" || ticket.status === "CLOSED";
+  const dueMs = new Date(dueAt).getTime();
+  const totalMs = dueMs - new Date(ticket.createdAt).getTime();
 
   // For resolved/closed tickets freeze time at updatedAt (= when status changed).
   // This stops the chip from "ticking" past resolution and avoids false overdue states.
-  const refMs   = isDone ? new Date(ticket.updatedAt).getTime() : Date.now()
-  const elapsedMs = refMs - new Date(ticket.createdAt).getTime()
-  const pct     = Math.min(Math.round((elapsedMs / Math.max(totalMs, 1)) * 100), 100)
+  const refMs = isDone ? new Date(ticket.updatedAt).getTime() : Date.now();
+  const elapsedMs = refMs - new Date(ticket.createdAt).getTime();
+  const pct = Math.min(
+    Math.round((elapsedMs / Math.max(totalMs, 1)) * 100),
+    100,
+  );
 
   if (isDone) {
-    const metSla = refMs <= dueMs && !ticket.slaBreached
+    const metSla = refMs <= dueMs && !ticket.slaBreached;
     return {
       label: `${pct}%`,
       cls: metSla
-        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-        : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
-      tooltip: metSla ? `SLA cumplido (${pct}%)` : `SLA vencido al cerrar (${pct}%)`
-    }
+        ? "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400"
+        : "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400",
+      tooltip: metSla
+        ? `SLA cumplido (${pct}%)`
+        : `SLA vencido al cerrar (${pct}%)`,
+    };
   }
 
   // Active ticket: live countdown
-  const overdue  = refMs > dueMs || !!ticket.slaBreached
-  const remainMs = dueMs - refMs
-  const hoursLeft = Math.floor(Math.abs(remainMs) / 3_600_000)
-  const minsLeft  = Math.floor((Math.abs(remainMs) % 3_600_000) / 60_000)
+  const overdue = refMs > dueMs || !!ticket.slaBreached;
+  const remainMs = dueMs - refMs;
+  const hoursLeft = Math.floor(Math.abs(remainMs) / 3_600_000);
+  const minsLeft = Math.floor((Math.abs(remainMs) % 3_600_000) / 60_000);
   const timeLabel = overdue
     ? `Vencido hace ${hoursLeft}h ${minsLeft}m`
-    : `Vence en ${hoursLeft}h ${minsLeft}m`
+    : `Vence en ${hoursLeft}h ${minsLeft}m`;
 
-  let cls = 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-  if (overdue)        cls = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-  else if (pct >= 90) cls = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
-  else if (pct >= 75) cls = 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400'
-  else if (pct >= 50) cls = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
+  let cls =
+    "bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400";
+  if (overdue)
+    cls = "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400";
+  else if (pct >= 90)
+    cls = "bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400";
+  else if (pct >= 75)
+    cls =
+      "bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400";
+  else if (pct >= 50)
+    cls =
+      "bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400";
 
-  return { label: `${pct}%`, cls, tooltip: timeLabel }
+  return { label: `${pct}%`, cls, tooltip: timeLabel };
 }
 
 function onPage(event: { page: number; rows?: number }) {
-  page.value = event.page
+  page.value = event.page;
   if (event.rows != null && event.rows !== pageSize.value) {
-    pageSize.value = event.rows
+    pageSize.value = event.rows;
   }
 }
 
 function applyFilters() {
-  page.value = 0
-  refetch()
+  page.value = 0;
+  refetch();
 }
 
-let searchTimeout: ReturnType<typeof setTimeout>
+let searchTimeout: ReturnType<typeof setTimeout>;
 /** Backend list has no text search; filter the current page in the UI only. */
 function onSearch() {
-  clearTimeout(searchTimeout)
+  clearTimeout(searchTimeout);
   searchTimeout = setTimeout(() => {
-    page.value = 0
-  }, 400)
+    page.value = 0;
+  }, 400);
 }
 
 // ── Bulk actions ──────────────────────────────────────────────────────
-const selectedTickets = ref<Ticket[]>([])
-const bulkAssigneeId = ref<string | null>(null)
-const bulkStatus = ref<TicketStatus | null>(null)
-const isBulkProcessing = ref(false)
+const selectedTickets = ref<Ticket[]>([]);
+const bulkAssigneeId = ref<string | null>(null);
+const bulkStatus = ref<TicketStatus | null>(null);
+const isBulkProcessing = ref(false);
 
-const { data: usersPage } = useUsers(200)
-const userOptions = computed(() => usersPage.value?.content ?? [])
+const { data: usersPage } = useUsers(200);
+const userOptions = computed(() => usersPage.value?.content ?? []);
 
 async function bulkAssign() {
-  if (!bulkAssigneeId.value || !selectedTickets.value.length) return
-  isBulkProcessing.value = true
+  if (!bulkAssigneeId.value || !selectedTickets.value.length) return;
+  isBulkProcessing.value = true;
   try {
-    await ticketsService.bulkAssign(selectedTickets.value.map(t => t.id), bulkAssigneeId.value)
-    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-    toast.success(`${selectedTickets.value.length} tickets asignados`)
-    selectedTickets.value = []
-    bulkAssigneeId.value = null
+    await ticketsService.bulkAssign(
+      selectedTickets.value.map((t) => t.id),
+      bulkAssigneeId.value,
+    );
+    await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+    toast.success(`${selectedTickets.value.length} tickets asignados`);
+    selectedTickets.value = [];
+    bulkAssigneeId.value = null;
   } catch {
-    toast.error('No se pudo asignar los tickets')
+    toast.error("No se pudo asignar los tickets");
   } finally {
-    isBulkProcessing.value = false
+    isBulkProcessing.value = false;
   }
 }
 
 async function bulkChangeStatus() {
-  if (!bulkStatus.value || !selectedTickets.value.length) return
-  isBulkProcessing.value = true
+  if (!bulkStatus.value || !selectedTickets.value.length) return;
+  isBulkProcessing.value = true;
   try {
-    await ticketsService.bulkUpdateStatus(selectedTickets.value.map(t => t.id), bulkStatus.value)
-    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-    toast.success(`${selectedTickets.value.length} tickets actualizados`)
-    selectedTickets.value = []
-    bulkStatus.value = null
+    await ticketsService.bulkUpdateStatus(
+      selectedTickets.value.map((t) => t.id),
+      bulkStatus.value,
+    );
+    await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+    toast.success(`${selectedTickets.value.length} tickets actualizados`);
+    selectedTickets.value = [];
+    bulkStatus.value = null;
   } catch {
-    toast.error('No se pudo actualizar los tickets')
+    toast.error("No se pudo actualizar los tickets");
   } finally {
-    isBulkProcessing.value = false
+    isBulkProcessing.value = false;
   }
 }
 
 function bulkDeleteConfirm() {
-  if (!selectedTickets.value.length) return
+  if (!selectedTickets.value.length) return;
   confirm.require({
     message: `¿Eliminar ${selectedTickets.value.length} ticket(s)?`,
-    header: 'Eliminar tickets',
-    icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
-    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    header: "Eliminar tickets",
+    icon: "pi pi-exclamation-triangle",
+    rejectProps: {
+      label: t("common.cancel"),
+      severity: "secondary",
+      outlined: true,
+    },
+    acceptProps: { label: t("common.delete"), severity: "danger" },
     accept: async () => {
-      isBulkProcessing.value = true
+      isBulkProcessing.value = true;
       try {
-        await Promise.all(selectedTickets.value.map(t => ticketsService.delete(t.id)))
-        await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-        toast.success(`${selectedTickets.value.length} tickets eliminados`)
-        selectedTickets.value = []
+        await Promise.all(
+          selectedTickets.value.map((t) => ticketsService.delete(t.id)),
+        );
+        await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+        toast.success(`${selectedTickets.value.length} tickets eliminados`);
+        selectedTickets.value = [];
       } catch {
-        toast.error('No se pudieron eliminar todos los tickets')
+        toast.error("No se pudieron eliminar todos los tickets");
       } finally {
-        isBulkProcessing.value = false
+        isBulkProcessing.value = false;
       }
-    }
-  })
+    },
+  });
 }
 
 // --- CSV Export ---
-const exporting = ref(false)
+const exporting = ref(false);
 async function handleExport() {
-  exporting.value = true
+  exporting.value = true;
   try {
     const blob = await ticketsService.exportCsv({
       status: statusFilter.value ?? undefined,
-      priority: priorityFilter.value ?? undefined
-    })
-    const url = URL.createObjectURL(blob)
-    const a = document.createElement('a')
-    a.href = url
-    a.download = `tickets-${dayjs().format('YYYY-MM-DD')}.csv`
-    a.click()
-    URL.revokeObjectURL(url)
-    toast.success(t('tickets.exportSuccess'))
+      priority: priorityFilter.value ?? undefined,
+    });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `tickets-${dayjs().format("YYYY-MM-DD")}.csv`;
+    a.click();
+    URL.revokeObjectURL(url);
+    toast.success(t("tickets.exportSuccess"));
   } catch {
-    toast.error(t('tickets.exportFailed'))
+    toast.error(t("tickets.exportFailed"));
   } finally {
-    exporting.value = false
+    exporting.value = false;
   }
 }
 
 // --- Create Ticket Modal ---
-const showCreateDialog = ref(false)
-const isSubmitting = ref(false)
+const showCreateDialog = ref(false);
+const isSubmitting = ref(false);
 
 const createSchema = z.object({
-  title: z.string().min(3, t('tickets.titleMin')).max(200),
-  description: z.string().min(10, t('tickets.descMin')),
+  title: z.string().min(3, t("tickets.titleMin")).max(200),
+  description: z.string().min(10, t("tickets.descMin")),
   priority: z.string().min(1),
   clientId: z.string().optional(),
-})
+});
 
 const createForm = useForm({
   validationSchema: toTypedSchema(createSchema),
-  initialValues: { title: '', description: '', priority: 'MEDIUM', clientId: '' }
-})
+  initialValues: {
+    title: "",
+    description: "",
+    priority: "MEDIUM",
+    clientId: "",
+  },
+});
 
-const [titleValue, titleAttrs] = createForm.defineField('title')
-const [descriptionValue, descriptionAttrs] = createForm.defineField('description')
-const [priorityValue, priorityAttrs] = createForm.defineField('priority')
-const [clientIdValue, clientIdAttrs] = createForm.defineField('clientId')
+const [titleValue, titleAttrs] = createForm.defineField("title");
+const [descriptionValue, descriptionAttrs] =
+  createForm.defineField("description");
+const [priorityValue, priorityAttrs] = createForm.defineField("priority");
+const [clientIdValue, clientIdAttrs] = createForm.defineField("clientId");
 
 function openCreateDialog() {
-  createForm.resetForm()
-  showCreateDialog.value = true
+  createForm.resetForm();
+  showCreateDialog.value = true;
 }
 
 const onSubmit = createForm.handleSubmit(async (values) => {
-  isSubmitting.value = true
+  isSubmitting.value = true;
   try {
     await ticketsService.create({
       title: values.title,
       description: values.description,
       priority: values.priority as any,
-      clientId: values.clientId || undefined
-    })
-    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-    showCreateDialog.value = false
-    toast.success(t('tickets.createSuccess'))
+      clientId: values.clientId || undefined,
+    });
+    await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+    showCreateDialog.value = false;
+    toast.success(t("tickets.createSuccess"));
   } catch {
-    toast.error(t('tickets.createFailed'))
+    toast.error(t("tickets.createFailed"));
   } finally {
-    isSubmitting.value = false
+    isSubmitting.value = false;
   }
-})
+});
 
 // --- Edit Ticket Modal ---
-const showEditDialog = ref(false)
-const editingTicket = ref<Ticket | null>(null)
-const isEditSubmitting = ref(false)
+const showEditDialog = ref(false);
+const editingTicket = ref<Ticket | null>(null);
+const isEditSubmitting = ref(false);
 
 const editSchema = z.object({
-  status: z.enum(['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED'])
-})
+  status: z.enum(["OPEN", "IN_PROGRESS", "WAITING", "RESOLVED", "CLOSED"]),
+});
 
 const editForm = useForm({
   validationSchema: toTypedSchema(editSchema),
-  initialValues: { status: 'OPEN' as const }
-})
+  initialValues: { status: "OPEN" as const },
+});
 
-const [editStatus, editStatusAttrs] = editForm.defineField('status')
+const [editStatus, editStatusAttrs] = editForm.defineField("status");
 
 function openEditDialog(ticket: Ticket) {
-  editingTicket.value = ticket
+  editingTicket.value = ticket;
   editForm.setValues({
-    status: ticket.status
-  })
-  showEditDialog.value = true
+    status: ticket.status,
+  });
+  showEditDialog.value = true;
 }
 
 const onEditSubmit = editForm.handleSubmit(async (values) => {
-  if (!editingTicket.value) return
-  isEditSubmitting.value = true
+  if (!editingTicket.value) return;
+  isEditSubmitting.value = true;
   try {
-    await ticketsService.updateStatus(editingTicket.value.id, values.status)
-    await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-    showEditDialog.value = false
-    toast.success(t('tickets.updateSuccess'))
+    await ticketsService.updateStatus(editingTicket.value.id, values.status);
+    await queryClient.invalidateQueries({ queryKey: ["tickets"] });
+    showEditDialog.value = false;
+    toast.success(t("tickets.updateSuccess"));
   } catch {
-    toast.error(t('tickets.updateFailed'))
+    toast.error(t("tickets.updateFailed"));
   } finally {
-    isEditSubmitting.value = false
+    isEditSubmitting.value = false;
   }
-})
+});
 </script>
 
 <template>
@@ -428,10 +501,17 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     <div class="flex items-center justify-between">
       <div class="flex items-center gap-2">
         <div>
-          <h2 class="text-lg font-semibold text-[var(--text)]">{{ t('tickets.title') }}</h2>
-          <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} {{ t('tickets.totalCount') }}</p>
+          <h2 class="text-lg font-semibold text-(--text)">
+            {{ t("tickets.title") }}
+          </h2>
+          <p class="text-sm text-(--text-muted)">
+            {{ totalRecords }} {{ t("tickets.totalCount") }}
+          </p>
         </div>
-        <PageInfoButton :title="t('tickets.title')" :description="t('pageInfo.tickets')" />
+        <PageInfoButton
+          :title="t('tickets.title')"
+          :description="t('pageInfo.tickets')"
+        />
       </div>
       <div class="flex gap-2">
         <Button
@@ -442,22 +522,30 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
           :loading="exporting"
           @click="handleExport"
         />
-        <Button :label="t('tickets.newTicket')" icon="pi pi-plus" @click="openCreateDialog" />
+        <Button
+          :label="t('tickets.newTicket')"
+          icon="pi pi-plus"
+          @click="openCreateDialog"
+        />
       </div>
     </div>
 
     <Tabs value="active">
       <TabList>
-        <Tab value="active">{{ t('tickets.activeTab') }}</Tab>
+        <Tab value="active">{{ t("tickets.activeTab") }}</Tab>
         <Tab value="trash">
-          {{ t('tickets.trashTab') }}
-          <span v-if="trashTotal > 0" class="ml-1.5 inline-flex items-center justify-center text-xs bg-[var(--surface-d)] rounded-full px-1.5 min-w-[1.25rem]">{{ trashTotal }}</span>
+          {{ t("tickets.trashTab") }}
+          <span
+            v-if="trashTotal > 0"
+            class="ml-1.5 inline-flex items-center justify-center text-xs bg-(--surface-d) rounded-full px-1.5 min-w-5"
+            >{{ trashTotal }}</span
+          >
         </Tab>
       </TabList>
 
-      <TabPanels class="!px-0 !pt-4">
+      <TabPanels class="px-0! pt-4!">
         <!-- Active tickets panel -->
-        <TabPanel value="active" class="!px-0">
+        <TabPanel value="active" class="px-0!">
           <div class="space-y-4">
             <!-- Filters -->
             <div class="flex flex-col sm:flex-row gap-3">
@@ -494,13 +582,27 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                 class="w-44"
                 @change="applyFilters"
               />
-              <Button icon="pi pi-refresh" severity="secondary" outlined @click="refetch()" />
+              <Button
+                icon="pi pi-refresh"
+                severity="secondary"
+                outlined
+                @click="refetch()"
+              />
             </div>
 
             <!-- Error state -->
-            <div v-if="isError" class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between">
-              <span>{{ t('tickets.loadFailed') }}</span>
-              <Button :label="t('common.retry')" size="small" severity="danger" text @click="refetch()" />
+            <div
+              v-if="isError"
+              class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between"
+            >
+              <span>{{ t("tickets.loadFailed") }}</span>
+              <Button
+                :label="t('common.retry')"
+                size="small"
+                severity="danger"
+                text
+                @click="refetch()"
+              />
             </div>
 
             <!-- Skeleton on first load -->
@@ -509,9 +611,11 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
             <!-- Bulk actions toolbar -->
             <div
               v-if="selectedTickets.length > 0"
-              class="flex items-center gap-3 rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-2 flex-wrap"
+              class="flex items-center gap-3 rounded-xl border border-(--border) bg-(--surface) px-4 py-2 flex-wrap"
             >
-              <span class="text-sm font-medium text-[var(--text)] shrink-0">{{ selectedTickets.length }} seleccionado(s)</span>
+              <span class="text-sm font-medium text-(--text) shrink-0"
+                >{{ selectedTickets.length }} seleccionado(s)</span
+              >
               <div class="flex items-center gap-2">
                 <Select
                   v-model="bulkAssigneeId"
@@ -522,7 +626,13 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   class="w-40 text-xs"
                   :disabled="isBulkProcessing"
                 />
-                <Button :label="t('tickets.assign')" size="small" :loading="isBulkProcessing" :disabled="!bulkAssigneeId" @click="bulkAssign" />
+                <Button
+                  :label="t('tickets.assign')"
+                  size="small"
+                  :loading="isBulkProcessing"
+                  :disabled="!bulkAssigneeId"
+                  @click="bulkAssign"
+                />
               </div>
               <div class="flex items-center gap-2">
                 <Select
@@ -534,10 +644,31 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   class="w-44 text-xs"
                   :disabled="isBulkProcessing"
                 />
-                <Button label="Aplicar" size="small" severity="secondary" :loading="isBulkProcessing" :disabled="!bulkStatus" @click="bulkChangeStatus" />
+                <Button
+                  label="Aplicar"
+                  size="small"
+                  severity="secondary"
+                  :loading="isBulkProcessing"
+                  :disabled="!bulkStatus"
+                  @click="bulkChangeStatus"
+                />
               </div>
-              <Button icon="pi pi-trash" severity="danger" outlined size="small" :loading="isBulkProcessing" v-tooltip.top="'Eliminar seleccionados'" @click="bulkDeleteConfirm" />
-              <Button icon="pi pi-times" severity="secondary" text size="small" @click="selectedTickets = []" />
+              <Button
+                icon="pi pi-trash"
+                severity="danger"
+                outlined
+                size="small"
+                :loading="isBulkProcessing"
+                v-tooltip.top="'Eliminar seleccionados'"
+                @click="bulkDeleteConfirm"
+              />
+              <Button
+                icon="pi pi-times"
+                severity="secondary"
+                text
+                size="small"
+                @click="selectedTickets = []"
+              />
             </div>
 
             <!-- DataTable -->
@@ -559,10 +690,15 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               @page="onPage"
             >
               <Column selection-mode="multiple" style="width: 3rem" />
-              <Column field="title" :header="t('tickets.formTitle')" sortable style="min-width: 240px">
+              <Column
+                field="title"
+                :header="t('tickets.formTitle')"
+                sortable
+                style="min-width: 240px"
+              >
                 <template #body="{ data: row }: { data: Ticket }">
                   <button
-                    class="font-medium text-[var(--text)] line-clamp-1 text-left hover:text-[var(--primary)] hover:underline cursor-pointer"
+                    class="font-medium text-(--text) line-clamp-1 text-left hover:text-(--primary) hover:underline cursor-pointer"
                     @click="router.push('/tickets/' + row.id)"
                   >
                     {{ row.title }}
@@ -570,17 +706,35 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                 </template>
               </Column>
 
-              <Column field="status" :header="t('tickets.status')" style="width: 150px">
+              <Column
+                field="status"
+                :header="t('tickets.status')"
+                style="width: 150px"
+              >
                 <template #body="{ data: row }: { data: Ticket }">
-                  <Tag :severity="statusSeverity(row.status)" :value="row.status.replace('_', ' ')" />
+                  <Tag
+                    :severity="statusSeverity(row.status)"
+                    :value="row.status.replace('_', ' ')"
+                  />
                 </template>
               </Column>
 
-              <Column field="priority" :header="t('tickets.priority')" style="width: 130px">
+              <Column
+                field="priority"
+                :header="t('tickets.priority')"
+                style="width: 130px"
+              >
                 <template #body="{ data: row }: { data: Ticket }">
                   <div class="flex items-center gap-1.5">
-                    <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
-                    <span v-if="(row as any).escalatedAt" v-tooltip.top="t('ticketDetail.escalated')" class="text-orange-500">
+                    <Tag
+                      :severity="prioritySeverity(row.priority)"
+                      :value="row.priority"
+                    />
+                    <span
+                      v-if="(row as any).escalatedAt"
+                      v-tooltip.top="t('ticketDetail.escalated')"
+                      class="text-orange-500"
+                    >
                       <AlertTriangle class="w-3.5 h-3.5" />
                     </span>
                   </div>
@@ -601,21 +755,38 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                 </template>
               </Column>
 
-              <Column field="source" :header="t('tickets.source')" style="width: 140px">
+              <Column
+                field="source"
+                :header="t('tickets.source')"
+                style="width: 140px"
+              >
                 <template #body="{ data: row }: { data: Ticket }">
                   <SourceBadge :source="row.source" />
                 </template>
               </Column>
 
-              <Column field="clientId" :header="t('tickets.client')" style="min-width: 140px">
+              <Column
+                field="clientId"
+                :header="t('tickets.client')"
+                style="min-width: 140px"
+              >
                 <template #body="{ data: row }: { data: Ticket }">
-                  <span class="text-[var(--text-muted)] text-sm">{{ row.clientName ?? row.clientId ?? '—' }}</span>
+                  <span class="text-(--text-muted) text-sm">{{
+                    row.clientName ?? row.clientId ?? "—"
+                  }}</span>
                 </template>
               </Column>
 
-              <Column field="createdAt" :header="t('tickets.createdAt')" sortable style="width: 130px">
+              <Column
+                field="createdAt"
+                :header="t('tickets.createdAt')"
+                sortable
+                style="width: 130px"
+              >
                 <template #body="{ data: row }: { data: Ticket }">
-                  <span class="text-[var(--text-muted)] text-sm">{{ formatDate(row.createdAt) }}</span>
+                  <span class="text-(--text-muted) text-sm">{{
+                    formatDate(row.createdAt)
+                  }}</span>
                 </template>
               </Column>
 
@@ -651,15 +822,21 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               </Column>
 
               <template #empty>
-                <div class="text-center py-8 text-[var(--text-muted)]">{{ t('common.noRows') }}</div>
+                <div class="text-center py-8 text-(--text-muted)">
+                  {{ t("common.noRows") }}
+                </div>
               </template>
             </DataTable>
           </div>
         </TabPanel>
 
         <!-- Trash panel -->
-        <TabPanel value="trash" class="!px-0">
-          <SkeletonTable v-if="trashLoading && !trashResult" :rows="5" :cols="3" />
+        <TabPanel value="trash" class="px-0!">
+          <SkeletonTable
+            v-if="trashLoading && !trashResult"
+            :rows="5"
+            :cols="3"
+          />
           <DataTable
             v-else
             :value="trashTickets"
@@ -669,21 +846,36 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
             striped-rows
             class="rounded-xl overflow-hidden"
           >
-            <Column field="title" :header="t('tickets.formTitle')" style="min-width: 240px">
+            <Column
+              field="title"
+              :header="t('tickets.formTitle')"
+              style="min-width: 240px"
+            >
               <template #body="{ data: row }: { data: Ticket }">
-                <span class="font-medium text-[var(--text)] line-clamp-1">{{ row.title }}</span>
+                <span class="font-medium text-(--text) line-clamp-1">{{
+                  row.title
+                }}</span>
               </template>
             </Column>
 
-            <Column field="priority" :header="t('tickets.priority')" style="width: 130px">
+            <Column
+              field="priority"
+              :header="t('tickets.priority')"
+              style="width: 130px"
+            >
               <template #body="{ data: row }: { data: Ticket }">
-                <Tag :severity="prioritySeverity(row.priority)" :value="row.priority" />
+                <Tag
+                  :severity="prioritySeverity(row.priority)"
+                  :value="row.priority"
+                />
               </template>
             </Column>
 
             <Column :header="t('tickets.deletedAt')" style="width: 160px">
               <template #body="{ data: row }: { data: Ticket }">
-                <span class="text-[var(--text-muted)] text-sm">{{ row.deletedAt ? formatDate(row.deletedAt) : '—' }}</span>
+                <span class="text-(--text-muted) text-sm">{{
+                  row.deletedAt ? formatDate(row.deletedAt) : "—"
+                }}</span>
               </template>
             </Column>
 
@@ -701,7 +893,9 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
             </Column>
 
             <template #empty>
-              <div class="text-center py-8 text-[var(--text-muted)]">{{ t('tickets.trashEmpty') }}</div>
+              <div class="text-center py-8 text-(--text-muted)">
+                {{ t("tickets.trashEmpty") }}
+              </div>
             </template>
           </DataTable>
         </TabPanel>
@@ -717,7 +911,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     :loading="isSubmitting"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onSubmit">
-      <FormField :label="t('tickets.formTitle')" name="title" :error="createForm.errors.value.title" required>
+      <FormField
+        :label="t('tickets.formTitle')"
+        name="title"
+        :error="createForm.errors.value.title"
+        required
+      >
         <InputText
           id="title"
           v-model="titleValue"
@@ -728,7 +927,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField :label="t('tickets.formDescription')" name="description" :error="createForm.errors.value.description" required>
+      <FormField
+        :label="t('tickets.formDescription')"
+        name="description"
+        :error="createForm.errors.value.description"
+        required
+      >
         <Textarea
           id="description"
           v-model="descriptionValue"
@@ -740,7 +944,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField :label="t('tickets.priority')" name="priority" :error="createForm.errors.value.priority" required>
+      <FormField
+        :label="t('tickets.priority')"
+        name="priority"
+        :error="createForm.errors.value.priority"
+        required
+      >
         <Select
           id="priority"
           v-model="priorityValue"
@@ -754,7 +963,11 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         />
       </FormField>
 
-      <FormField :label="t('tickets.client')" name="clientId" :error="createForm.errors.value.clientId">
+      <FormField
+        :label="t('tickets.client')"
+        name="clientId"
+        :error="createForm.errors.value.clientId"
+      >
         <Select
           id="clientId"
           v-model="clientIdValue"
@@ -797,7 +1010,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     :loading="isEditSubmitting"
   >
     <form class="flex flex-col gap-4" @submit.prevent="onEditSubmit">
-      <FormField :label="t('tickets.status')" name="edit-status" :error="editForm.errors.value.status" required>
+      <FormField
+        :label="t('tickets.status')"
+        name="edit-status"
+        :error="editForm.errors.value.status"
+        required
+      >
         <Select
           id="edit-status"
           v-model="editStatus"
