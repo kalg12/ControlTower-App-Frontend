@@ -189,22 +189,38 @@ function slaChip(ticket: Ticket): { label: string; cls: string; tooltip: string 
   const dueAt = ticket.slaDueAt ?? ticket.slaDeadline
   if (!dueAt) return null
 
-  const now      = Date.now()
-  const dueMs    = new Date(dueAt).getTime()
-  const totalMs  = dueMs - new Date(ticket.createdAt).getTime()
-  const elapsedMs = now - new Date(ticket.createdAt).getTime()
-  const pct      = Math.min(Math.round((elapsedMs / Math.max(totalMs, 1)) * 100), 100)
-  const overdue  = now > dueMs || !!ticket.slaBreached
+  const isDone = ticket.status === 'RESOLVED' || ticket.status === 'CLOSED'
+  const dueMs  = new Date(dueAt).getTime()
+  const totalMs = dueMs - new Date(ticket.createdAt).getTime()
 
-  const remainMs   = dueMs - now
-  const hoursLeft  = Math.floor(Math.abs(remainMs) / 3_600_000)
-  const minsLeft   = Math.floor((Math.abs(remainMs) % 3_600_000) / 60_000)
-  const timeLabel  = overdue
+  // For resolved/closed tickets freeze time at updatedAt (= when status changed).
+  // This stops the chip from "ticking" past resolution and avoids false overdue states.
+  const refMs   = isDone ? new Date(ticket.updatedAt).getTime() : Date.now()
+  const elapsedMs = refMs - new Date(ticket.createdAt).getTime()
+  const pct     = Math.min(Math.round((elapsedMs / Math.max(totalMs, 1)) * 100), 100)
+
+  if (isDone) {
+    const metSla = refMs <= dueMs && !ticket.slaBreached
+    return {
+      label: `${pct}%`,
+      cls: metSla
+        ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
+        : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400',
+      tooltip: metSla ? `SLA cumplido (${pct}%)` : `SLA vencido al cerrar (${pct}%)`
+    }
+  }
+
+  // Active ticket: live countdown
+  const overdue  = refMs > dueMs || !!ticket.slaBreached
+  const remainMs = dueMs - refMs
+  const hoursLeft = Math.floor(Math.abs(remainMs) / 3_600_000)
+  const minsLeft  = Math.floor((Math.abs(remainMs) % 3_600_000) / 60_000)
+  const timeLabel = overdue
     ? `Vencido hace ${hoursLeft}h ${minsLeft}m`
     : `Vence en ${hoursLeft}h ${minsLeft}m`
 
   let cls = 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400'
-  if (overdue)     cls = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
+  if (overdue)        cls = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
   else if (pct >= 90) cls = 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'
   else if (pct >= 75) cls = 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-400'
   else if (pct >= 50) cls = 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/40 dark:text-yellow-400'
