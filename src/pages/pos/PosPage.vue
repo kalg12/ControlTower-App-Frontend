@@ -125,7 +125,7 @@ function normalizeHealthUrl(url: string): string {
   if (!url) return url
   const trimmed = url.trim().replace(/\/$/, '')
   if (/\/health(\/check)?$/i.test(trimmed)) return trimmed
-  return trimmed + '/api/health'
+  return trimmed + '/health'
 }
 
 // ── Copy helper ───────────────────────────────────────────────────────────────
@@ -584,7 +584,7 @@ async function resolveIncident(inc: HealthIncident) {
         <p v-if="regUrlPreview && regUrlPreview !== regUrl.trim()" class="text-xs text-blue-600 dark:text-blue-400">
           → Se guardará como: <code class="font-mono">{{ regUrlPreview }}</code>
         </p>
-        <p class="text-xs text-[var(--text-muted)]">Puedes poner la URL base; si no termina en <code class="font-mono">/health</code> se añade <code class="font-mono">/api/health</code> automáticamente.</p>
+        <p class="text-xs text-[var(--text-muted)]">Puedes poner la URL base; si no termina en <code class="font-mono">/health</code> se añade automáticamente.</p>
       </div>
 
       <div class="flex flex-col gap-1">
