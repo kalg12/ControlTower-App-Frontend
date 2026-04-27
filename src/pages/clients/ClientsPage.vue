@@ -524,7 +524,12 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       >
         <Column field="name" :header="t('clientsPage.name')" sortable style="min-width: 180px">
           <template #body="{ data: row }: { data: Client }">
-            <span class="font-medium text-[var(--text)]">{{ row.name }}</span>
+            <button
+              class="font-medium text-[var(--text)] hover:text-[var(--primary)] hover:underline cursor-pointer text-left"
+              @click="router.push('/clients/' + row.id)"
+            >
+              {{ row.name }}
+            </button>
           </template>
         </Column>
 
