@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
+import { useI18n } from 'vue-i18n'
 import { Client as StompClient } from '@stomp/stompjs'
 import { useAuthStore } from '@/stores/auth'
 import { chatService } from '@/services/chat.service'
@@ -13,6 +14,8 @@ import ChatConversationView from '@/components/chat/ChatConversationView.vue'
 import ChatTransferDialog from '@/components/chat/ChatTransferDialog.vue'
 import { MessageSquare } from 'lucide-vue-next'
 
+const { t } = useI18n()
+
 const auth = useAuthStore()
 const qc = useQueryClient()
 
@@ -22,12 +25,12 @@ const selectedConv = ref<ChatConversation | null>(null)
 const showTransfer = ref(false)
 const hoveredId = ref<string | null>(null)
 
-const tabs: { label: string; value: ConversationStatus | 'ALL' }[] = [
-  { label: 'Todos', value: 'ALL' },
-  { label: 'Esperando', value: 'WAITING' },
-  { label: 'Activos', value: 'ACTIVE' },
-  { label: 'Cerrados', value: 'CLOSED' },
-]
+const tabs = computed(() => [
+  { label: t('chatModule.tabs.all'), value: 'ALL' as const },
+  { label: t('chatModule.tabs.waiting'), value: 'WAITING' as const },
+  { label: t('chatModule.tabs.active'), value: 'ACTIVE' as const },
+  { label: t('chatModule.tabs.closed'), value: 'CLOSED' as const },
+])
 
 const queryStatus = computed<ConversationStatus | undefined>(
   () => activeTab.value === 'ALL' ? undefined : activeTab.value
@@ -83,27 +86,23 @@ function statusSeverity(status: ConversationStatus) {
 }
 
 function statusLabel(status: ConversationStatus) {
-  const labels: Record<ConversationStatus, string> = {
-    WAITING: 'Esperando', ACTIVE: 'Activo', TRANSFERRED: 'Transferido',
-    CLOSED: 'Cerrado', ARCHIVED: 'Archivado',
-  }
-  return labels[status] ?? status
+  return t(`chatModule.status.${status.toLowerCase()}`)
 }
 
 function timeAgo(ts: string) {
   const diff = Date.now() - new Date(ts).getTime()
   const m = Math.floor(diff / 60000)
-  if (m < 1) return 'ahora'
-  if (m < 60) return `${m} min`
-  if (m < 1440) return `${Math.floor(m / 60)}h`
-  return `${Math.floor(m / 1440)}d`
+  if (m < 1) return t('chatModule.time.now')
+  if (m < 60) return `${m} ${t('chatModule.time.minutes')}`
+  if (m < 1440) return `${Math.floor(m / 60)}${t('chatModule.time.hours')}`
+  return `${Math.floor(m / 1440)}${t('chatModule.time.days')}`
 }
 
 function lastMessage(conv: ChatConversation): string {
   const msgs = conv.messages
-  if (!msgs || msgs.length === 0) return 'Sin mensajes aún'
+  if (!msgs || msgs.length === 0) return t('chatModule.noMessages')
   const last = msgs[msgs.length - 1]
-  return last.content ?? (last.attachmentUrl ? '📎 Archivo adjunto' : '...')
+  return last.content ?? (last.attachmentUrl ? t('chatModule.attachment') : '...')
 }
 
 function avatarInitial(name?: string) {
@@ -117,13 +116,7 @@ function avatarColor(name?: string) {
 }
 
 function emptyLabel() {
-  const map: Record<string, string> = {
-    ALL: 'No hay conversaciones',
-    WAITING: 'No hay chats esperando',
-    ACTIVE: 'No hay chats activos',
-    CLOSED: 'No hay chats cerrados',
-  }
-  return map[activeTab.value] ?? 'Sin resultados'
+  return t(`chatModule.empty.${activeTab.value === 'ALL' ? 'all' : activeTab.value.toLowerCase()}`)
 }
 
 // ── STOMP real-time ────────────────────────────────────────────────────────
@@ -161,24 +154,24 @@ onUnmounted(() => stompClient.value?.deactivate())
         <div>
           <h1 class="text-xl font-bold text-[var(--text)] flex items-center gap-2">
             <MessageSquare class="w-5 h-5 text-[var(--primary)]" />
-            Chat de Soporte
+            {{ t('chatModule.title') }}
             <span v-if="waitingCount > 0"
               class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--primary)] text-white text-[10px] font-bold animate-pulse">
               {{ waitingCount }}
             </span>
           </h1>
-          <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ conversations.length }} conversaciones</p>
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ conversations.length }} {{ t('chatModule.conversations') }}</p>
         </div>
         <Button icon="pi pi-refresh" severity="secondary" outlined size="small" :loading="isLoading" @click="() => refetch()" />
       </div>
 
       <!-- Search -->
       <div class="relative mb-3">
-        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-sm" />
+        <i class="pi pi-search absolute left-3 top-1/2 -translate-y-1/2 text-[var(--text-muted)] text-base" />
         <InputText
           v-model="search"
-          placeholder="Buscar por nombre o email…"
-          class="w-full pl-8 text-sm"
+          :placeholder="t('chatModule.searchPlaceholder')"
+          class="w-full pl-10 text-sm"
         />
       </div>
 
@@ -247,7 +240,7 @@ onUnmounted(() => stompClient.value?.deactivate())
                 class="text-sm truncate"
                 :class="(conv.unreadCount ?? 0) > 0 ? 'font-bold text-[var(--text)]' : 'font-medium text-[var(--text)]'"
               >
-                {{ conv.visitorName ?? 'Visitante' }}
+                {{ conv.visitorName ?? t('chatModule.visitor') }}
               </span>
               <span class="text-[10px] text-[var(--text-muted)] shrink-0">{{ timeAgo(conv.createdAt) }}</span>
             </div>
@@ -271,7 +264,7 @@ onUnmounted(() => stompClient.value?.deactivate())
           >
             <Button
               v-if="conv.status === 'WAITING'"
-              label="Tomar"
+              :label="t('chatModule.actions.take')"
               size="small"
               severity="success"
               class="!py-1 !px-2 !text-xs"
@@ -280,7 +273,7 @@ onUnmounted(() => stompClient.value?.deactivate())
             />
             <Button
               v-if="conv.status === 'ACTIVE'"
-              label="Cerrar"
+              :label="t('chatModule.actions.close')"
               size="small"
               severity="warning"
               outlined
@@ -290,7 +283,7 @@ onUnmounted(() => stompClient.value?.deactivate())
             />
             <Button
               v-if="conv.status === 'CLOSED'"
-              label="Archivar"
+              :label="t('chatModule.actions.archive')"
               size="small"
               severity="secondary"
               outlined
@@ -320,7 +313,7 @@ onUnmounted(() => stompClient.value?.deactivate())
         </div>
         <div v-else class="w-full flex flex-col items-center justify-center text-center border border-dashed border-[var(--border)] rounded-2xl" style="height: calc(100vh - 140px)">
           <MessageSquare class="w-10 h-10 text-[var(--text-muted)] opacity-30 mb-3" />
-          <p class="text-sm text-[var(--text-muted)]">Selecciona una conversación para verla</p>
+          <p class="text-sm text-[var(--text-muted)]">{{ t('chatModule.noConversationSelected') }}</p>
         </div>
       </Transition>
     </div>
