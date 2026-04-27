@@ -40,10 +40,7 @@ app.use(router)
 app.use(PrimeVue, {
   theme: {
     preset: Aura,
-    options: {
-      darkModeSelector: '.dark',
-      cssLayer: { name: 'primevue', order: 'tailwind-base, primevue, tailwind-utilities' }
-    }
+    options: { darkModeSelector: '.dark', cssLayer: false }
   }
 })
 app.use(ToastService)
