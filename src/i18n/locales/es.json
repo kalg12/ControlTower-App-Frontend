@@ -847,15 +847,17 @@
   "persons": {
     "title": "Personas",
     "firstName": "Nombre",
+    "firstNamePlaceholder": "Ej: Juan",
     "lastName": "Apellido",
+    "lastNamePlaceholder": "Ej: García",
     "email": "Correo electrónico",
-    "emailPlaceholder": "nombre@email.com",
+    "emailPlaceholder": "Ej: juan@email.com",
     "phone": "Teléfono",
-    "phonePlaceholder": "+52 55 0000 0000",
+    "phonePlaceholder": "Ej: +52 55 1234 5678",
     "whatsapp": "WhatsApp",
-    "whatsappPlaceholder": "+52 55 0000 0000",
+    "whatsappPlaceholder": "Ej: +52 55 1234 5678",
     "address": "Dirección",
-    "addressPlaceholder": "Dirección"
+    "addressPlaceholder": "Ej: Av. Insurgentes 123, CDMX"
   },
   "billing": {
     "title": "Facturación",

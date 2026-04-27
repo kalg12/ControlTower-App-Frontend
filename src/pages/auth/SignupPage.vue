@@ -66,7 +66,7 @@ function slugify(value: string): string {
 
 watch(tenantName, (val) => {
   if (!slugTouched.value) {
-    signupForm.setFieldValue('tenantSlug', slugify(val))
+    signupForm.setFieldValue('tenantSlug', slugify(val ?? ''))
   }
 })
 

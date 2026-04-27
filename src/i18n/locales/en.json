@@ -855,15 +855,17 @@
   "persons": {
     "title": "Persons",
     "firstName": "First name",
+    "firstNamePlaceholder": "Eg: John",
     "lastName": "Last name",
+    "lastNamePlaceholder": "Eg: Smith",
     "email": "Email",
-    "emailPlaceholder": "name@email.com",
+    "emailPlaceholder": "Eg: john@email.com",
     "phone": "Phone",
-    "phonePlaceholder": "+52 55 0000 0000",
+    "phonePlaceholder": "Eg: +1 555 123 4567",
     "whatsapp": "WhatsApp",
-    "whatsappPlaceholder": "+52 55 0000 0000",
+    "whatsappPlaceholder": "Eg: +1 555 123 4567",
     "address": "Address",
-    "addressPlaceholder": "Address"
+    "addressPlaceholder": "Eg: 123 Main St, NYC"
   },
   "billing": {
     "title": "Billing",
