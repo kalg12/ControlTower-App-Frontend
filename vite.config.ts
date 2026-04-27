@@ -28,34 +28,8 @@ export default defineConfig({
             return "apexcharts";
           if (id.includes("chart.js") || id.includes("vue-chartjs"))
             return "charts";
-          if (
-            id.includes("primevue/datatable") ||
-            id.includes("primevue/treetable") ||
-            id.includes("primevue/virtualscroller")
-          )
-            return "primevue-data";
-          if (
-            id.includes("primevue/dialog") ||
-            id.includes("primevue/drawer") ||
-            id.includes("primevue/overlaypanel") ||
-            id.includes("primevue/popover")
-          )
-            return "primevue-overlay";
-          if (
-            id.includes("primevue/editor") ||
-            id.includes("primevue/datepicker") ||
-            id.includes("primevue/select") ||
-            id.includes("primevue/multiselect") ||
-            id.includes("primevue/input") ||
-            id.includes("primevue/textarea")
-          )
-            return "primevue-forms";
-          if (
-            id.includes("primevue") ||
-            id.includes("@primevue") ||
-            id.includes("primeicons")
-          )
-            return "primevue-core";
+          if (id.includes("primevue") || id.includes("@primevue") || id.includes("primeicons"))
+            return "primevue";
           if (id.includes("@tanstack")) return "tanstack-query";
           if (id.includes("vue-i18n")) return "vue-i18n";
           if (id.includes("vue-router")) return "vue-router";
