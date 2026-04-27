@@ -67,61 +67,61 @@
     "proposals": "Propuestas",
     "reminders": "Recordatorios",
     "payroll": "Nómina",
-"chat": "Chat Soporte",
-  "operations": "Operaciones",
-  "finances": "Finanzas",
-  "content": "Contenido"
-},
-"chatModule": {
-  "title": "Chat de Soporte",
-  "searchPlaceholder": "Buscar por nombre o email…",
-  "conversations": "conversaciones",
-  "tabs": {
-    "all": "Todos",
-    "waiting": "Esperando",
-    "active": "Activos",
-    "closed": "Cerrados"
+    "chat": "Chat Soporte",
+    "operations": "Operaciones",
+    "finances": "Finanzas",
+    "content": "Contenido"
   },
-  "empty": {
-    "all": "No hay conversaciones",
-    "waiting": "No hay chats esperando",
-    "active": "No hay chats activos",
-    "closed": "No hay chats cerrados",
-    "noResults": "Sin resultados"
+  "chatModule": {
+    "title": "Chat de Soporte",
+    "searchPlaceholder": "Buscar por nombre o email…",
+    "conversations": "conversaciones",
+    "tabs": {
+      "all": "Todos",
+      "waiting": "Esperando",
+      "active": "Activos",
+      "closed": "Cerrados"
+    },
+    "empty": {
+      "all": "No hay conversaciones",
+      "waiting": "No hay chats esperando",
+      "active": "No hay chats activos",
+      "closed": "No hay chats cerrados",
+      "noResults": "Sin resultados"
+    },
+    "status": {
+      "waiting": "Esperando",
+      "active": "Activo",
+      "transferred": "Transferido",
+      "closed": "Cerrado",
+      "archived": "Archivado"
+    },
+    "visitor": "Visitante",
+    "noMessages": "Sin mensajes aún",
+    "attachment": "Archivo adjunto",
+    "noConversationSelected": "Selecciona una conversación para verla",
+    "actions": {
+      "take": "Tomar",
+      "close": "Cerrar",
+      "archive": "Archivar",
+      "transfer": "Transferir"
+    },
+    "time": {
+      "now": "ahora",
+      "minutes": "min",
+      "hours": "h",
+      "days": "d"
+    },
+    "attachFile": "Adjuntar archivo",
+    "messagePlaceholder": "Escribe un mensaje... (Ctrl+Enter para enviar)",
+    "transferDialog": {
+      "title": "Transferir conversación",
+      "selectAgent": "Seleccionar agente",
+      "note": "Nota para el agente (opcional)",
+      "notePlaceholder": "Contexto de la conversación..."
+    }
   },
-  "status": {
-    "waiting": "Esperando",
-    "active": "Activo",
-    "transferred": "Transferido",
-    "closed": "Cerrado",
-    "archived": "Archivado"
-  },
-  "visitor": "Visitante",
-  "noMessages": "Sin mensajes aún",
-  "attachment": "Archivo adjunto",
-  "noConversationSelected": "Selecciona una conversación para verla",
-  "actions": {
-    "take": "Tomar",
-    "close": "Cerrar",
-    "archive": "Archivar",
-    "transfer": "Transferir"
-  },
-  "time": {
-    "now": "ahora",
-    "minutes": "min",
-    "hours": "h",
-    "days": "d"
-  },
-  "attachFile": "Adjuntar archivo",
-  "messagePlaceholder": "Escribe un mensaje... (Ctrl+Enter para enviar)",
-  "transferDialog": {
-    "title": "Transferir conversación",
-    "selectAgent": "Seleccionar agente",
-    "note": "Nota para el agente (opcional)",
-    "notePlaceholder": "Contexto de la conversación..."
-  }
-},
-"errors": {
+  "errors": {
     "sessionExpired": "Tu sesión expiró. Inicia sesión de nuevo.",
     "forbidden": "No tienes permiso para esta acción.",
     "server": "Error del servidor. Intenta de nuevo más tarde.",
@@ -745,7 +745,7 @@
     "cancelConfirm": "¿Cancelar la licencia para {client}? Esta acción no se puede deshacer.",
     "cancelTitle": "Cancelar Licencia",
     "keepLicense": "Mantener Licencia",
-"cancelSuccess": "Licencia cancelada",
+    "cancelSuccess": "Licencia cancelada",
     "cancelFailed": "No se pudo cancelar la licencia",
     "expiredAgo": "Venció hace {days}d",
     "expiresToday": "Vence hoy"
@@ -825,19 +825,7 @@
     "selectClient": "Seleccionar cliente"
   },
   "proposals": {
-    "title": "Propuestas",
-    "status": "Estado",
-    "statusPlaceholder": "Estado",
-    "dateRange": "Rango de fechas",
-    "dateRangePlaceholder": "Rango de fechas",
     "title": "Propuestas Económicas",
-    "subtitle": "Gestiona y envía propuestas formales a tus clientes",
-    "new": "Nueva propuesta",
-    "all": "Todos",
-    "deleteConfirm": "¿Eliminar esta propuesta?",
-    "deleteHeader": "Confirmar",
-    "deleteSuccess": "Propuesta eliminada",
-    "deleteFailed": "Error al eliminar la propuesta",
     "status": {
       "draft": "Borrador",
       "sent": "Enviada",
@@ -845,7 +833,17 @@
       "accepted": "Aceptada",
       "rejected": "Rechazada",
       "expired": "Vencida"
-    }
+    },
+    "statusPlaceholder": "Estado",
+    "dateRange": "Rango de fechas",
+    "dateRangePlaceholder": "Rango de fechas",
+    "subtitle": "Gestiona y envía propuestas formales a tus clientes",
+    "new": "Nueva propuesta",
+    "all": "Todos",
+    "deleteConfirm": "¿Eliminar esta propuesta?",
+    "deleteHeader": "Confirmar",
+    "deleteSuccess": "Propuesta eliminada",
+    "deleteFailed": "Error al eliminar la propuesta"
   },
   "persons": {
     "title": "Personas",
@@ -884,7 +882,7 @@
     "noRowsHint": "Registra un endpoint de POS o sistema personalizado para comenzar a monitorear.",
     "noPullUrl": "No hay URL de sondeo configurada",
     "heartbeatEvery": "Sondeo cada {interval}s",
-    "branch": "Sucursal: {id}",
+    "branch": "Sucursal",
     "deactivate": "Desactivar",
     "activate": "Activar",
     "remove": "Eliminar",
@@ -899,10 +897,10 @@
     "apiKey": "Clave API (opcional)",
     "apiKeyHint": "Clave secreta para autenticación",
     "apiKeyPlaceholder": "Opcional - clave API secreta",
-    "apiKeyKeepHint": "Deja en blanco para mantener la actual",
+    "apiKeyKeepHint": "Dejar en blanco para mantener la clave actual",
     "interval": "Intervalo de sondeo (segundos)",
     "contractVersion": "Versión de contrato (opcional)",
-    "contractVersionPlaceholder": "Ej: 1.0",
+    "contractVersionPlaceholder": "ej. v1.2",
     "branchId": "ID de Sucursal (opcional)",
     "branchIdHint": "UUID de la sucursal asociada",
     "register": "Registrar",
@@ -931,8 +929,6 @@
     "filterAll": "Todas",
     "filterPos": "POS",
     "filterCustom": "Personalizado",
-    "apiKeyKeepHint": "Dejar en blanco para mantener la clave actual",
-    "contractVersionPlaceholder": "ej. v1.2",
     "createdAt": "Creado",
     "totalLabel": "Total",
     "activeLabel": "Activos",
@@ -943,7 +939,6 @@
     "client": "Cliente",
     "clientBranch": "Cliente / Sucursal",
     "selectClient": "Seleccionar cliente",
-    "branch": "Sucursal",
     "selectBranch": "Seleccionar sucursal",
     "noClient": "Sin cliente vinculado",
     "viewDetails": "Ver detalles",
@@ -1314,7 +1309,7 @@
       "all": "Todos",
       "navigation": "Navegación",
       "action": "Acciones"
-}
+    }
   },
   "pageInfo": {
     "persons": "Gestiona tus contactos individuales: prospectos, leads de redes sociales, clientes B2C. Crea personas desde el calendario y dales seguimiento completo.",
