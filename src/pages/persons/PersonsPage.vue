@@ -250,16 +250,16 @@ function statusSeverity(
     >
       <div>
         <h1
-          class="text-xl font-semibold text-[var(--text)] flex items-center gap-2"
+          class="text-xl font-semibold text-(--text) flex items-center gap-2"
         >
-          <Users class="w-6 h-6 text-[var(--primary)]" />
+          <Users class="w-6 h-6 text-(--primary)" />
           {{ t("persons.title") }}
           <PageInfoButton
             :title="t('persons.title')"
             :description="t('pageInfo.persons')"
           />
         </h1>
-        <p class="text-sm text-[var(--text-muted)] mt-1">
+        <p class="text-sm text-(--text-muted) mt-1">
           {{ t("persons.subtitle") }}
         </p>
       </div>
@@ -273,7 +273,7 @@ function statusSeverity(
     <div class="flex gap-3 items-center">
       <IconField class="flex-1 max-w-xs">
         <InputIcon>
-          <Search class="w-4 h-4 text-[var(--text-muted)]" />
+          <Search class="w-4 h-4 text-(--text-muted)" />
         </InputIcon>
         <InputText
           v-model="search"
@@ -291,28 +291,28 @@ function statusSeverity(
       lazy
       paginator
       striped-rows
-      class="rounded-xl border border-[var(--border)]"
+      class="rounded-xl border border-(--border)"
       @page="(e) => (page = e.page)"
     >
       <template #empty>
-        <div class="text-center py-10 text-[var(--text-muted)]">
+        <div class="text-center py-10 text-(--text-muted)">
           {{ t("persons.empty") }}
         </div>
       </template>
 
-      <Column :header="t('persons.name')" class="min-w-[180px]">
+      <Column :header="t('persons.name')" class="min-w-45">
         <template #body="{ data }">
           <div class="flex items-center gap-2">
             <div
-              class="w-8 h-8 rounded-full bg-[var(--primary)] flex items-center justify-center text-white text-xs font-bold shrink-0"
+              class="w-8 h-8 rounded-full bg-(--primary) flex items-center justify-center text-white text-xs font-bold shrink-0"
             >
               {{ data.firstName[0]?.toUpperCase() }}
             </div>
             <div>
-              <p class="font-medium text-sm text-[var(--text)]">
+              <p class="font-medium text-sm text-(--text)">
                 {{ data.fullName }}
               </p>
-              <p v-if="data.email" class="text-xs text-[var(--text-muted)]">
+              <p v-if="data.email" class="text-xs text-(--text-muted)">
                 {{ data.email }}
               </p>
             </div>
@@ -320,14 +320,14 @@ function statusSeverity(
         </template>
       </Column>
 
-      <Column :header="t('persons.contact')" class="min-w-[140px]">
+      <Column :header="t('persons.contact')" class="min-w-35">
         <template #body="{ data }">
           <div class="space-y-0.5">
             <p
               v-if="data.phone"
-              class="text-sm flex items-center gap-1 text-[var(--text)]"
+              class="text-sm flex items-center gap-1 text-(--text)"
             >
-              <Phone class="w-3 h-3 text-[var(--text-muted)]" />
+              <Phone class="w-3 h-3 text-(--text-muted)" />
               {{ data.phone }}
             </p>
             <p v-if="data.whatsapp" class="text-xs text-emerald-600">
@@ -335,35 +335,35 @@ function statusSeverity(
             </p>
             <span
               v-if="!data.phone && !data.whatsapp"
-              class="text-[var(--text-muted)]"
+              class="text-(--text-muted)"
               >—</span
             >
           </div>
         </template>
       </Column>
 
-      <Column :header="t('persons.company')" class="min-w-[130px]">
+      <Column :header="t('persons.company')" class="min-w-32.5">
         <template #body="{ data }">
           <span
             v-if="data.clientName"
-            class="text-sm flex items-center gap-1 text-[var(--text)]"
+            class="text-sm flex items-center gap-1 text-(--text)"
           >
-            <Building2 class="w-3 h-3 text-[var(--text-muted)]" />
+            <Building2 class="w-3 h-3 text-(--text-muted)" />
             {{ data.clientName }}
           </span>
-          <span v-else class="text-[var(--text-muted)]">—</span>
+          <span v-else class="text-(--text-muted)">—</span>
         </template>
       </Column>
 
-      <Column :header="t('persons.leadSource')" class="min-w-[110px]">
+      <Column :header="t('persons.leadSource')" class="min-w-27.5">
         <template #body="{ data }">
-          <span class="text-sm text-[var(--text)]">{{
+          <span class="text-sm text-(--text)">{{
             data.leadSource ?? "—"
           }}</span>
         </template>
       </Column>
 
-      <Column :header="t('persons.status')" class="min-w-[100px]">
+      <Column :header="t('persons.status')" class="min-w-25">
         <template #body="{ data }">
           <Tag :severity="statusSeverity(data.status)" class="text-xs">{{
             t(
@@ -373,9 +373,9 @@ function statusSeverity(
         </template>
       </Column>
 
-      <Column :header="t('persons.assignedTo')" class="min-w-[120px]">
+      <Column :header="t('persons.assignedTo')" class="min-w-30">
         <template #body="{ data }">
-          <span class="text-sm text-[var(--text)]">{{
+          <span class="text-sm text-(--text)">{{
             data.assignedToName ?? "—"
           }}</span>
         </template>
@@ -413,7 +413,7 @@ function statusSeverity(
       <div class="space-y-4">
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]"
+            <label class="text-xs font-medium text-(--text-muted)"
               >{{ t("persons.firstName") }} *</label
             >
             <InputText
@@ -423,7 +423,7 @@ function statusSeverity(
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{
+            <label class="text-xs font-medium text-(--text-muted)">{{
               t("persons.lastName")
             }}</label>
             <InputText
@@ -436,7 +436,7 @@ function statusSeverity(
 
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{
+            <label class="text-xs font-medium text-(--text-muted)">{{
               t("persons.email")
             }}</label>
             <InputText
@@ -447,7 +447,7 @@ function statusSeverity(
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{
+            <label class="text-xs font-medium text-(--text-muted)">{{
               t("persons.leadSource")
             }}</label>
             <Select
@@ -464,7 +464,7 @@ function statusSeverity(
 
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{
+            <label class="text-xs font-medium text-(--text-muted)">{{
               t("persons.phone")
             }}</label>
             <InputText
@@ -474,7 +474,7 @@ function statusSeverity(
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{
+            <label class="text-xs font-medium text-(--text-muted)">{{
               t("persons.whatsapp")
             }}</label>
             <InputText
@@ -487,7 +487,7 @@ function statusSeverity(
 
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{
+            <label class="text-xs font-medium text-(--text-muted)">{{
               t("persons.status")
             }}</label>
             <Select
@@ -499,7 +499,7 @@ function statusSeverity(
             />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-[var(--text-muted)]">{{
+            <label class="text-xs font-medium text-(--text-muted)">{{
               t("persons.company")
             }}</label>
             <Select
@@ -516,7 +516,7 @@ function statusSeverity(
         </div>
 
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-[var(--text-muted)]">{{
+          <label class="text-xs font-medium text-(--text-muted)">{{
             t("persons.assignedTo")
           }}</label>
           <Select
@@ -531,7 +531,7 @@ function statusSeverity(
         </div>
 
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-[var(--text-muted)]">{{
+          <label class="text-xs font-medium text-(--text-muted)">{{
             t("persons.address")
           }}</label>
           <InputText
@@ -542,13 +542,13 @@ function statusSeverity(
         </div>
 
         <div class="flex flex-col gap-1">
-          <label class="text-xs font-medium text-[var(--text-muted)]">{{
+          <label class="text-xs font-medium text-(--text-muted)">{{
             t("persons.notes")
           }}</label>
           <textarea
             v-model="form.notes"
             rows="3"
-            class="w-full rounded-md border border-[var(--border)] bg-[var(--surface)] text-[var(--text)] p-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-[var(--primary)]"
+            class="w-full rounded-md border border-(--border) bg-(--surface) text-(--text) p-2 text-sm resize-none focus:outline-none focus:ring-1 focus:ring-(--primary)"
             :placeholder="t('persons.notesPlaceholder')"
           />
         </div>
@@ -579,7 +579,7 @@ function statusSeverity(
       :style="{ width: '24rem' }"
       modal
     >
-      <p class="text-[var(--text)]">{{ t("persons.deleteConfirm") }}</p>
+      <p class="text-(--text)">{{ t("persons.deleteConfirm") }}</p>
       <template #footer>
         <Button
           :label="t('common.cancel')"
