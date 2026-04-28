@@ -1,194 +1,252 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import { useI18n } from 'vue-i18n'
-import { Client as StompClient } from '@stomp/stompjs'
-import { useAuthStore } from '@/stores/auth'
-import { chatService } from '@/services/chat.service'
-import { qk } from '@/queries/keys'
-import type { ChatConversation, ConversationStatus } from '@/types/chat'
-import Button from 'primevue/button'
-import InputText from 'primevue/inputtext'
-import IconField from 'primevue/iconfield'
-import InputIcon from 'primevue/inputicon'
-import Tag from 'primevue/tag'
-import ChatConversationView from '@/components/chat/ChatConversationView.vue'
-import ChatTransferDialog from '@/components/chat/ChatTransferDialog.vue'
-import { MessageSquare } from 'lucide-vue-next'
+import { ref, computed, onMounted, onUnmounted } from "vue";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
+import { useI18n } from "vue-i18n";
+import { Client as StompClient } from "@stomp/stompjs";
+import { useAuthStore } from "@/stores/auth";
+import { chatService } from "@/services/chat.service";
+import { qk } from "@/queries/keys";
+import type { ChatConversation, ConversationStatus } from "@/types/chat";
+import Button from "primevue/button";
+import InputText from "primevue/inputtext";
+import IconField from "primevue/iconfield";
+import InputIcon from "primevue/inputicon";
+import Tag from "primevue/tag";
+import ChatConversationView from "@/components/chat/ChatConversationView.vue";
+import ChatTransferDialog from "@/components/chat/ChatTransferDialog.vue";
+import { MessageSquare } from "lucide-vue-next";
 
-const { t } = useI18n()
+const { t } = useI18n();
 
-const auth = useAuthStore()
-const qc = useQueryClient()
+const auth = useAuthStore();
+const qc = useQueryClient();
 
-const activeTab = ref<ConversationStatus | 'ALL'>('ALL')
-const search = ref('')
-const selectedConv = ref<ChatConversation | null>(null)
-const showTransfer = ref(false)
-const hoveredId = ref<string | null>(null)
+const activeTab = ref<ConversationStatus | "ALL">("ALL");
+const search = ref("");
+const selectedConv = ref<ChatConversation | null>(null);
+const showTransfer = ref(false);
+const hoveredId = ref<string | null>(null);
 
 const tabs = computed(() => [
-  { label: t('chatModule.tabs.all'), value: 'ALL' as const },
-  { label: t('chatModule.tabs.waiting'), value: 'WAITING' as const },
-  { label: t('chatModule.tabs.active'), value: 'ACTIVE' as const },
-  { label: t('chatModule.tabs.closed'), value: 'CLOSED' as const },
-])
+  { label: t("chatModule.tabs.all"), value: "ALL" as const },
+  { label: t("chatModule.tabs.waiting"), value: "WAITING" as const },
+  { label: t("chatModule.tabs.active"), value: "ACTIVE" as const },
+  { label: t("chatModule.tabs.closed"), value: "CLOSED" as const },
+]);
 
-const queryStatus = computed<ConversationStatus | undefined>(
-  () => activeTab.value === 'ALL' ? undefined : activeTab.value
-)
+const queryStatus = computed<ConversationStatus | undefined>(() =>
+  activeTab.value === "ALL" ? undefined : activeTab.value,
+);
 
 const { data, isLoading, refetch } = useQuery({
   queryKey: computed(() => qk.chatConversations(queryStatus.value)),
-  queryFn: () => chatService.listConversations({ status: queryStatus.value, size: 100 }),
+  queryFn: () =>
+    chatService.listConversations({ status: queryStatus.value, size: 100 }),
   refetchInterval: 15000,
-})
+});
 
-const allConversations = computed(() => data.value?.content ?? [])
+const allConversations = computed(() => data.value?.content ?? []);
 
 const conversations = computed(() => {
-  const q = search.value.trim().toLowerCase()
-  if (!q) return allConversations.value
-  return allConversations.value.filter(c =>
-    c.visitorName?.toLowerCase().includes(q) ||
-    c.visitorEmail?.toLowerCase().includes(q)
-  )
-})
+  const q = search.value.trim().toLowerCase();
+  if (!q) return allConversations.value;
+  return allConversations.value.filter(
+    (c) =>
+      c.visitorName?.toLowerCase().includes(q) ||
+      c.visitorEmail?.toLowerCase().includes(q),
+  );
+});
 
-const waitingCount = computed(() =>
-  allConversations.value.filter(c => c.status === 'WAITING').length
-)
+const waitingCount = computed(
+  () => allConversations.value.filter((c) => c.status === "WAITING").length,
+);
 
 function invalidate() {
-  qc.invalidateQueries({ queryKey: ['chat-conversations'] })
-  qc.invalidateQueries({ queryKey: qk.chatUnreadCount() })
+  qc.invalidateQueries({ queryKey: ["chat-conversations"] });
+  qc.invalidateQueries({ queryKey: qk.chatUnreadCount() });
 }
 
 const claimMut = useMutation({
   mutationFn: (id: string) => chatService.claim(id),
-  onSuccess: (conv) => { invalidate(); selectedConv.value = conv },
-})
+  onSuccess: (conv) => {
+    invalidate();
+    selectedConv.value = conv;
+  },
+});
 
 const closeMut = useMutation({
   mutationFn: (id: string) => chatService.close(id),
-  onSuccess: () => { invalidate(); selectedConv.value = null },
-})
+  onSuccess: () => {
+    invalidate();
+    selectedConv.value = null;
+  },
+});
 
 const archiveMut = useMutation({
   mutationFn: (id: string) => chatService.archive(id),
-  onSuccess: () => { invalidate(); selectedConv.value = null },
-})
+  onSuccess: () => {
+    invalidate();
+    selectedConv.value = null;
+  },
+});
 
 function statusSeverity(status: ConversationStatus) {
   const map: Record<ConversationStatus, string> = {
-    WAITING: 'warn', ACTIVE: 'success', TRANSFERRED: 'info',
-    CLOSED: 'secondary', ARCHIVED: 'secondary',
-  }
-  return map[status] ?? 'secondary'
+    WAITING: "warn",
+    ACTIVE: "success",
+    TRANSFERRED: "info",
+    CLOSED: "secondary",
+    ARCHIVED: "secondary",
+  };
+  return map[status] ?? "secondary";
 }
 
 function statusLabel(status: ConversationStatus) {
-  return t(`chatModule.status.${status.toLowerCase()}`)
+  return t(`chatModule.status.${status.toLowerCase()}`);
 }
 
 function timeAgo(ts: string) {
-  const diff = Date.now() - new Date(ts).getTime()
-  const m = Math.floor(diff / 60000)
-  if (m < 1) return t('chatModule.time.now')
-  if (m < 60) return `${m} ${t('chatModule.time.minutes')}`
-  if (m < 1440) return `${Math.floor(m / 60)}${t('chatModule.time.hours')}`
-  return `${Math.floor(m / 1440)}${t('chatModule.time.days')}`
+  const diff = Date.now() - new Date(ts).getTime();
+  const m = Math.floor(diff / 60000);
+  if (m < 1) return t("chatModule.time.now");
+  if (m < 60) return `${m} ${t("chatModule.time.minutes")}`;
+  if (m < 1440) return `${Math.floor(m / 60)}${t("chatModule.time.hours")}`;
+  return `${Math.floor(m / 1440)}${t("chatModule.time.days")}`;
 }
 
 function lastMessage(conv: ChatConversation): string {
-  const msgs = conv.messages
-  if (!msgs || msgs.length === 0) return t('chatModule.noMessages')
-  const last = msgs[msgs.length - 1]
-  return last.content ?? (last.attachmentUrl ? t('chatModule.attachment') : '...')
+  const msgs = conv.messages;
+  if (!msgs || msgs.length === 0) return t("chatModule.noMessages");
+  const last = msgs[msgs.length - 1];
+  return (
+    last.content ?? (last.attachmentUrl ? t("chatModule.attachment") : "...")
+  );
 }
 
 function avatarInitial(name?: string) {
-  return (name ?? '?').charAt(0).toUpperCase()
+  return (name ?? "?").charAt(0).toUpperCase();
 }
 
 function avatarColor(name?: string) {
-  const colors = ['#6366f1', '#8b5cf6', '#ec4899', '#14b8a6', '#f59e0b', '#10b981', '#3b82f6', '#ef4444']
-  const idx = (name ?? '').charCodeAt(0) % colors.length
-  return colors[idx]
+  const colors = [
+    "#6366f1",
+    "#8b5cf6",
+    "#ec4899",
+    "#14b8a6",
+    "#f59e0b",
+    "#10b981",
+    "#3b82f6",
+    "#ef4444",
+  ];
+  const idx = (name ?? "").charCodeAt(0) % colors.length;
+  return colors[idx];
 }
 
 function emptyLabel() {
-  return t(`chatModule.empty.${activeTab.value === 'ALL' ? 'all' : activeTab.value.toLowerCase()}`)
+  return t(
+    `chatModule.empty.${activeTab.value === "ALL" ? "all" : activeTab.value.toLowerCase()}`,
+  );
 }
 
 // ── Agent presence ─────────────────────────────────────────────────────────
 
-const isOnline = ref(false)
+const isOnline = ref(false);
+
+async function togglePresence() {
+  const next = !isOnline.value;
+  await chatService.setPresence(next).catch(() => {});
+  isOnline.value = next;
+}
 
 // ── STOMP real-time ────────────────────────────────────────────────────────
 
-const stompClient = ref<StompClient | null>(null)
+const stompClient = ref<StompClient | null>(null);
 
 onMounted(() => {
-  if (!auth.hasPermission('chat:read') || !auth.accessToken) return
-  const baseUrl = (import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080').replace(/\/ws$/, '')
+  if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
+  const baseUrl = (
+    import.meta.env.VITE_WS_URL ?? "ws://localhost:8080"
+  ).replace(/\/ws$/, "");
   const client = new StompClient({
     brokerURL: `${baseUrl}/ws`,
     connectHeaders: { Authorization: `Bearer ${auth.accessToken}` },
     reconnectDelay: 5000,
     onConnect: () => {
-      const tenantId = auth.user?.tenantId
-      if (!tenantId) return
-      client.subscribe(`/topic/chat.queue.${tenantId}`, () => invalidate())
+      const tenantId = auth.user?.tenantId;
+      if (!tenantId) return;
+      client.subscribe(`/topic/chat.queue.${tenantId}`, () => invalidate());
     },
-  })
-  client.activate()
-  stompClient.value = client
-})
+  });
+  client.activate();
+  stompClient.value = client;
+});
 
 onUnmounted(async () => {
-  stompClient.value?.deactivate()
+  stompClient.value?.deactivate();
   if (isOnline.value) {
-    await chatService.setPresence(false).catch(() => {})
-    isOnline.value = false
+    await chatService.setPresence(false).catch(() => {});
+    isOnline.value = false;
   }
-})
+});
 </script>
 
 <template>
   <div class="flex gap-4 h-full min-h-0">
-
     <!-- Left inbox panel -->
-    <div class="flex flex-col min-w-0 w-full md:w-[380px] xl:w-[420px] flex-shrink-0">
-
+    <div
+      class="flex flex-col min-w-0 w-full md:w-[380px] xl:w-[420px] flex-shrink-0"
+    >
       <!-- Header -->
       <div class="flex items-center justify-between mb-4">
         <div>
-          <h1 class="text-xl font-bold text-[var(--text)] flex items-center gap-2">
+          <h1
+            class="text-xl font-bold text-[var(--text)] flex items-center gap-2"
+          >
             <MessageSquare class="w-5 h-5 text-[var(--primary)]" />
-            {{ t('chatModule.title') }}
+            {{ t("chatModule.title") }}
             <span
-              :class="isOnline ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
+              :class="
+                isOnline ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'
+              "
               class="inline-block w-2.5 h-2.5 rounded-full ml-1"
-              :title="isOnline ? t('chatModule.presence.online') : t('chatModule.presence.offline')"
+              :title="
+                isOnline
+                  ? t('chatModule.presence.online')
+                  : t('chatModule.presence.offline')
+              "
             />
-            <span v-if="waitingCount > 0"
-              class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--primary)] text-white text-[10px] font-bold animate-pulse">
+            <span
+              v-if="waitingCount > 0"
+              class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--primary)] text-white text-[10px] font-bold animate-pulse"
+            >
               {{ waitingCount }}
             </span>
           </h1>
-          <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ conversations.length }} {{ t('chatModule.conversations') }}</p>
+          <p class="text-xs text-[var(--text-muted)] mt-0.5">
+            {{ conversations.length }} {{ t("chatModule.conversations") }}
+          </p>
         </div>
         <div class="flex items-center gap-2">
           <Button
             :icon="isOnline ? 'pi pi-circle-fill' : 'pi pi-circle'"
             :severity="isOnline ? 'success' : 'secondary'"
-            :label="isOnline ? t('chatModule.presence.goOffline') : t('chatModule.presence.goOnline')"
+            :label="
+              isOnline
+                ? t('chatModule.presence.goOffline')
+                : t('chatModule.presence.goOnline')
+            "
             size="small"
             outlined
             @click="togglePresence"
           />
-          <Button icon="pi pi-refresh" severity="secondary" outlined size="small" :loading="isLoading" @click="() => refetch()" />
+          <Button
+            icon="pi pi-refresh"
+            severity="secondary"
+            outlined
+            size="small"
+            :loading="isLoading"
+            @click="() => refetch()"
+          />
         </div>
       </div>
 
@@ -210,25 +268,33 @@ onUnmounted(async () => {
           v-for="tab in tabs"
           :key="tab.value"
           class="px-3 py-1.5 text-sm rounded-t transition-colors relative"
-          :class="activeTab === tab.value
-            ? 'text-[var(--primary)] font-medium border-b-2 border-[var(--primary)] -mb-px'
-            : 'text-[var(--text-muted)] hover:text-[var(--text)]'"
+          :class="
+            activeTab === tab.value
+              ? 'text-[var(--primary)] font-medium border-b-2 border-[var(--primary)] -mb-px'
+              : 'text-[var(--text-muted)] hover:text-[var(--text)]'
+          "
           @click="activeTab = tab.value"
         >
           {{ tab.label }}
           <span
             v-if="tab.value === 'WAITING' && waitingCount > 0"
             class="ml-1 inline-flex items-center justify-center w-4 h-4 rounded-full bg-amber-500 text-white text-[9px] font-bold"
-          >{{ waitingCount }}</span>
+            >{{ waitingCount }}</span
+          >
         </button>
       </div>
 
       <!-- Conversation list -->
-      <div class="flex-1 overflow-y-auto space-y-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]">
-
+      <div
+        class="flex-1 overflow-y-auto space-y-0 rounded-xl border border-[var(--border)] bg-[var(--surface)]"
+      >
         <!-- Loading skeleton -->
         <template v-if="isLoading">
-          <div v-for="i in 5" :key="i" class="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] animate-pulse">
+          <div
+            v-for="i in 5"
+            :key="i"
+            class="flex items-center gap-3 px-4 py-3 border-b border-[var(--border)] animate-pulse"
+          >
             <div class="w-9 h-9 rounded-full bg-[var(--border)] shrink-0" />
             <div class="flex-1 space-y-1.5">
               <div class="h-3 bg-[var(--border)] rounded w-1/2" />
@@ -238,8 +304,13 @@ onUnmounted(async () => {
         </template>
 
         <!-- Empty state -->
-        <div v-else-if="!conversations.length" class="flex flex-col items-center justify-center py-16 text-center px-4">
-          <MessageSquare class="w-8 h-8 text-[var(--text-muted)] mb-3 opacity-40" />
+        <div
+          v-else-if="!conversations.length"
+          class="flex flex-col items-center justify-center py-16 text-center px-4"
+        >
+          <MessageSquare
+            class="w-8 h-8 text-[var(--text-muted)] mb-3 opacity-40"
+          />
           <p class="text-sm text-[var(--text-muted)]">{{ emptyLabel() }}</p>
         </div>
 
@@ -249,7 +320,11 @@ onUnmounted(async () => {
           v-for="conv in conversations"
           :key="conv.id"
           class="group flex items-start gap-3 px-4 py-3 border-b border-[var(--border)] last:border-0 cursor-pointer transition-colors"
-          :class="selectedConv?.id === conv.id ? 'bg-[var(--primary)]/8' : 'hover:bg-[var(--surface-raised)]'"
+          :class="
+            selectedConv?.id === conv.id
+              ? 'bg-[var(--primary)]/8'
+              : 'hover:bg-[var(--surface-raised)]'
+          "
           @mouseenter="hoveredId = conv.id"
           @mouseleave="hoveredId = null"
           @click="selectedConv = conv"
@@ -267,21 +342,33 @@ onUnmounted(async () => {
             <div class="flex items-center justify-between gap-2">
               <span
                 class="text-sm truncate"
-                :class="(conv.unreadCount ?? 0) > 0 ? 'font-bold text-[var(--text)]' : 'font-medium text-[var(--text)]'"
+                :class="
+                  (conv.unreadCount ?? 0) > 0
+                    ? 'font-bold text-[var(--text)]'
+                    : 'font-medium text-[var(--text)]'
+                "
               >
-                {{ conv.visitorName ?? t('chatModule.visitor') }}
+                {{ conv.visitorName ?? t("chatModule.visitor") }}
               </span>
-              <span class="text-[10px] text-[var(--text-muted)] shrink-0">{{ timeAgo(conv.createdAt) }}</span>
+              <span class="text-[10px] text-[var(--text-muted)] shrink-0">{{
+                timeAgo(conv.createdAt)
+              }}</span>
             </div>
             <div class="flex items-center justify-between gap-2 mt-0.5">
-              <p class="text-xs text-[var(--text-muted)] truncate flex items-center gap-1">
+              <p
+                class="text-xs text-[var(--text-muted)] truncate flex items-center gap-1"
+              >
                 <span
                   v-if="(conv.unreadCount ?? 0) > 0"
                   class="w-1.5 h-1.5 rounded-full bg-blue-500 shrink-0 inline-block"
                 />
                 {{ lastMessage(conv) }}
               </p>
-              <Tag :value="statusLabel(conv.status)" :severity="statusSeverity(conv.status)" class="text-[9px] shrink-0 !py-0.5 !px-1.5" />
+              <Tag
+                :value="statusLabel(conv.status)"
+                :severity="statusSeverity(conv.status)"
+                class="text-[9px] shrink-0 !py-0.5 !px-1.5"
+              />
             </div>
           </div>
 
@@ -297,7 +384,9 @@ onUnmounted(async () => {
               size="small"
               severity="success"
               class="!py-1 !px-2 !text-xs"
-              :loading="claimMut.isPending.value && claimMut.variables.value === conv.id"
+              :loading="
+                claimMut.isPending.value && claimMut.variables.value === conv.id
+              "
               @click="claimMut.mutate(conv.id)"
             />
             <Button
@@ -307,7 +396,9 @@ onUnmounted(async () => {
               severity="warning"
               outlined
               class="!py-1 !px-2 !text-xs"
-              :loading="closeMut.isPending.value && closeMut.variables.value === conv.id"
+              :loading="
+                closeMut.isPending.value && closeMut.variables.value === conv.id
+              "
               @click="closeMut.mutate(conv.id)"
             />
             <Button
@@ -317,7 +408,10 @@ onUnmounted(async () => {
               severity="secondary"
               outlined
               class="!py-1 !px-2 !text-xs"
-              :loading="archiveMut.isPending.value && archiveMut.variables.value === conv.id"
+              :loading="
+                archiveMut.isPending.value &&
+                archiveMut.variables.value === conv.id
+              "
               @click="archiveMut.mutate(conv.id)"
             />
           </div>
@@ -337,27 +431,51 @@ onUnmounted(async () => {
             :conversation="selectedConv"
             @close="selectedConv = null"
             @transfer="showTransfer = true"
-            @closed="() => { invalidate(); selectedConv = null }"
+            @closed="
+              () => {
+                invalidate();
+                selectedConv = null;
+              }
+            "
           />
         </div>
-        <div v-else class="w-full flex flex-col items-center justify-center text-center border border-dashed border-[var(--border)] rounded-2xl" style="height: calc(100vh - 140px)">
-          <MessageSquare class="w-10 h-10 text-[var(--text-muted)] opacity-30 mb-3" />
-          <p class="text-sm text-[var(--text-muted)]">{{ t('chatModule.noConversationSelected') }}</p>
+        <div
+          v-else
+          class="w-full flex flex-col items-center justify-center text-center border border-dashed border-[var(--border)] rounded-2xl"
+          style="height: calc(100vh - 140px)"
+        >
+          <MessageSquare
+            class="w-10 h-10 text-[var(--text-muted)] opacity-30 mb-3"
+          />
+          <p class="text-sm text-[var(--text-muted)]">
+            {{ t("chatModule.noConversationSelected") }}
+          </p>
         </div>
       </Transition>
     </div>
-
   </div>
 
   <ChatTransferDialog
     v-if="showTransfer && selectedConv"
     :conversation="selectedConv"
     @close="showTransfer = false"
-    @transferred="() => { showTransfer = false; invalidate() }"
+    @transferred="
+      () => {
+        showTransfer = false;
+        invalidate();
+      }
+    "
   />
 </template>
 
 <style scoped>
-.slide-left-enter-active, .slide-left-leave-active { transition: all 0.2s ease; }
-.slide-left-enter-from, .slide-left-leave-to { opacity: 0; transform: translateX(16px); }
+.slide-left-enter-active,
+.slide-left-leave-active {
+  transition: all 0.2s ease;
+}
+.slide-left-enter-from,
+.slide-left-leave-to {
+  opacity: 0;
+  transform: translateX(16px);
+}
 </style>
