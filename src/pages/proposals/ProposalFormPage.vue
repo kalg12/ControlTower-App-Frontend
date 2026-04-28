@@ -15,7 +15,7 @@ import { qk } from '@/queries/keys'
 import dayjs from 'dayjs'
 import api from '@/services/api'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const route = useRoute()
 const router = useRouter()
 const queryClient = useQueryClient()
@@ -105,6 +105,7 @@ const discountTypeOptions = computed(() => [
   { label: t('proposals.discountPercentage'), value: 'PERCENTAGE' },
   { label: t('proposals.discountFixed'), value: 'AMOUNT' },
 ])
+const numberLocale = computed(() => (locale.value === 'es' ? 'es-MX' : 'en-US'))
 
 async function downloadPdf() {
   if (!proposalId.value) return
@@ -237,10 +238,10 @@ function onSubmit() {
                 <InputNumber v-model="item.quantity" :min="0.01" :maxFractionDigits="2" inputClass="w-full text-right" />
               </td>
               <td class="py-2 pr-3">
-                <InputNumber v-model="item.unitPrice" :min="0" mode="currency" :currency="currency" locale="es-MX" inputClass="w-full text-right" />
+                <InputNumber v-model="item.unitPrice" :min="0" mode="currency" :currency="currency" :locale="numberLocale" inputClass="w-full text-right" />
               </td>
               <td class="py-2 pr-3 text-right font-medium text-gray-700 dark:text-gray-300">
-                ${{ (item.quantity * item.unitPrice).toLocaleString('es-MX', { minimumFractionDigits: 2 }) }}
+                ${{ (item.quantity * item.unitPrice).toLocaleString(numberLocale, { minimumFractionDigits: 2 }) }}
               </td>
               <td class="py-2">
                 <Button icon="pi pi-times" text severity="danger" size="small" @click="removeLine(i)" :disabled="lineItems.length <= 1" />
@@ -265,7 +266,7 @@ function onSubmit() {
             :suffix="discountType === 'PERCENTAGE' ? ' %' : ''"
             :mode="discountType === 'AMOUNT' ? 'currency' : 'decimal'"
             :currency="discountType === 'AMOUNT' ? currency : undefined"
-            locale="es-MX"
+            :locale="numberLocale"
             inputClass="w-36 text-right"
             :placeholder="t('placeholders.zero')"
           />
@@ -275,19 +276,19 @@ function onSubmit() {
         <div class="w-64 space-y-1 text-sm self-end">
           <div class="flex justify-between text-gray-600 dark:text-gray-400">
             <span>{{ t('fields.subtotal') }}</span>
-            <span>${{ subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) }}</span>
+            <span>${{ subtotal.toLocaleString(numberLocale, { minimumFractionDigits: 2 }) }}</span>
           </div>
           <div v-if="discountAmount > 0" class="flex justify-between text-red-500">
             <span>{{ t('proposals.discountLabel') }} {{ discountType === 'PERCENTAGE' ? `(${discountValue}%)` : '' }}</span>
-            <span>-${{ discountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 }) }}</span>
+            <span>-${{ discountAmount.toLocaleString(numberLocale, { minimumFractionDigits: 2 }) }}</span>
           </div>
           <div class="flex justify-between text-gray-600 dark:text-gray-400">
             <span>{{ t('fields.iva') }} ({{ taxRate }}%)</span>
-            <span>${{ taxAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 }) }}</span>
+            <span>${{ taxAmount.toLocaleString(numberLocale, { minimumFractionDigits: 2 }) }}</span>
           </div>
           <div class="flex justify-between font-bold text-gray-900 dark:text-white border-t border-gray-200 dark:border-gray-600 pt-1">
             <span>{{ t('fields.total') }}</span>
-            <span>${{ total.toLocaleString('es-MX', { minimumFractionDigits: 2 }) }} {{ currency }}</span>
+            <span>${{ total.toLocaleString(numberLocale, { minimumFractionDigits: 2 }) }} {{ currency }}</span>
           </div>
         </div>
       </div>
