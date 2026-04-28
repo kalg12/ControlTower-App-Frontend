@@ -149,6 +149,12 @@
       "selectAgent": "Select agent",
       "note": "Note to agent (optional)",
       "notePlaceholder": "Conversation context..."
+    },
+    "presence": {
+      "online": "Online",
+      "offline": "Offline",
+      "goOnline": "Go Online",
+      "goOffline": "Go Offline"
     }
   },
   "common": {

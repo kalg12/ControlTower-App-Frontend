@@ -151,6 +151,12 @@
       "selectAgent": "Seleccionar agente",
       "note": "Nota para el agente (opcional)",
       "notePlaceholder": "Contexto de la conversación..."
+    },
+    "presence": {
+      "online": "En línea",
+      "offline": "Desconectado",
+      "goOnline": "Conectar",
+      "goOffline": "Desconectar"
     }
   },
   "errors": {

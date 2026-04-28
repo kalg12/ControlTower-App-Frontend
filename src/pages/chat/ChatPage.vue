@@ -179,7 +179,17 @@ onUnmounted(async () => {
           </h1>
           <p class="text-xs text-[var(--text-muted)] mt-0.5">{{ conversations.length }} {{ t('chatModule.conversations') }}</p>
         </div>
-        <Button icon="pi pi-refresh" severity="secondary" outlined size="small" :loading="isLoading" @click="() => refetch()" />
+        <div class="flex items-center gap-2">
+          <Button
+            :icon="isOnline ? 'pi pi-circle-fill' : 'pi pi-circle'"
+            :severity="isOnline ? 'success' : 'secondary'"
+            :label="isOnline ? t('chatModule.presence.goOffline') : t('chatModule.presence.goOnline')"
+            size="small"
+            outlined
+            @click="togglePresence"
+          />
+          <Button icon="pi pi-refresh" severity="secondary" outlined size="small" :loading="isLoading" @click="() => refetch()" />
+        </div>
       </div>
 
       <!-- Search -->
