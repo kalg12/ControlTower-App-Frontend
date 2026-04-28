@@ -916,11 +916,11 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
 
         <div class="grid grid-cols-2 md:grid-cols-4 gap-4">
           <div>
-            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Tax ID / RFC</p>
+            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('clientsPage.taxId') }}</p>
             <p class="text-sm font-mono text-[var(--text)]">{{ client.taxId ?? '—' }}</p>
           </div>
           <div>
-            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Country</p>
+            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('clientsPage.country') }}</p>
             <p class="text-sm text-[var(--text)]">{{ client.country ?? '—' }}</p>
           </div>
           <div>
@@ -932,11 +932,11 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
             <p class="text-sm text-[var(--text)]">{{ client.leadSource ?? '—' }}</p>
           </div>
           <div>
-            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Created</p>
+            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('clientsPage.created') }}</p>
             <p class="text-sm text-[var(--text)]">{{ formatDate(client.createdAt) }}</p>
           </div>
           <div v-if="client.website">
-            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">Website</p>
+            <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1">{{ t('clientsPage.website') }}</p>
             <a :href="client.website" target="_blank" rel="noopener" class="text-sm text-[var(--primary)] hover:underline truncate block">{{ client.website }}</a>
           </div>
         </div>
@@ -950,10 +950,10 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
           <Tab value="branches">{{ t('crm.tabBranches') }}</Tab>
           <Tab value="contacts">{{ t('crm.tabContacts') }}</Tab>
           <Tab value="pipeline">{{ t('crm.tabPipeline') }}</Tab>
-          <Tab value="tickets">Tickets</Tab>
+          <Tab value="tickets">{{ t('crm.tabTickets') }}</Tab>
           <Tab value="finance">{{ t('crm.tabFinance') }}</Tab>
-          <Tab value="proposals">Propuestas</Tab>
-          <Tab value="reminders">Recordatorios</Tab>
+          <Tab value="proposals">{{ t('nav.proposals') }}</Tab>
+          <Tab value="reminders">{{ t('nav.reminders') }}</Tab>
           <Tab value="integrations">{{ t('integrations.tabIntegrations') }}</Tab>
           <Tab value="calendar">{{ t('calendar.tabCalendar') }}</Tab>
         </TabList>
