@@ -145,16 +145,16 @@ const weekDayLabels = computed(() =>
 )
 
 // ── Duration presets ─────────────────────────────────────────────────
-const durationPresets = [
-  { label: '15 min', value: 15, icon: '⏱' },
-  { label: '30 min', value: 30, icon: '⏱' },
-  { label: '1 hora', value: 60, icon: '⏱' },
-  { label: '1.5 horas', value: 90, icon: '⏱' },
-  { label: '2 horas', value: 120, icon: '⏱' },
-  { label: '3 horas', value: 180, icon: '⏱' },
-  { label: '4 horas', value: 240, icon: '⏱' },
-  { label: 'Todo el día', value: 480, icon: '📅' },
-]
+const durationPresets = computed(() => [
+  { label: t('calendar.d15min'), value: 15, icon: '⏱' },
+  { label: t('calendar.d30min'), value: 30, icon: '⏱' },
+  { label: t('calendar.d1hour'), value: 60, icon: '⏱' },
+  { label: t('calendar.d15hours'), value: 90, icon: '⏱' },
+  { label: t('calendar.d2hours'), value: 120, icon: '⏱' },
+  { label: t('calendar.d3hours'), value: 180, icon: '⏱' },
+  { label: t('calendar.d4hours'), value: 240, icon: '⏱' },
+  { label: t('calendar.allDay'), value: 480, icon: '📅' },
+])
 
 // ── Event type to default duration ─────────────────────────────────
 const eventTypeDefaultDuration: Record<CalendarEventType, number> = {
