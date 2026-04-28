@@ -34,9 +34,9 @@ async function saveAvatar() {
   savingAvatar.value = true
   try {
     await authStore.updateAvatar(avatarUrl.value.trim())
-    toast.success('Foto de perfil actualizada')
+    toast.success(t('settings.avatarSaved'))
   } catch {
-    toast.error('No se pudo actualizar la foto de perfil')
+    toast.error(t('settings.avatarError'))
   } finally {
     savingAvatar.value = false
   }
@@ -140,9 +140,9 @@ async function saveSlaConfig() {
       high:     slaHigh.value,
       critical: slaCritical.value,
     })
-    toast.success('Configuración SLA guardada')
+    toast.success(t('settings.slaSaved'))
   } catch {
-    toast.error('No se pudo guardar la configuración SLA')
+    toast.error(t('settings.slaError'))
   } finally {
     savingSla.value = false
   }
@@ -159,24 +159,24 @@ const googleConnected = computed(() => googleStatus.value?.connected ?? false)
 const googleEmail = computed(() => googleStatus.value?.email)
 
 // ── Translations for Google Calendar ─────────────────────────
-const googleCalendarLabel = computed(() => googleConnected.value ? 'Conectado' : 'No conectado')
+const googleCalendarLabel = computed(() => googleConnected.value ? t('settings.connected') : t('settings.notConnected'))
 
 async function disconnectGoogle() {
   try {
     await calendarSettingsService.disconnect()
     await refetchGoogle()
-    toast.success('Google Calendar desconectado')
+    toast.success(t('settings.googleDisconnected'))
   } catch {
-    toast.error('No se pudo desconectar')
+    toast.error(t('settings.googleDisconnectError'))
   }
 }
 
 async function syncGoogleNow() {
   try {
     await calendarSettingsService.syncNow()
-    toast.success('Sincronización iniciada')
+    toast.success(t('settings.syncStarted'))
   } catch {
-    toast.error('No se pudo iniciar sincronización')
+    toast.error(t('settings.syncError'))
   }
 }
 </script>
@@ -195,8 +195,8 @@ async function syncGoogleNow() {
         <Tab value="profile">{{ t('settings.tabProfile') }}</Tab>
         <Tab value="security">{{ t('settings.tabSecurity') }}</Tab>
         <Tab value="notifications">{{ t('settings.tabNotifications') }}</Tab>
-        <Tab value="sla">Configuración SLA</Tab>
-        <Tab value="google">Google Calendar</Tab>
+        <Tab value="sla">{{ t('settings.tabSla') }}</Tab>
+        <Tab value="google">{{ t('settings.tabGoogle') }}</Tab>
       </TabList>
       <TabPanels class="mt-4">
         <TabPanel value="profile">
@@ -285,10 +285,10 @@ async function syncGoogleNow() {
 
             <div v-else class="space-y-4">
               <div v-for="item in [
-                { label: 'LOW — Baja prioridad',     desc: 'Para incidencias de baja urgencia',     model: slaLow,      placeholder: '48' },
-                { label: 'MEDIUM — Prioridad media', desc: 'Para incidencias estándar',              model: slaMedium,   placeholder: '24' },
-                { label: 'HIGH — Alta prioridad',    desc: 'Para incidencias urgentes',              model: slaHigh,     placeholder: '8' },
-                { label: 'CRITICAL — Crítica',       desc: 'Para caídas del sistema o emergencias',  model: slaCritical, placeholder: '2' },
+                { label: t('settings.slaLow'),     desc: t('settings.slaLowDesc'),     model: slaLow,      placeholder: '48' },
+                { label: t('settings.slaMedium'),   desc: t('settings.slaMediumDesc'),   model: slaMedium,   placeholder: '24' },
+                { label: t('settings.slaHigh'),    desc: t('settings.slaHighDesc'),    model: slaHigh,     placeholder: '8' },
+                { label: t('settings.slaCritical'), desc: t('settings.slaCriticalDesc'), model: slaCritical, placeholder: '2' },
               ]" :key="item.label" class="flex items-center justify-between gap-4 py-2 border-b border-border last:border-0">
                 <div class="min-w-0 flex-1">
                   <p class="text-sm font-medium text-[var(--text)]">{{ item.label }}</p>

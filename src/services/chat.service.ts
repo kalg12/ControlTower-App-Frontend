@@ -64,4 +64,8 @@ export const chatService = {
     const res = await api.get<ChatQuickReply[]>('/chat/quick-replies')
     return res.data
   },
+
+  async setPresence(online: boolean): Promise<void> {
+    await api.post('/chat/presence', { online })
+  },
 }

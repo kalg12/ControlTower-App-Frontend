@@ -121,6 +121,10 @@ function emptyLabel() {
   return t(`chatModule.empty.${activeTab.value === 'ALL' ? 'all' : activeTab.value.toLowerCase()}`)
 }
 
+// ── Agent presence ─────────────────────────────────────────────────────────
+
+const isOnline = ref(false)
+
 // ── STOMP real-time ────────────────────────────────────────────────────────
 
 const stompClient = ref<StompClient | null>(null)
@@ -142,7 +146,13 @@ onMounted(() => {
   stompClient.value = client
 })
 
-onUnmounted(() => stompClient.value?.deactivate())
+onUnmounted(async () => {
+  stompClient.value?.deactivate()
+  if (isOnline.value) {
+    await chatService.setPresence(false).catch(() => {})
+    isOnline.value = false
+  }
+})
 </script>
 
 <template>
@@ -157,6 +167,11 @@ onUnmounted(() => stompClient.value?.deactivate())
           <h1 class="text-xl font-bold text-[var(--text)] flex items-center gap-2">
             <MessageSquare class="w-5 h-5 text-[var(--primary)]" />
             {{ t('chatModule.title') }}
+            <span
+              :class="isOnline ? 'bg-green-500' : 'bg-gray-300 dark:bg-gray-600'"
+              class="inline-block w-2.5 h-2.5 rounded-full ml-1"
+              :title="isOnline ? t('chatModule.presence.online') : t('chatModule.presence.offline')"
+            />
             <span v-if="waitingCount > 0"
               class="inline-flex items-center justify-center w-5 h-5 rounded-full bg-[var(--primary)] text-white text-[10px] font-bold animate-pulse">
               {{ waitingCount }}
