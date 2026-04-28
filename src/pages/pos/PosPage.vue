@@ -619,7 +619,7 @@ async function resolveIncident(inc: HealthIncident) {
       <div v-if="guideApiKey" class="rounded-lg border border-amber-300 bg-amber-50 dark:bg-amber-950/30 p-4 space-y-2">
         <p class="text-sm font-semibold text-amber-800 dark:text-amber-300">
           <i class="pi pi-exclamation-triangle mr-1" />
-          Copia esta clave ahora — no se vuelve a mostrar
+          {{ t('pos.apiKeyWarning') }}
         </p>
         <div class="flex items-center gap-2 bg-white dark:bg-zinc-900 border border-[var(--border)] rounded px-3 py-2">
           <code class="flex-1 text-xs font-mono break-all text-[var(--text)]">{{ guideApiKey }}</code>
@@ -630,16 +630,16 @@ async function resolveIncident(inc: HealthIncident) {
       </div>
       <div v-else class="rounded-lg border border-[var(--border)] bg-[var(--surface)] px-4 py-3 text-xs text-[var(--text-muted)]">
         <i class="pi pi-info-circle mr-1" />
-        La clave API ya no es visible. Si la perdiste, usa <strong>Editar → Regenerar clave</strong>.
+        {{ t('pos.apiKeyLost') }}
       </div>
 
       <!-- .env block -->
       <div class="space-y-1">
         <div class="flex items-center justify-between">
-          <p class="text-sm font-semibold text-[var(--text)]">Archivo .env para tu POS</p>
+          <p class="text-sm font-semibold text-[var(--text)]">{{ t('pos.envFile') }}</p>
           <button class="text-xs text-[var(--primary)] hover:underline flex items-center gap-1" @click="copy(guideDotEnv, 'dotenv')">
             <i :class="copiedKey === 'dotenv' ? 'pi pi-check text-green-500' : 'pi pi-copy'" class="text-xs" />
-            {{ copiedKey === 'dotenv' ? 'Copiado' : 'Copiar .env' }}
+            {{ copiedKey === 'dotenv' ? t('pos.copied') : t('pos.copyEnv') }}
           </button>
         </div>
         <pre class="text-xs font-mono bg-zinc-900 text-green-300 rounded-lg p-4 overflow-x-auto whitespace-pre">{{ guideDotEnv }}</pre>
@@ -647,18 +647,18 @@ async function resolveIncident(inc: HealthIncident) {
 
       <!-- Expected /health format -->
       <div class="space-y-1">
-        <p class="text-sm font-semibold text-[var(--text)]">Formato que debe responder tu endpoint /health</p>
+        <p class="text-sm font-semibold text-[var(--text)]">{{ t('pos.healthFormat') }}</p>
         <pre class="text-xs font-mono bg-zinc-900 text-blue-300 rounded-lg p-4 overflow-x-auto whitespace-pre">{{ guideHealthFormat }}</pre>
-        <p class="text-xs text-[var(--text-muted)]">El campo <code class="font-mono">status</code> acepta: <code class="font-mono">"ok"</code>, <code class="font-mono">"degraded"</code> o <code class="font-mono">"down"</code>.</p>
+        <p class="text-xs text-[var(--text-muted)]">{{ t('pos.healthStatusHint') }}</p>
       </div>
 
       <!-- URLs -->
       <div class="space-y-1">
         <div class="flex items-center justify-between">
-          <p class="text-sm font-semibold text-[var(--text)]">URLs para llamar a Control Tower</p>
+          <p class="text-sm font-semibold text-[var(--text)]">{{ t('pos.controlTowerUrls') }}</p>
           <button class="text-xs text-[var(--primary)] hover:underline flex items-center gap-1" @click="copy(guideUrls, 'urls')">
             <i :class="copiedKey === 'urls' ? 'pi pi-check text-green-500' : 'pi pi-copy'" class="text-xs" />
-            {{ copiedKey === 'urls' ? 'Copiado' : 'Copiar URLs' }}
+            {{ copiedKey === 'urls' ? t('pos.copied') : t('pos.copyUrls') }}
           </button>
         </div>
         <pre class="text-xs font-mono bg-zinc-900 text-yellow-300 rounded-lg p-4 overflow-x-auto whitespace-pre">{{ guideUrls }}</pre>
@@ -666,42 +666,42 @@ async function resolveIncident(inc: HealthIncident) {
     </div>
 
     <template #footer>
-      <Button label="Entendido" icon="pi pi-check" @click="showGuide = false" />
+      <Button :label="t('pos.understood')" icon="pi pi-check" @click="showGuide = false" />
     </template>
   </Dialog>
 
   <!-- ── Edit Dialog ────────────────────────────────────────────────── -->
-  <Dialog v-model:visible="showEdit" header="Editar POS" modal :style="{ width: '480px' }">
+  <Dialog v-model:visible="showEdit" :header="t('pos.editPos')" modal :style="{ width: '480px' }">
     <div class="flex flex-col gap-4 pt-2">
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-[var(--text)]">Nombre del POS</label>
+        <label class="text-sm font-medium text-[var(--text)]">{{ t('pos.posName') }}</label>
         <InputText v-model="editName" :placeholder="t('pos.posNamePlaceholder')" class="w-full" />
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-[var(--text)]">URL del endpoint /health</label>
+        <label class="text-sm font-medium text-[var(--text)]">{{ t('pos.posUrlRequired') }}</label>
         <InputText v-model="editUrl" :placeholder="t('pos.posUrlPlaceholder')" class="w-full" />
         <p v-if="editUrlPreview && editUrlPreview !== editUrl.trim()" class="text-xs text-blue-600 dark:text-blue-400">
-          → Se guardará como: <code class="font-mono">{{ editUrlPreview }}</code>
+          → {{ t('pos.savedAs') }} <code class="font-mono">{{ editUrlPreview }}</code>
         </p>
       </div>
       <div class="flex flex-col gap-1">
-        <label class="text-sm font-medium text-[var(--text)]">Frecuencia de monitoreo (segundos)</label>
+        <label class="text-sm font-medium text-[var(--text)]">{{ t('pos.frequencySeconds') }}</label>
         <InputNumber v-model="editInterval" :min="30" :max="86400" class="w-full" />
       </div>
 
       <!-- Regenerar clave -->
       <div class="rounded-lg border border-[var(--border)] p-3 space-y-2">
-        <p class="text-xs font-medium text-[var(--text-muted)]">Regenerar clave API</p>
-        <p class="text-xs text-[var(--text-muted)]">Se generará una nueva clave y se mostrará en la guía de conexión. La clave anterior quedará inválida.</p>
-        <Button label="Generar nueva clave" icon="pi pi-refresh" severity="warn" outlined size="small"
+        <p class="text-xs font-medium text-[var(--text-muted)]">{{ t('pos.regenerateKey') }}</p>
+        <p class="text-xs text-[var(--text-muted)]">{{ t('pos.newApiKeyNote') }}</p>
+        <Button :label="t('pos.generateNewKey')" icon="pi pi-refresh" severity="warn" outlined size="small"
           :loading="regenLoading" @click.prevent="regenerateKey" />
       </div>
     </div>
 
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="Cancelar" severity="secondary" outlined :disabled="editLoading" @click="showEdit = false" />
-        <Button label="Guardar" icon="pi pi-check" :loading="editLoading" @click="submitEdit" />
+        <Button :label="t('common.cancel')" severity="secondary" outlined :disabled="editLoading" @click="showEdit = false" />
+        <Button :label="t('common.save')" icon="pi pi-check" :loading="editLoading" @click="submitEdit" />
       </div>
     </template>
   </Dialog>
