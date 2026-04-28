@@ -427,7 +427,7 @@ const showReminderDialog = ref(false)
 async function completeReminder(reminder: ClientReminder) {
   try {
     await remindersService.complete(reminder.id)
-    toast.success(t('calendar.reminderCompleted') || 'Reminder completed')
+    toast.success(t('calendar.reminderCompleted'))
     refetchReminders()
   } catch {
     toast.error(t('errors.loadFailed'))
@@ -437,7 +437,7 @@ async function completeReminder(reminder: ClientReminder) {
 async function snoozeReminder(reminder: ClientReminder) {
   try {
     await remindersService.snooze(reminder.id, 1)
-    toast.success(t('calendar.reminderSnoozed') || 'Reminder snoozed for 1 day')
+    toast.success(t('calendar.reminderSnoozed'))
     refetchReminders()
   } catch {
     toast.error(t('errors.loadFailed'))
@@ -498,6 +498,18 @@ function statusSeverity(s: CalendarEventStatus): string {
   return map[s] ?? 'secondary'
 }
 
+function contactChannelLabel(channel: ContactChannel): string {
+  const map: Record<ContactChannel, string> = {
+    WHATSAPP: t('calendar.channelWhatsapp'),
+    INSTAGRAM: t('calendar.channelInstagram'),
+    FACEBOOK: t('calendar.channelFacebook'),
+    EMAIL: t('calendar.channelEmail'),
+    PHONE: t('calendar.channelPhone'),
+    IN_PERSON: t('calendar.channelInPerson')
+  }
+  return map[channel] ?? channel
+}
+
 function formatDateTime(iso: string): string {
   return dayjs(iso).format('DD MMM YYYY HH:mm')
 }
@@ -517,7 +529,7 @@ function formatDateTime(iso: string): string {
               : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]'"
             @click="activeTab = 'events'"
           >
-            {{ t('calendar.events') || 'Events' }}
+            {{ t('calendar.events') }}
           </button>
           <button
             class="px-3 py-1.5 text-sm rounded-lg transition-colors"
@@ -526,7 +538,7 @@ function formatDateTime(iso: string): string {
               : 'bg-[var(--surface-raised)] text-[var(--text-muted)] hover:bg-[var(--surface-hover)]'"
             @click="activeTab = 'reminders'"
           >
-            {{ t('calendar.reminders') || 'Reminders' }}
+            {{ t('calendar.reminders') }}
           </button>
         </div>
       </div>
@@ -648,7 +660,7 @@ function formatDateTime(iso: string): string {
               @click="openDetail(event)"
             >{{ event.title }}</button>
             <div v-if="cell.events.length > 3" class="text-[10px] text-[var(--text-muted)] pl-1">
-              +{{ cell.events.length - 3 }} más
+              +{{ cell.events.length - 3 }} {{ t('calendar.more') }}
             </div>
           </div>
         </div>
@@ -659,12 +671,12 @@ function formatDateTime(iso: string): string {
     <div v-else-if="activeTab === 'reminders'" class="rounded-xl border border-[var(--border)] bg-[var(--surface)] overflow-hidden">
       <div class="p-4">
         <div class="flex items-center justify-between mb-4">
-          <h2 class="text-lg font-semibold">{{ t('calendar.reminders') || 'Client Reminders' }}</h2>
-          <Button v-if="canWrite" :label="t('calendar.newReminder') || 'New Reminder'" icon="pi pi-plus" size="small" @click="showReminderDialog = true" />
+          <h2 class="text-lg font-semibold">{{ t('calendar.reminders') }}</h2>
+          <Button v-if="canWrite" :label="t('calendar.newReminder')" icon="pi pi-plus" size="small" @click="showReminderDialog = true" />
         </div>
         
         <div v-if="!reminders?.length" class="text-center py-8 text-[var(--text-muted)]">
-          {{ t('calendar.noReminders') || 'No reminders configured' }}
+          {{ t('calendar.noReminders') }}
         </div>
         
         <div v-else class="space-y-2">
@@ -677,8 +689,8 @@ function formatDateTime(iso: string): string {
               <p class="font-medium">{{ reminder.title }}</p>
               <p v-if="reminder.description" class="text-sm text-[var(--text-muted)]">{{ reminder.description }}</p>
               <p class="text-xs text-[var(--text-muted)]">
-                {{ t('calendar.nextDue') || 'Next due' }}: {{ dayjs(reminder.nextDueDate).format('DD/MM/YYYY HH:mm') }}
-                <span v-if="reminder.occurrencesCount"> ({{ reminder.occurrencesCount }} {{ t('calendar.completed') || 'completed' }})</span>
+                {{ t('calendar.nextDue') }}: {{ dayjs(reminder.nextDueDate).format('DD/MM/YYYY HH:mm') }}
+                <span v-if="reminder.occurrencesCount"> ({{ reminder.occurrencesCount }} {{ t('calendar.completed') }})</span>
               </p>
             </div>
             <div class="flex items-center gap-2">
@@ -728,10 +740,10 @@ function formatDateTime(iso: string): string {
           <div class="flex flex-col gap-1">
             <div class="flex items-center gap-2 mb-1">
               <ToggleSwitch v-model="form.allDay" input-id="allDay" />
-              <label class="text-sm font-medium cursor-pointer" for="allDay">Todo el día</label>
+              <label class="text-sm font-medium cursor-pointer" for="allDay">{{ t('calendar.allDay') }}</label>
             </div>
             <div v-if="!form.allDay">
-              <label class="text-xs text-[var(--text-muted)]">Fecha y hora de inicio</label>
+              <label class="text-xs text-[var(--text-muted)]">{{ t('calendar.startDateTime') }}</label>
               <DatePicker
                 v-model="form.startAt"
                 showTime
@@ -740,7 +752,7 @@ function formatDateTime(iso: string): string {
                 class="w-full"
                 :showIcon="false"
                 :manualInput="true"
-                placeholder="Seleccionar fecha y hora"
+                :placeholder="t('calendar.selectDateTime')"
               />
             </div>
             <div v-else>
@@ -750,7 +762,7 @@ function formatDateTime(iso: string): string {
 
           <!-- Duration or End time -->
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">{{ form.allDay ? 'Fin del día' : 'Duración' }}</label>
+            <label class="text-sm font-medium">{{ form.allDay ? t('calendar.endOfDay') : t('calendar.duration') }}</label>
             <div v-if="!form.allDay" class="flex flex-wrap gap-1">
               <button
                 v-for="preset in durationPresets"
@@ -965,7 +977,7 @@ function formatDateTime(iso: string): string {
         <!-- Channel -->
         <div v-if="selectedEvent.contactChannel" class="text-sm">
           <p class="text-[var(--text-muted)] text-xs">{{ t('calendar.contactChannel') }}</p>
-          <p class="font-medium text-[var(--text)]">{{ selectedEvent.contactChannel }}</p>
+          <p class="font-medium text-[var(--text)]">{{ contactChannelLabel(selectedEvent.contactChannel) }}</p>
         </div>
 
         <!-- Notes -->
