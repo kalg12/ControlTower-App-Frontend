@@ -101,15 +101,15 @@ const userOpts = computed(() => [
 ]);
 
 const leadSourceOpts = [
-  { label: "WhatsApp", value: "WHATSAPP" },
-  { label: "Instagram", value: "INSTAGRAM" },
-  { label: "Facebook", value: "FACEBOOK" },
-  { label: "TikTok", value: "TIKTOK" },
-  { label: "Referido", value: "REFERRAL" },
-  { label: "Entrada directa", value: "INBOUND" },
-  { label: "Sitio web", value: "WEBSITE" },
-  { label: "Evento", value: "EVENT" },
-  { label: "Otro", value: "OTHER" },
+  { label: t("persons.sourceWhatsapp"), value: "WHATSAPP" },
+  { label: t("persons.sourceInstagram"), value: "INSTAGRAM" },
+  { label: t("persons.sourceFacebook"), value: "FACEBOOK" },
+  { label: t("persons.sourceTiktok"), value: "TIKTOK" },
+  { label: t("persons.sourceReferral"), value: "REFERRAL" },
+  { label: t("persons.sourceInbound"), value: "INBOUND" },
+  { label: t("persons.sourceWebsite"), value: "WEBSITE" },
+  { label: t("persons.sourceEvent"), value: "EVENT" },
+  { label: t("persons.sourceOther"), value: "OTHER" },
 ];
 
 const statusOpts = [
