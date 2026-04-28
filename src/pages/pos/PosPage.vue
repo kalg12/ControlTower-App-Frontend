@@ -23,6 +23,7 @@ import { integrationsService } from '@/services/integrations.service'
 import { healthService } from '@/services/health.service'
 import { clientsService } from '@/services/clients.service'
 import { useToast } from '@/composables/useToast'
+import { useAuthStore } from '@/stores/auth'
 import type { Integration, IntegrationCreateResponse } from '@/types/integration'
 import type { HealthCheck, HealthIncident } from '@/types/health'
 
@@ -33,6 +34,7 @@ const { t } = useI18n()
 const qc = useQueryClient()
 const toast = useToast()
 const confirm = useConfirm()
+const auth = useAuthStore()
 
 const activeTab = ref('endpoints')
 const ctBaseUrl = (import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/api\/v1$/, '')
@@ -219,11 +221,18 @@ function openSetupGuide(result: IntegrationCreateResponse | Integration, isNew =
 const guideDotEnv = computed(() => {
   const ep = guideEndpoint.value
   if (!ep) return ''
+  const tenantId = auth.user?.tenantId ?? '<tu-tenant-id>'
+  const widgetUrl = `${typeof window !== 'undefined' ? window.location.origin : ctBaseUrl}/widget/chat`
   return `# Control Tower — Variables de conexión
 CT_BASE_URL=${ctBaseUrl}
 CT_API_KEY=${guideApiKey.value ?? '<regenera la clave desde Editar>'}
 CT_ENDPOINT_ID=${ep.id}
-CT_BRANCH_SLUG=${ep.branchSlug ?? '<slug-sucursal>'}`
+CT_BRANCH_SLUG=${ep.branchSlug ?? '<slug-sucursal>'}
+
+# Control Tower — Live Chat (widget)
+NEXT_PUBLIC_CT_BASE_URL=${ctBaseUrl}
+NEXT_PUBLIC_CT_WIDGET_URL=${widgetUrl}
+NEXT_PUBLIC_CT_TENANT_ID=${tenantId}`
 })
 
 const guideHealthFormat = `{
