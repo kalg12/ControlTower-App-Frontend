@@ -184,7 +184,7 @@ async function submitRegister() {
     showRegister.value = false
     openSetupGuide(result, true)
   } catch {
-    toast.error('Error al registrar el POS')
+    toast.error(t('pos.registerError'))
   } finally {
     regLoading.value = false
   }
@@ -261,9 +261,9 @@ async function checkNow(ep: Integration) {
   try {
     await integrationsService.checkNow(ep.id)
     await qc.invalidateQueries({ queryKey: ['pos-health-checks'] })
-    toast.success('Verificación lanzada')
+    toast.success(t('pos.healthCheckLaunched'))
   } catch {
-    toast.error('Error al verificar')
+    toast.error(t('pos.healthCheckError'))
   } finally {
     checkingId.value = null
   }
