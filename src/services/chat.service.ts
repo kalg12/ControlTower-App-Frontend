@@ -65,6 +65,11 @@ export const chatService = {
     return res.data
   },
 
+  async getMyPresence(): Promise<boolean> {
+    const res = await api.get<{ online: boolean }>('/chat/presence')
+    return res.data.online
+  },
+
   async setPresence(online: boolean): Promise<void> {
     await api.post('/chat/presence', { online })
   },

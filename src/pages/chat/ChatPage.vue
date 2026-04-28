@@ -162,7 +162,12 @@ async function togglePresence() {
 
 const stompClient = ref<StompClient | null>(null);
 
-onMounted(() => {
+onMounted(async () => {
+  // Restore presence state from DB (survives F5 / tab reloads)
+  try {
+    isOnline.value = await chatService.getMyPresence();
+  } catch {}
+
   if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
   const baseUrl = (
     import.meta.env.VITE_WS_URL ?? "ws://localhost:8080"
