@@ -29,7 +29,39 @@
     "loadingFailed": "Error al cargar. Revisa tu conexión.",
     "deleteFailed": "Error al eliminar",
     "saveFailed": "Error al guardar",
-    "actions": "Acciones"
+    "actions": "Acciones",
+    "cancel": "Cancelar"
+  },
+  "fields": {
+    "client": "Cliente",
+    "title": "Título",
+    "description": "Descripción",
+    "currency": "Moneda",
+    "validUntil": "Válida hasta",
+    "iva": "IVA (%)",
+    "itemDescription": "Descripción",
+    "quantity": "Cantidad",
+    "unitPrice": "Precio unit.",
+    "subtotal": "Subtotal",
+    "total": "Total",
+    "internalNotes": "Notas internas",
+    "terms": "Términos y condiciones",
+    "notes": "Notas"
+  },
+  "placeholders": {
+    "selectClient": "Seleccionar cliente",
+    "proposalTitle": "Propuesta de servicios...",
+    "proposalDescription": "Descripción general de la propuesta...",
+    "itemDescription": "Descripción del servicio",
+    "internalNotes": "Notas internas (no visibles para el cliente)...",
+    "terms": "Términos y condiciones aplicables...",
+    "zero": "0"
+  },
+  "buttons": {
+    "cancel": "Cancelar",
+    "addLine": "Agregar línea",
+    "saveProposal": "Guardar propuesta",
+    "downloadPdf": "Descargar PDF"
   },
   "nav": {
     "main": "Principal",
@@ -877,7 +909,48 @@
     "total": "Total",
     "validUntil": "Válida hasta",
     "createdAt": "Creada",
-    "empty": "No hay propuestas. Crea la primera."
+    "empty": "No hay propuestas. Crea la primera.",
+    "editTitle": "Editar Propuesta",
+    "newTitle": "Nueva Propuesta Económica",
+    "items": "Conceptos",
+    "addLine": "Agregar línea",
+    "saveProposal": "Guardar propuesta",
+    "saveSuccess": "Propuesta guardada correctamente",
+    "updateSuccess": "Propuesta actualizada correctamente",
+    "createFailed": "Error al crear la propuesta",
+    "updateFailed": "Error al actualizar la propuesta",
+    "validationRequired": "Cliente y título son requeridos",
+    "discount": "Descuento",
+    "discountLabel": "Descuento",
+    "currencyMXN": "MXN — Peso Mexicano",
+    "currencyUSD": "USD — Dólar",
+    "discountPercentage": "%  Porcentaje",
+    "discountFixed": "$  Monto fijo",
+    "pdfFilename": "propuesta",
+    "fields": {
+      "client": "Cliente",
+      "title": "Título",
+      "description": "Descripción",
+      "currency": "Moneda",
+      "validUntil": "Válida hasta",
+      "iva": "IVA (%)",
+      "itemDescription": "Descripción",
+      "quantity": "Cantidad",
+      "unitPrice": "Precio unit.",
+      "subtotal": "Subtotal",
+      "total": "Total",
+      "internalNotes": "Notas internas",
+      "terms": "Términos y condiciones",
+      "notes": "Notas"
+    },
+    "placeholders": {
+      "selectClient": "Seleccionar cliente",
+      "proposalTitle": "Propuesta de servicios...",
+      "proposalDescription": "Descripción general de la propuesta...",
+      "itemDescription": "Descripción del servicio",
+      "internalNotes": "Notas internas (no visibles para el cliente)...",
+      "terms": "Términos y condiciones aplicables..."
+    }
   },
   "persons": {
     "title": "Personas",

@@ -130,40 +130,40 @@ const saveMut = useMutation({
       : remindersService.create(payload)
   },
   onSuccess: () => {
-    toast.success(editingId.value ? 'Recordatorio actualizado' : 'Recordatorio creado')
+    toast.success(editingId.value ? t('reminders.updated') : t('reminders.created'))
     showDialog.value = false
     queryClient.invalidateQueries({ queryKey: ['reminders'] })
   },
-  onError: () => toast.error('Error al guardar recordatorio'),
+  onError: () => toast.error(t('reminders.saveFailed')),
 })
 
 const completeMut = useMutation({
   mutationFn: (id: string) => remindersService.complete(id),
-  onSuccess: () => { toast.success('Completado'); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
+  onSuccess: () => { toast.success(t('reminders.completed')); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
 })
 
 const snoozeMut = useMutation({
   mutationFn: (id: string) => remindersService.snooze(id, 1),
-  onSuccess: () => { toast.success('Pospuesto 1 día'); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
+  onSuccess: () => { toast.success(t('reminders.snoozed')); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
 })
 
 const pauseMut = useMutation({
   mutationFn: (r: ClientReminder) => r.status === 'PAUSED' ? remindersService.resume(r.id) : remindersService.pause(r.id),
-  onSuccess: () => { toast.success('Estado actualizado'); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
+  onSuccess: () => { toast.success(t('reminders.statusUpdated')); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
 })
 
 const deleteMut = useMutation({
   mutationFn: (id: string) => remindersService.delete(id),
-  onSuccess: () => { toast.success('Eliminado'); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
+  onSuccess: () => { toast.success(t('reminders.deleted')); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
 })
 
 function confirmDelete(r: ClientReminder) {
   confirm.require({
-    message: `¿Eliminar recordatorio "${r.title}"?`,
-    header: 'Eliminar recordatorio',
+    message: t('reminders.deleteConfirm', { title: r.title }),
+    header: t('reminders.deleteHeader'),
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
-    acceptProps: { label: 'Eliminar', severity: 'danger' },
+    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('common.delete'), severity: 'danger' },
     accept: () => deleteMut.mutate(r.id),
   })
 }
@@ -187,10 +187,10 @@ function openHistory(r: ClientReminder) {
   <div class="space-y-4 p-4">
     <div class="flex items-center justify-between flex-wrap gap-3">
       <div>
-        <h1 class="text-xl font-bold text-[var(--text)]">Recordatorios</h1>
-        <p class="text-sm text-[var(--text-muted)]">Recordatorios recurrentes vinculados a clientes</p>
+        <h1 class="text-xl font-bold text-[var(--text)]">{{ t('reminders.title') }}</h1>
+        <p class="text-sm text-[var(--text-muted)]">{{ t('reminders.subtitle') }}</p>
       </div>
-      <Button label="Nuevo recordatorio" icon="pi pi-plus" @click="openCreateDialog" />
+      <Button :label="t('reminders.new')" icon="pi pi-plus" @click="openCreateDialog" />
     </div>
 
     <!-- Filters -->
@@ -200,88 +200,88 @@ function openHistory(r: ClientReminder) {
     </div>
 
     <DataTable :value="reminders" :loading="isLoading" stripedRows>
-      <Column field="clientName" header="Cliente" />
-      <Column field="title" header="Título" />
-      <Column header="Recurrencia" style="width:140px">
+      <Column :header="t('reminders.client')" field="clientName" />
+      <Column :header="t('reminders.titleCol')" field="title" />
+      <Column :header="t('reminders.recurrence')" style="width:140px">
         <template #body="{ data }">{{ recurrenceLabel(data.recurrenceType, data.recurrenceDays) }}</template>
       </Column>
-      <Column header="Próxima fecha" style="width:130px">
+      <Column :header="t('reminders.nextDate')" style="width:130px">
         <template #body="{ data }">{{ dayjs(data.nextDueDate).format('DD MMM YYYY') }}</template>
       </Column>
-      <Column header="Estado" style="width:110px">
+      <Column :header="t('reminders.status')" style="width:110px">
         <template #body="{ data }">
           <Tag :severity="statusSeverity(data.status)" :value="statusLabel(data.status)" />
         </template>
       </Column>
-      <Column header="Acciones" style="width:220px">
+      <Column :header="t('common.actions')" style="width:220px">
         <template #body="{ data }">
           <div class="flex gap-1 flex-wrap">
-            <Button v-if="data.status === 'ACTIVE'" icon="pi pi-check" size="small" severity="success" text rounded v-tooltip="'Completar'" @click="completeMut.mutate(data.id)" />
-            <Button v-if="data.status === 'ACTIVE'" icon="pi pi-clock" size="small" severity="warn" text rounded v-tooltip="'Posponer 1 día'" @click="snoozeMut.mutate(data.id)" />
-            <Button :icon="data.status === 'PAUSED' ? 'pi pi-play' : 'pi pi-pause'" size="small" severity="secondary" text rounded v-tooltip="data.status === 'PAUSED' ? 'Reanudar' : 'Pausar'" @click="pauseMut.mutate(data)" />
-            <Button icon="pi pi-pencil" size="small" severity="secondary" text rounded v-tooltip="'Editar'" @click="openEditDialog(data)" />
-            <Button icon="pi pi-history" size="small" severity="info" text rounded v-tooltip="'Historial'" @click="openHistory(data)" />
-            <Button icon="pi pi-trash" size="small" severity="danger" text rounded v-tooltip="'Eliminar'" @click="confirmDelete(data)" />
+            <Button v-if="data.status === 'ACTIVE'" icon="pi pi-check" size="small" severity="success" text rounded :tooltip="t('reminders.complete')" @click="completeMut.mutate(data.id)" />
+            <Button v-if="data.status === 'ACTIVE'" icon="pi pi-clock" size="small" severity="warn" text rounded :tooltip="t('reminders.snooze')" @click="snoozeMut.mutate(data.id)" />
+            <Button :icon="data.status === 'PAUSED' ? 'pi pi-play' : 'pi pi-pause'" size="small" severity="secondary" text rounded :tooltip="data.status === 'PAUSED' ? t('reminders.resume') : t('reminders.pause')" @click="pauseMut.mutate(data)" />
+            <Button icon="pi pi-pencil" size="small" severity="secondary" text rounded :tooltip="t('common.edit')" @click="openEditDialog(data)" />
+            <Button icon="pi pi-history" size="small" severity="info" text rounded :tooltip="t('reminders.history')" @click="openHistory(data)" />
+            <Button icon="pi pi-trash" size="small" severity="danger" text rounded :tooltip="t('common.delete')" @click="confirmDelete(data)" />
           </div>
         </template>
       </Column>
       <template #empty>
-        <div class="text-center py-8 text-[var(--text-muted)] text-sm">No hay recordatorios.</div>
+        <div class="text-center py-8 text-[var(--text-muted)] text-sm">{{ t('reminders.empty') }}</div>
       </template>
     </DataTable>
 
     <!-- Create/Edit Dialog -->
-    <Dialog v-model:visible="showDialog" :header="editingId ? 'Editar recordatorio' : 'Nuevo recordatorio'" modal class="w-full max-w-lg">
+    <Dialog v-model:visible="showDialog" :header="editingId ? t('reminders.edit') : t('reminders.new')" modal class="w-full max-w-lg">
       <div class="flex flex-col gap-4 pt-2">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Cliente *</label>
+          <label class="text-sm font-medium">{{ t('reminders.client') }} *</label>
           <Select v-model="formClientId" :options="clientOptions.slice(1)" option-label="label" option-value="value" filter :placeholder="t('reminders.selectClient')" class="w-full" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Título *</label>
-          <InputText v-model="formTitle" class="w-full" />
+          <label class="text-sm font-medium">{{ t('reminders.titleCol') }} *</label>
+          <InputText v-model="formTitle" :placeholder="t('reminders.titlePlaceholder')" class="w-full" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Descripción</label>
-          <Textarea v-model="formDescription" :rows="2" class="w-full" />
+          <label class="text-sm font-medium">{{ t('reminders.description') }}</label>
+          <Textarea v-model="formDescription" :rows="2" :placeholder="t('reminders.descriptionPlaceholder')" class="w-full" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Recurrencia *</label>
+            <label class="text-sm font-medium">{{ t('reminders.recurrence') }} *</label>
             <Select v-model="formRecurrenceType" :options="recurrenceOptions" option-label="label" option-value="value" class="w-full" />
           </div>
           <div v-if="formRecurrenceType === 'CUSTOM'" class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Días</label>
-            <InputNumber v-model="formRecurrenceDays" :min="1" class="w-full" />
+            <label class="text-sm font-medium">{{ t('reminders.days') }}</label>
+            <InputNumber v-model="formRecurrenceDays" :min="1" :placeholder="t('reminders.daysPlaceholder')" class="w-full" />
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Fecha inicio *</label>
+            <label class="text-sm font-medium">{{ t('reminders.startDate') }} *</label>
             <InputText v-model="formStartDate" type="date" class="w-full" />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Máx. ocurrencias</label>
+            <label class="text-sm font-medium">{{ t('reminders.maxOccurrences') }}</label>
             <InputNumber v-model="formMaxOccurrences" :min="1" :placeholder="t('reminders.noLimit')" class="w-full" />
           </div>
         </div>
       </div>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button label="Cancelar" severity="secondary" outlined @click="showDialog = false" />
-          <Button :label="editingId ? 'Guardar' : 'Crear'" :loading="saveMut.isPending.value" :disabled="!formClientId || !formTitle" @click="saveMut.mutate()" />
+          <Button :label="t('common.cancel')" severity="secondary" outlined @click="showDialog = false" />
+          <Button :label="editingId ? t('common.save') : t('common.create')" :loading="saveMut.isPending.value" :disabled="!formClientId || !formTitle" @click="saveMut.mutate()" />
         </div>
       </template>
     </Dialog>
 
     <!-- History Dialog -->
-    <Dialog v-model:visible="showHistory" header="Historial de recordatorio" modal class="w-full max-w-lg">
-      <div v-if="histLoading" class="py-6 text-center text-[var(--text-muted)]">Cargando…</div>
-      <div v-else-if="!history?.length" class="py-6 text-center text-sm text-[var(--text-muted)]">Sin historial.</div>
+    <Dialog v-model:visible="showHistory" :header="t('reminders.history')" modal class="w-full max-w-lg">
+      <div v-if="histLoading" class="py-6 text-center text-[var(--text-muted)]">{{ t('common.loading') }}</div>
+      <div v-else-if="!history?.length" class="py-6 text-center text-sm text-[var(--text-muted)]">{{ t('reminders.noHistory') }}</div>
       <div v-else class="space-y-2 max-h-80 overflow-y-auto">
         <div v-for="h in history" :key="h.id" class="flex items-start gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)]">
           <div class="flex-1">
-            <p class="text-sm font-medium text-[var(--text)]">{{ h.outcome === 'COMPLETED' ? 'Completado' : h.outcome === 'SNOOZED' ? 'Pospuesto' : 'Omitido' }}</p>
+            <p class="text-sm font-medium text-[var(--text)]">{{ h.outcome === 'COMPLETED' ? t('reminders.completed') : h.outcome === 'SNOOZED' ? t('reminders.snoozed') : t('reminders.skipped') }}</p>
             <p class="text-xs text-[var(--text-muted)]">{{ dayjs(h.completedAt).format('DD MMM YYYY HH:mm') }}</p>
             <p v-if="h.notes" class="text-xs text-[var(--text-muted)] mt-1">{{ h.notes }}</p>
           </div>

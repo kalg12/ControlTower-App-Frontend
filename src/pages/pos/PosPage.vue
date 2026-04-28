@@ -93,12 +93,12 @@ function statusSeverity(ep: Integration) {
 }
 
 function statusLabel(ep: Integration) {
-  if (!ep.active) return 'Inactivo'
+  if (!ep.active) return t('pos.inactive')
   const h = healthForEndpoint(ep)
-  if (!h) return 'Sin datos'
-  if (h.status === 'UP' || h.status === 'HEALTHY') return 'Activo'
-  if (h.status === 'DEGRADED') return 'Degradado'
-  if (h.status === 'DOWN') return 'Caído'
+  if (!h) return t('pos.noData')
+  if (h.status === 'UP' || h.status === 'HEALTHY') return t('pos.active')
+  if (h.status === 'DEGRADED') return t('pos.degraded')
+  if (h.status === 'DOWN') return t('pos.down')
   return h.status
 }
 
@@ -109,8 +109,8 @@ function lastContact(ep: Integration) {
 }
 
 function intervalLabel(secs: number) {
-  if (secs < 60) return `cada ${secs}s`
-  return `cada ${Math.round(secs / 60)} min`
+  if (secs < 60) return t('pos.everySeconds', { s: secs })
+  return t('pos.everyMinutes', { m: Math.round(secs / 60) })
 }
 
 function incidentSeverity(s: string) {
@@ -169,8 +169,8 @@ function openRegister() {
 }
 
 async function submitRegister() {
-  if (!regBranchId.value) { toast.error('Selecciona una sucursal'); return }
-  if (!regUrl.value) { toast.error('Ingresa la URL del endpoint /health'); return }
+  if (!regBranchId.value) { toast.error(t('pos.selectBranchRequired')); return }
+  if (!regUrl.value) { toast.error(t('pos.enterUrlRequired')); return }
   regLoading.value = true
   try {
     const result = await integrationsService.create({
@@ -297,8 +297,8 @@ const deleteMut = useMutation({
 
 function confirmDelete(ep: Integration) {
   confirm.require({
-    message: `¿Eliminar el POS "${ep.name ?? ep.pullUrl}"? Esta acción no se puede deshacer.`,
-    header: 'Eliminar POS',
+    message: t('pos.deleteConfirm', { name: ep.name ?? ep.pullUrl }),
+    header: t('pos.deleteHeader'),
     icon: 'pi pi-exclamation-triangle',
     acceptClass: 'p-button-danger',
     accept: () => deleteMut.mutate(ep.id),
@@ -337,9 +337,9 @@ async function submitEdit() {
     })
     qc.invalidateQueries({ queryKey: ['pos-endpoints'] })
     showEdit.value = false
-    toast.success('POS actualizado')
+    toast.success(t('pos.updated'))
   } catch {
-    toast.error('Error al guardar')
+    toast.error(t('pos.saveError'))
   } finally {
     editLoading.value = false
   }
@@ -353,7 +353,7 @@ async function regenerateKey() {
     showEdit.value = false
     openSetupGuide({ endpoint: currentEditEndpoint.value, generatedApiKey: newKey }, false, true)
   } catch {
-    toast.error('Error al regenerar clave')
+    toast.error(t('pos.regenerateError'))
   } finally {
     regenLoading.value = false
   }
@@ -369,9 +369,9 @@ async function resolveIncident(inc: HealthIncident) {
   try {
     await healthService.resolveIncident(inc.id)
     qc.invalidateQueries({ queryKey: ['pos-incidents'] })
-    toast.success('Incidente resuelto')
+    toast.success(t('pos.incidentResolved'))
   } catch {
-    toast.error('Error al resolver')
+    toast.error(t('pos.resolveError'))
   } finally {
     resolvingId.value = null
   }

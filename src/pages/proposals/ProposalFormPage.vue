@@ -97,14 +97,14 @@ function removeLine(index: number) {
   if (lineItems.value.length > 1) lineItems.value.splice(index, 1)
 }
 
-const currencyOptions = [
-  { label: 'MXN — Peso Mexicano', value: 'MXN' },
-  { label: 'USD — Dólar', value: 'USD' },
-]
-const discountTypeOptions = [
-  { label: '%  Porcentaje', value: 'PERCENTAGE' },
-  { label: '$  Monto fijo', value: 'AMOUNT' },
-]
+const currencyOptions = computed(() => [
+  { label: t('proposals.currencyMXN'), value: 'MXN' },
+  { label: t('proposals.currencyUSD'), value: 'USD' },
+])
+const discountTypeOptions = computed(() => [
+  { label: t('proposals.discountPercentage'), value: 'PERCENTAGE' },
+  { label: t('proposals.discountFixed'), value: 'AMOUNT' },
+])
 
 async function downloadPdf() {
   if (!proposalId.value) return
@@ -112,7 +112,7 @@ async function downloadPdf() {
   const url = URL.createObjectURL(new Blob([res.data], { type: 'application/pdf' }))
   const a = document.createElement('a')
   a.href = url
-  a.download = `propuesta-${proposalId.value}.pdf`
+  a.download = `${t('proposals.pdfFilename')}-${proposalId.value}.pdf`
   a.click()
   URL.revokeObjectURL(url)
 }
@@ -142,10 +142,10 @@ const createMutation = useMutation({
   mutationFn: (data: ReturnType<typeof buildPayload>) => proposalsService.create(data),
   onSuccess: (p) => {
     queryClient.invalidateQueries({ queryKey: ['proposals'] })
-    toast.success('Propuesta creada')
+    toast.success(t('proposals.saveSuccess'))
     router.push(`/proposals/${p.id}`)
   },
-  onError: () => toast.error('Error al crear la propuesta'),
+  onError: () => toast.error(t('proposals.createFailed')),
 })
 
 const updateMutation = useMutation({
@@ -153,17 +153,17 @@ const updateMutation = useMutation({
   onSuccess: (p) => {
     queryClient.invalidateQueries({ queryKey: ['proposals'] })
     queryClient.invalidateQueries({ queryKey: qk.proposal(proposalId.value!) })
-    toast.success('Propuesta actualizada')
+    toast.success(t('proposals.updateSuccess'))
     router.push(`/proposals/${p.id}`)
   },
-  onError: () => toast.error('Error al actualizar la propuesta'),
+  onError: () => toast.error(t('proposals.updateFailed')),
 })
 
 const isSubmitting = computed(() => createMutation.isPending.value || updateMutation.isPending.value)
 
 function onSubmit() {
   if (!clientId.value || !title.value) {
-    toast.warning('Cliente y título son requeridos')
+    toast.warning(t('proposals.validationRequired'))
     return
   }
   const payload = buildPayload()
@@ -181,7 +181,7 @@ function onSubmit() {
           {{ isEditing ? t('proposals.editTitle') : t('proposals.newTitle') }}
         </h1>
       </div>
-      <Button v-if="isEditing" label="Descargar PDF" icon="pi pi-download" outlined size="small" @click="downloadPdf" />
+      <Button v-if="isEditing" :label="t('buttons.downloadPdf')" icon="pi pi-download" outlined size="small" @click="downloadPdf" />
     </div>
 
     <div class="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700 p-6">
@@ -254,7 +254,7 @@ function onSubmit() {
         <!-- Discount input -->
         <div class="flex items-end gap-2">
           <div class="flex flex-col gap-1">
-            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">Descuento</label>
+            <label class="text-xs font-medium text-gray-500 dark:text-gray-400">{{ t('proposals.discount') }}</label>
             <Select v-model="discountType" :options="discountTypeOptions" optionLabel="label" optionValue="value" class="w-40" />
           </div>
           <InputNumber
@@ -267,7 +267,7 @@ function onSubmit() {
             :currency="discountType === 'AMOUNT' ? currency : undefined"
             locale="es-MX"
             inputClass="w-36 text-right"
-            placeholder="0"
+            :placeholder="t('placeholders.zero')"
           />
         </div>
 
@@ -278,7 +278,7 @@ function onSubmit() {
             <span>${{ subtotal.toLocaleString('es-MX', { minimumFractionDigits: 2 }) }}</span>
           </div>
           <div v-if="discountAmount > 0" class="flex justify-between text-red-500">
-            <span>Descuento {{ discountType === 'PERCENTAGE' ? `(${discountValue}%)` : '' }}</span>
+            <span>{{ t('proposals.discountLabel') }} {{ discountType === 'PERCENTAGE' ? `(${discountValue}%)` : '' }}</span>
             <span>-${{ discountAmount.toLocaleString('es-MX', { minimumFractionDigits: 2 }) }}</span>
           </div>
           <div class="flex justify-between text-gray-600 dark:text-gray-400">
