@@ -11,7 +11,7 @@ import { billingService } from '@/services/billing.service'
 import dayjs from 'dayjs'
 import type { BillingEvent } from '@/types/billing'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 
 const page = ref(0)
 const pageSize = 20
@@ -35,7 +35,8 @@ function eventTypeLabel(type: string) {
 }
 
 function formatAmount(amount: number, currency: string) {
-  return new Intl.NumberFormat('es-MX', { style: 'currency', currency }).format(amount / 100)
+  const numberLocale = locale.value === 'es' ? 'es-MX' : 'en-US'
+  return new Intl.NumberFormat(numberLocale, { style: 'currency', currency }).format(amount / 100)
 }
 
 function onPage(event: { page: number }) {
