@@ -51,11 +51,11 @@ function onPage(event: { page: number }) {
 const showCreateDialog = ref(false)
 const isSubmitting = ref(false)
 
-const countryOptions = [
-  { label: 'México', value: 'México' },
-  { label: 'United States', value: 'United States' },
-  { label: 'Otro', value: 'Otro' },
-]
+const countryOptions = computed(() => [
+  { label: t('tenants.countryMexico'), value: 'México' },
+  { label: t('tenants.countryUnitedStates'), value: 'United States' },
+  { label: t('tenants.countryOther'), value: 'Otro' },
+])
 
 const timezoneOptions = [
   { label: 'America/Mexico_City (CDT)', value: 'America/Mexico_City' },
@@ -191,6 +191,13 @@ function confirmSuspend(tenant: Tenant) {
     }
   })
 }
+
+function tenantStatusLabel(status?: string | null) {
+  if (status === 'ACTIVE') return t('tenants.statusActive')
+  if (status === 'SUSPENDED') return t('tenants.statusSuspended')
+  if (status === 'TRIAL') return t('tenants.statusTrial')
+  return status ?? '—'
+}
 </script>
 
 <template>
@@ -231,7 +238,7 @@ function confirmSuspend(tenant: Tenant) {
       </Column>
       <Column field="status" :header="t('tenants.status')" style="width: 120px">
         <template #body="{ data: row }: { data: Tenant }">
-          <Tag :severity="row.status === 'ACTIVE' ? 'success' : row.status === 'SUSPENDED' ? 'danger' : 'warn'" :value="row.status" />
+          <Tag :severity="row.status === 'ACTIVE' ? 'success' : row.status === 'SUSPENDED' ? 'danger' : 'warn'" :value="tenantStatusLabel(row.status)" />
         </template>
       </Column>
       <Column field="createdAt" :header="t('tenants.createdAt')" sortable style="width: 130px">
