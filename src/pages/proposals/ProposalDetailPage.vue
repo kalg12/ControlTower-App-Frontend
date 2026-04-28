@@ -199,6 +199,10 @@ function formatCurrency(amount: number, currency: string) {
             <div class="flex justify-between text-gray-500">
               <span>Subtotal</span><span>{{ formatCurrency(proposal.subtotal, proposal.currency) }}</span>
             </div>
+            <div v-if="proposal.discountAmount && proposal.discountAmount > 0" class="flex justify-between text-red-500">
+              <span>Descuento{{ proposal.discountType === 'PERCENTAGE' ? ` (${proposal.discountValue}%)` : '' }}</span>
+              <span>-{{ formatCurrency(proposal.discountAmount, proposal.currency) }}</span>
+            </div>
             <div class="flex justify-between text-gray-500">
               <span>IVA ({{ proposal.taxRate }}%)</span><span>{{ formatCurrency(proposal.taxAmount, proposal.currency) }}</span>
             </div>

@@ -37,6 +37,9 @@ export interface Proposal {
   lineItems: ProposalLineItem[]
   createdAt: string
   updatedAt: string
+  discountType?: 'PERCENTAGE' | 'AMOUNT' | null
+  discountValue?: number | null
+  discountAmount?: number | null
 }
 
 export interface ProposalLineItemRequest {
@@ -56,6 +59,8 @@ export interface ProposalRequest {
   notes?: string
   terms?: string
   lineItems: ProposalLineItemRequest[]
+  discountType?: 'PERCENTAGE' | 'AMOUNT' | null
+  discountValue?: number | null
 }
 
 export interface ProposalFilters {
