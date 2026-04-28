@@ -16,7 +16,7 @@ import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import type { ProposalStatus } from '@/types/proposal'
 
-const { t } = useI18n()
+const { t, locale } = useI18n()
 const router = useRouter()
 const queryClient = useQueryClient()
 const toast = useToast()
@@ -80,7 +80,7 @@ function statusLabel(status: ProposalStatus) {
   return t(`proposals.status.${status.toLowerCase()}`)
 }
 
-const statusOptions = [
+const statusOptions = computed(() => [
   { label: t('proposals.all'), value: undefined },
   { label: t('proposals.status.draft'), value: 'DRAFT' },
   { label: t('proposals.status.sent'), value: 'SENT' },
@@ -88,10 +88,11 @@ const statusOptions = [
   { label: t('proposals.status.accepted'), value: 'ACCEPTED' },
   { label: t('proposals.status.rejected'), value: 'REJECTED' },
   { label: t('proposals.status.expired'), value: 'EXPIRED' },
-]
+])
 
 function formatCurrency(amount: number, currency: string) {
-  return `$${amount.toLocaleString('es-MX', { minimumFractionDigits: 2 })} ${currency}`
+  const numberLocale = locale.value === 'es' ? 'es-MX' : 'en-US'
+  return `$${amount.toLocaleString(numberLocale, { minimumFractionDigits: 2 })} ${currency}`
 }
 
 function formatDate(d?: string | null) {
