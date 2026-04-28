@@ -53,6 +53,7 @@ const { data: quickReplies } = useQuery({
 // ── STOMP subscription ───────────────────────────────────────────────────────
 
 const stompClient = ref<StompClient | null>(null)
+const stompConnected = ref(false)
 
 onMounted(() => {
   if (!auth.accessToken) return
@@ -62,6 +63,7 @@ onMounted(() => {
     connectHeaders: { Authorization: `Bearer ${auth.accessToken}` },
     reconnectDelay: 5000,
     onConnect: () => {
+      stompConnected.value = true
       client.subscribe(`/topic/chat.${props.conversation.id}`, (frame) => {
         const payload: ChatMessagePayload = JSON.parse(frame.body)
         if (payload.type === 'MESSAGE' || payload.type === 'SYSTEM') {
@@ -96,38 +98,31 @@ onMounted(() => {
 })
 
 onUnmounted(() => {
+  stompConnected.value = false
   stompClient.value?.deactivate()
   if (remoteTypingTimer) clearTimeout(remoteTypingTimer)
 })
 
 // ── Send message ─────────────────────────────────────────────────────────────
 
-const sendMut = useMutation({
-  mutationFn: (content: string) => {
-    const agentId = auth.user?.id
-    if (!agentId) throw new Error('Not authenticated')
-    stompClient.value?.publish({
-      destination: '/app/chat.agent.message',
-      body: JSON.stringify({ content, conversationId: props.conversation.id }),
-    })
-    return Promise.resolve()
-  },
-})
-
 function sendMessage() {
   const text = inputText.value.trim()
-  if (!text) return
+  if (!text || !stompConnected.value) return
   if (text.startsWith('/')) {
     const reply = quickReplies.value?.find((r: ChatQuickReply) => text === r.shortcut)
     if (reply) { inputText.value = reply.content; return }
   }
-  sendMut.mutate(text)
+  stompClient.value?.publish({
+    destination: '/app/chat.agent.message',
+    body: JSON.stringify({ content: text, conversationId: props.conversation.id }),
+  })
   inputText.value = ''
   showQuickReplies.value = false
 }
 
 function onKeyDown(e: KeyboardEvent) {
-  if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    e.preventDefault()
     sendMessage()
     return
   }
@@ -339,11 +334,12 @@ function applyQuickReply(r: ChatQuickReply) {
         @blur="hideQuickRepliesDelayed()"
       />
       <button
-        class="w-9 h-9 rounded-full bg-[var(--primary)] text-white flex items-center justify-center hover:opacity-90 transition-opacity flex-shrink-0"
-        :disabled="!inputText.trim()"
+        class="w-9 h-9 rounded-full bg-[var(--primary)] text-white flex items-center justify-center hover:opacity-90 transition-opacity flex-shrink-0 disabled:opacity-40"
+        :disabled="!inputText.trim() || !stompConnected"
+        :title="!stompConnected ? 'Conectando…' : 'Enviar (Enter)'"
         @click="sendMessage"
       >
-        <i class="pi pi-send text-sm" />
+        <i :class="stompConnected ? 'pi pi-send' : 'pi pi-spin pi-spinner'" class="text-sm" />
       </button>
     </div>
   </div>

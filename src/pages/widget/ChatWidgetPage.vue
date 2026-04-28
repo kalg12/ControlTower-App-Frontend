@@ -37,6 +37,8 @@ let conversationId = sessionStorage.getItem('ct:conversationId') ?? ''
 let visitorToken = sessionStorage.getItem('ct:visitorToken') ?? ''
 
 const stompClient = ref<StompClient | null>(null)
+const stompConnected = ref(false)
+let pendingMessage: string | null = null
 
 // ── Resume session ────────────────────────────────────────────────────────────
 
@@ -68,6 +70,7 @@ async function startChat() {
     visitorToken = res.visitorToken
     sessionStorage.setItem('ct:conversationId', conversationId)
     sessionStorage.setItem('ct:visitorToken', visitorToken)
+    window.parent?.postMessage({ type: 'CT_CONVERSATION_STARTED' }, '*')
     screen.value = 'chat'
     connectStomp()
   } catch (e) {
@@ -96,6 +99,7 @@ function connectStomp() {
     connectHeaders: { 'X-Visitor-Token': visitorToken },
     reconnectDelay: 5000,
     onConnect: () => {
+      stompConnected.value = true
       client.subscribe(`/topic/chat.${conversationId}`, (frame) => {
         const payload: ChatMessagePayload = JSON.parse(frame.body)
 
@@ -112,7 +116,6 @@ function connectStomp() {
             createdAt: payload.createdAt,
           })
           nextTick(scrollBottom)
-          // Notify parent window (POS floating widget) about new agent messages
           if (payload.senderType === 'AGENT') {
             window.parent?.postMessage({ type: 'CT_NEW_MESSAGE' }, '*')
           }
@@ -120,6 +123,11 @@ function connectStomp() {
           convStatus.value = payload.conversationStatus ?? convStatus.value
           if (payload.senderName) agentName.value = payload.senderName
           if (payload.senderAvatarUrl) agentAvatarUrl.value = payload.senderAvatarUrl
+          if (payload.conversationStatus === 'CLOSED') {
+            sessionStorage.removeItem('ct:conversationId')
+            sessionStorage.removeItem('ct:visitorToken')
+            window.parent?.postMessage({ type: 'CT_CHAT_CLOSED' }, '*')
+          }
         } else if (payload.type === 'TYPING' && payload.senderType === 'AGENT') {
           remoteTyping.value = true
           if (remoteTypingTimer) clearTimeout(remoteTypingTimer)
@@ -127,12 +135,21 @@ function connectStomp() {
         }
       })
 
-      // Announce join
+      // Send queued message (typed before STOMP was ready)
+      if (pendingMessage) {
+        client.publish({
+          destination: '/app/chat.visitor.message',
+          body: JSON.stringify({ content: pendingMessage }),
+        })
+        pendingMessage = null
+      }
+
       client.publish({
         destination: '/app/chat.visitor.join',
         body: JSON.stringify({ conversationId }),
       })
     },
+    onDisconnect: () => { stompConnected.value = false },
   })
   client.activate()
   stompClient.value = client
@@ -142,12 +159,16 @@ function connectStomp() {
 
 function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || !stompClient.value?.connected) return
-  stompClient.value.publish({
+  if (!text) return
+  inputText.value = ''
+  if (!stompConnected.value) {
+    pendingMessage = text  // will be flushed on STOMP connect
+    return
+  }
+  stompClient.value?.publish({
     destination: '/app/chat.visitor.message',
     body: JSON.stringify({ content: text }),
   })
-  inputText.value = ''
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -367,9 +388,15 @@ function formatTime(ts: string) {
           style="background: #f97316"
           :class="!inputText.trim() ? 'opacity-40 cursor-not-allowed' : 'hover:opacity-90'"
           :disabled="!inputText.trim()"
+          :title="!stompConnected ? 'Conectando...' : 'Enviar'"
           @click="sendMessage"
         >
-          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <!-- Spinner while STOMP not yet connected -->
+          <svg v-if="!stompConnected" class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v8H4z" />
+          </svg>
+          <svg v-else class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
           </svg>
         </button>

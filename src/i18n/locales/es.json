@@ -145,7 +145,7 @@
       "days": "d"
     },
     "attachFile": "Adjuntar archivo",
-    "messagePlaceholder": "Escribe un mensaje... (Ctrl+Enter para enviar)",
+    "messagePlaceholder": "Escribe un mensaje... (Enter para enviar)",
     "transferDialog": {
       "title": "Transferir conversación",
       "selectAgent": "Seleccionar agente",
