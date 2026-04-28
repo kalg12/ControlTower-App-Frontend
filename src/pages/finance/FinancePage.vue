@@ -122,11 +122,11 @@ const sendReportMut = useMutation({
     to: summaryTo.value,
   }),
   onSuccess: () => {
-    toast.success('Reporte enviado por email')
+    toast.success(t('finance.reportSent'))
     showReportDialog.value = false
     reportEmail.value = ''
   },
-  onError: () => toast.error('Error al enviar el reporte'),
+  onError: () => toast.error(t('finance.reportError')),
 })
 
 // ── Cash Flow ─────────────────────────────────────────────────────────
@@ -229,7 +229,7 @@ const deleteInvMut = useMutation({
 function confirmDeleteInvoice(inv: Invoice) {
   confirm.require({
     message: `¿Eliminar factura ${inv.number}? Esta acción no se puede deshacer.`,
-    header: 'Eliminar factura',
+    header: t('finance.deleteInvoice'),
     icon: 'pi pi-exclamation-triangle',
     rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
     acceptProps: { label: t('common.delete'), severity: 'danger' },
@@ -239,7 +239,7 @@ function confirmDeleteInvoice(inv: Invoice) {
 
 // ── Invoice options for payment dialog ──────────────────────────────
 const invoiceOptions = computed(() => [
-  { label: '— Sin factura —', value: '' },
+  { label: t('finance.noInvoice'), value: '' },
   ...(invoicesData.value?.content ?? [])
     .filter(i => i.status === 'SENT' || i.status === 'OVERDUE')
     .map(i => ({ label: `${i.number} — ${fmt(i.total, i.currency)}`, value: i.id }))
@@ -255,14 +255,14 @@ const payMethod = ref('BANK_TRANSFER')
 const payReference = ref('')
 const payNotes = ref('')
 
-const payMethodOptions = [
-  { label: 'Transferencia bancaria', value: 'BANK_TRANSFER' },
-  { label: 'Efectivo', value: 'CASH' },
-  { label: 'Tarjeta', value: 'CARD' },
-  { label: 'Cheque', value: 'CHECK' },
-  { label: 'Crypto', value: 'CRYPTO' },
-  { label: 'Otro', value: 'OTHER' },
-]
+const payMethodOptions = computed(() => [
+  { label: t('finance.transfer'), value: 'BANK_TRANSFER' },
+  { label: t('finance.cash'), value: 'CASH' },
+  { label: t('finance.card'), value: 'CARD' },
+  { label: t('finance.check'), value: 'CHECK' },
+  { label: t('finance.crypto'), value: 'CRYPTO' },
+  { label: t('finance.other'), value: 'OTHER' },
+])
 
 const createPaymentMut = useMutation({
   mutationFn: () => financeService.createPayment({
@@ -309,28 +309,39 @@ const expVendor = ref('')
 const expNotes = ref('')
 const expClientId = ref('')
 
-const expCategoryOptions = [
-  { label: 'Nómina', value: 'PAYROLL' },
-  { label: 'Servicios', value: 'SERVICES' },
-  { label: 'Renta', value: 'RENT' },
-  { label: 'Marketing', value: 'MARKETING' },
-  { label: 'Tecnología', value: 'TECH' },
-  { label: 'Viajes', value: 'TRAVEL' },
-  { label: 'Suministros', value: 'SUPPLIES' },
-  { label: 'Impuestos', value: 'TAXES' },
-  { label: 'Otro', value: 'OTHER' },
-]
+const expCategoryOptions = computed(() => [
+  { label: t('finance.payroll'), value: 'PAYROLL' },
+  { label: t('finance.services'), value: 'SERVICES' },
+  { label: t('finance.rent'), value: 'RENT' },
+  { label: t('finance.marketing'), value: 'MARKETING' },
+  { label: t('finance.tech'), value: 'TECH' },
+  { label: t('finance.travel'), value: 'TRAVEL' },
+  { label: t('finance.supplies'), value: 'SUPPLIES' },
+  { label: t('finance.taxes'), value: 'TAXES' },
+  { label: t('finance.other'), value: 'OTHER' },
+])
 
-const expCategoryFilterOptions = computed(() => [{ label: '— Todas —', value: '' }, ...expCategoryOptions])
+const expCategoryFilterOptions = computed(() => [
+  { label: t('finance.allCategories'), value: '' },
+  { label: t('finance.payroll'), value: 'PAYROLL' },
+  { label: t('finance.services'), value: 'SERVICES' },
+  { label: t('finance.rent'), value: 'RENT' },
+  { label: t('finance.marketing'), value: 'MARKETING' },
+  { label: t('finance.tech'), value: 'TECH' },
+  { label: t('finance.travel'), value: 'TRAVEL' },
+  { label: t('finance.supplies'), value: 'SUPPLIES' },
+  { label: t('finance.taxes'), value: 'TAXES' },
+  { label: t('finance.other'), value: 'OTHER' },
+])
 
 const invStatusOptions = computed(() => [
-  { label: '— Todas —', value: '' },
-  { label: 'Borrador', value: 'DRAFT' },
-  { label: 'Enviada', value: 'SENT' },
-  { label: 'Pagada', value: 'PAID' },
-  { label: 'Vencida', value: 'OVERDUE' },
-  { label: 'Cancelada', value: 'CANCELLED' },
-  { label: 'Anulada', value: 'VOIDED' },
+  { label: t('finance.allStatus'), value: '' },
+  { label: t('finance.draft'), value: 'DRAFT' },
+  { label: t('finance.sent'), value: 'SENT' },
+  { label: t('finance.paid'), value: 'PAID' },
+  { label: t('finance.overdue'), value: 'OVERDUE' },
+  { label: t('finance.cancelled'), value: 'CANCELLED' },
+  { label: t('finance.voided'), value: 'VOIDED' },
 ])
 
 const createExpenseMut = useMutation({
@@ -383,7 +394,7 @@ const updateInvoiceMut = useMutation({
     lineItems: invLines.value.filter(l => l.description.trim())
   }),
   onSuccess: () => {
-    toast.success('Factura actualizada')
+    toast.success(t('finance.invoiceUpdated'))
     showEditInvoiceDialog.value = false
     editingInvoiceId.value = null
     invalidateAll()
@@ -432,7 +443,7 @@ function statusSeverity(s: InvoiceStatus): 'success' | 'warn' | 'danger' | 'info
 function confirmDeletePayment(p: Payment) {
   confirm.require({
     message: `¿Eliminar pago de ${fmt(p.amount, p.currency)}?`,
-    header: 'Eliminar pago',
+    header: t('finance.deletePayment'),
     icon: 'pi pi-exclamation-triangle',
     rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
     acceptProps: { label: t('common.delete'), severity: 'danger' },
@@ -443,7 +454,7 @@ function confirmDeletePayment(p: Payment) {
 function confirmDeleteExpense(e: Expense) {
   confirm.require({
     message: `¿Eliminar gasto "${e.description}"?`,
-    header: 'Eliminar gasto',
+    header: t('finance.deleteExpense'),
     icon: 'pi pi-exclamation-triangle',
     rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
     acceptProps: { label: t('common.delete'), severity: 'danger' },
