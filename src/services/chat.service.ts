@@ -2,6 +2,7 @@ import api from '@/services/api'
 import type { PaginatedResponse } from '@/types/api'
 import type {
   ChatConversation, ChatMessage, ChatQuickReply,
+  ChatRating, OnlineAgent,
   ConversationStatus, TransferRequest
 } from '@/types/chat'
 
@@ -72,5 +73,20 @@ export const chatService = {
 
   async setPresence(online: boolean): Promise<void> {
     await api.post('/chat/presence', { online })
+  },
+
+  async unarchive(id: string): Promise<ChatConversation> {
+    const res = await api.post<ChatConversation>(`/chat/conversations/${id}/unarchive`)
+    return res.data
+  },
+
+  async getOnlineAgents(): Promise<OnlineAgent[]> {
+    const res = await api.get<OnlineAgent[]>('/chat/agents/online')
+    return res.data
+  },
+
+  async getConversationRating(id: string): Promise<ChatRating | null> {
+    const res = await api.get<ChatRating | null>(`/chat/conversations/${id}/rating`)
+    return res.data
   },
 }

@@ -112,13 +112,15 @@
       "all": "Todos",
       "waiting": "Esperando",
       "active": "Activos",
-      "closed": "Cerrados"
+      "closed": "Cerrados",
+      "archived": "Archivados"
     },
     "empty": {
       "all": "No hay conversaciones",
       "waiting": "No hay chats esperando",
       "active": "No hay chats activos",
       "closed": "No hay chats cerrados",
+      "archived": "No hay chats archivados",
       "noResults": "Sin resultados"
     },
     "status": {
@@ -136,7 +138,20 @@
       "take": "Tomar",
       "close": "Cerrar",
       "archive": "Archivar",
+      "unarchive": "Desarchivar",
       "transfer": "Transferir"
+    },
+    "agents": {
+      "online": "Agentes en línea",
+      "noAgents": "Sin agentes conectados",
+      "activeChats": "{n} chat(s) activo(s)"
+    },
+    "rating": {
+      "title": "¿Cómo fue tu atención?",
+      "placeholder": "Cuéntanos más (opcional)...",
+      "submit": "Enviar evaluación",
+      "skip": "Omitir",
+      "thankYou": "¡Gracias por tu evaluación!"
     },
     "time": {
       "now": "ahora",

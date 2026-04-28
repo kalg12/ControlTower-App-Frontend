@@ -1,5 +1,5 @@
 import axios from 'axios'
-import type { ChatMessage, StartChatRequest, StartChatResponse } from '@/types/chat'
+import type { ChatMessage, StartChatRequest, StartChatResponse, PublicConversationInfo } from '@/types/chat'
 import type { PaginatedResponse } from '@/types/api'
 
 const baseURL = `${(import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/api\/v1$/, '')}/api/v1`
@@ -18,5 +18,21 @@ export const publicChatService = {
       { params: { visitorToken, page, size: 50 } }
     )
     return res.data.data
+  },
+
+  async getConversation(conversationId: string, visitorToken: string): Promise<PublicConversationInfo> {
+    const res = await publicApi.get<{ data: PublicConversationInfo }>(
+      `/public/chat/conversations/${conversationId}`,
+      { params: { visitorToken } }
+    )
+    return res.data.data
+  },
+
+  async rateConversation(conversationId: string, visitorToken: string, rating: number, comment?: string): Promise<void> {
+    await publicApi.post(`/public/chat/conversations/${conversationId}/rate`, {
+      visitorToken,
+      rating,
+      comment: comment || null,
+    })
   },
 }

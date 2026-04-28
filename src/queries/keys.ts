@@ -40,4 +40,6 @@ export const qk = {
   chatMessages: (id: string, page?: number) => ['chat-messages', id, page ?? 0] as const,
   chatUnreadCount: () => ['chat-unread-count'] as const,
   chatQuickReplies: () => ['chat-quick-replies'] as const,
+  chatOnlineAgents: () => ['chat-online-agents'] as const,
+  chatRating: (id: string) => ['chat-rating', id] as const,
 }

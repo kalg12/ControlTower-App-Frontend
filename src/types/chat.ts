@@ -70,3 +70,26 @@ export interface TransferRequest {
   toAgentId: string
   note?: string
 }
+
+export interface ChatRating {
+  id: string
+  conversationId: string
+  tenantId: string
+  rating: number
+  comment?: string
+  createdAt: string
+}
+
+export interface OnlineAgent {
+  agentId: string
+  name: string
+  avatarUrl?: string
+  activeChats: number
+}
+
+export interface PublicConversationInfo {
+  conversationId: string
+  status: ConversationStatus
+  agentName?: string
+  agentAvatarUrl?: string
+}

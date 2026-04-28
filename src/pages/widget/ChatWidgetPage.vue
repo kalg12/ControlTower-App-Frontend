@@ -4,13 +4,17 @@ import { useRoute } from 'vue-router'
 import { Client as StompClient } from '@stomp/stompjs'
 import { publicChatService } from '@/services/public-chat.service'
 import type { ChatMessage, ChatMessagePayload, ConversationStatus } from '@/types/chat'
+import type { Ref } from 'vue'
 
 const route = useRoute()
 
 // ── State ────────────────────────────────────────────────────────────────────
 
 const tenantId = computed(() => route.query.tenantId as string)
-const screen = ref<'welcome' | 'chat'>('welcome')
+const screen = ref<'welcome' | 'chat' | 'rating' | 'thankyou'>('welcome')
+const selectedRating = ref(0)
+const ratingComment = ref('')
+const ratingSubmitting = ref(false)
 const minimized = ref(false)
 const visitorName = ref('')
 const visitorEmail = ref('')
@@ -98,8 +102,9 @@ function connectStomp() {
     brokerURL: `${baseUrl}/ws`,
     connectHeaders: { 'X-Visitor-Token': visitorToken },
     reconnectDelay: 5000,
-    onConnect: () => {
+    onConnect: async () => {
       stompConnected.value = true
+
       client.subscribe(`/topic/chat.${conversationId}`, (frame) => {
         const payload: ChatMessagePayload = JSON.parse(frame.body)
 
@@ -120,13 +125,15 @@ function connectStomp() {
             window.parent?.postMessage({ type: 'CT_NEW_MESSAGE' }, '*')
           }
         } else if (payload.type === 'STATUS_CHANGED') {
-          convStatus.value = payload.conversationStatus ?? convStatus.value
+          if (payload.conversationStatus) convStatus.value = payload.conversationStatus
           if (payload.senderName) agentName.value = payload.senderName
           if (payload.senderAvatarUrl) agentAvatarUrl.value = payload.senderAvatarUrl
           if (payload.conversationStatus === 'CLOSED') {
             sessionStorage.removeItem('ct:conversationId')
             sessionStorage.removeItem('ct:visitorToken')
             window.parent?.postMessage({ type: 'CT_CHAT_CLOSED' }, '*')
+            // Transition to rating screen
+            screen.value = 'rating'
           }
         } else if (payload.type === 'TYPING' && payload.senderType === 'AGENT') {
           remoteTyping.value = true
@@ -134,6 +141,20 @@ function connectStomp() {
           remoteTypingTimer = setTimeout(() => { remoteTyping.value = false }, 3000)
         }
       })
+
+      // Sync current conversation status from REST — fixes race condition where
+      // STATUS_CHANGED fires before the STOMP subscription is established
+      try {
+        const info = await publicChatService.getConversation(conversationId, visitorToken)
+        if (info.status) convStatus.value = info.status
+        if (info.agentName) agentName.value = info.agentName
+        if (info.agentAvatarUrl) agentAvatarUrl.value = info.agentAvatarUrl
+        if (info.status === 'CLOSED') {
+          sessionStorage.removeItem('ct:conversationId')
+          sessionStorage.removeItem('ct:visitorToken')
+          screen.value = 'rating'
+        }
+      } catch {}
 
       // Send queued message (typed before STOMP was ready)
       if (pendingMessage) {
@@ -150,9 +171,28 @@ function connectStomp() {
       })
     },
     onDisconnect: () => { stompConnected.value = false },
+    onStompError: () => { stompConnected.value = false },
+    onWebSocketError: () => { stompConnected.value = false },
   })
   client.activate()
   stompClient.value = client
+}
+
+// ── Rating ────────────────────────────────────────────────────────────────────
+
+async function submitRating() {
+  if (!selectedRating.value) return
+  ratingSubmitting.value = true
+  try {
+    await publicChatService.rateConversation(
+      conversationId,
+      visitorToken,
+      selectedRating.value,
+      ratingComment.value.trim() || undefined
+    )
+  } catch {}
+  ratingSubmitting.value = false
+  screen.value = 'thankyou'
 }
 
 // ── Send message ──────────────────────────────────────────────────────────────
@@ -364,7 +404,7 @@ function formatTime(ts: string) {
         </div>
       </div>
 
-      <!-- Closed banner -->
+      <!-- Closed banner (while still on chat screen, before rating triggers) -->
       <div v-if="convStatus === 'CLOSED'" class="px-4 py-2 bg-gray-100 text-center text-sm text-gray-500">
         Esta conversación ha sido cerrada.
       </div>
@@ -400,6 +440,66 @@ function formatTime(ts: string) {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
           </svg>
         </button>
+      </div>
+    </div>
+
+    <!-- ── RATING SCREEN ─────────────────────────────────────────────── -->
+    <div v-else-if="screen === 'rating'" class="flex flex-col h-full items-center justify-center px-6 gap-5 text-center">
+      <!-- Icon -->
+      <div class="w-16 h-16 rounded-full flex items-center justify-center" style="background: #fff7ed">
+        <svg class="w-8 h-8" fill="none" stroke="#f97316" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11.049 2.927c.3-.921 1.603-.921 1.902 0l1.519 4.674a1 1 0 00.95.69h4.915c.969 0 1.371 1.24.588 1.81l-3.976 2.888a1 1 0 00-.363 1.118l1.518 4.674c.3.922-.755 1.688-1.538 1.118l-3.976-2.888a1 1 0 00-1.176 0l-3.976 2.888c-.783.57-1.838-.197-1.538-1.118l1.518-4.674a1 1 0 00-.363-1.118l-3.976-2.888c-.784-.57-.38-1.81.588-1.81h4.914a1 1 0 00.951-.69l1.519-4.674z" />
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-lg font-bold text-gray-800">¿Cómo fue tu atención?</h2>
+        <p class="text-sm text-gray-500 mt-1">Tu opinión nos ayuda a mejorar</p>
+      </div>
+
+      <!-- Stars -->
+      <div class="flex gap-3">
+        <button
+          v-for="n in 5"
+          :key="n"
+          class="text-3xl transition-transform hover:scale-125 focus:outline-none"
+          :class="n <= selectedRating ? 'opacity-100' : 'opacity-30'"
+          @click="selectedRating = n"
+        >★</button>
+      </div>
+
+      <!-- Comment -->
+      <textarea
+        v-model="ratingComment"
+        rows="3"
+        placeholder="Cuéntanos más (opcional)..."
+        class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 bg-white outline-none focus:border-orange-400 transition-colors resize-none"
+      />
+
+      <!-- Actions -->
+      <button
+        class="w-full py-3 rounded-xl font-semibold text-white transition-opacity"
+        style="background: #f97316"
+        :class="!selectedRating || ratingSubmitting ? 'opacity-50 cursor-not-allowed' : 'hover:opacity-90'"
+        :disabled="!selectedRating || ratingSubmitting"
+        @click="submitRating"
+      >
+        {{ ratingSubmitting ? 'Enviando...' : 'Enviar evaluación' }}
+      </button>
+      <button class="text-sm text-gray-400 hover:text-gray-600 transition-colors" @click="screen = 'thankyou'">
+        Omitir
+      </button>
+    </div>
+
+    <!-- ── THANK YOU SCREEN ───────────────────────────────────────────── -->
+    <div v-else-if="screen === 'thankyou'" class="flex flex-col h-full items-center justify-center px-6 gap-5 text-center">
+      <div class="w-20 h-20 rounded-full flex items-center justify-center" style="background: #f0fdf4">
+        <svg class="w-10 h-10" fill="none" stroke="#16a34a" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+        </svg>
+      </div>
+      <div>
+        <h2 class="text-xl font-bold text-gray-800">¡Gracias!</h2>
+        <p class="text-sm text-gray-500 mt-2">Tu evaluación ha sido registrada.<br>Hasta pronto 👋</p>
       </div>
     </div>
   </div>

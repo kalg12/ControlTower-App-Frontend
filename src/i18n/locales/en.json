@@ -110,13 +110,15 @@
       "all": "All",
       "waiting": "Waiting",
       "active": "Active",
-      "closed": "Closed"
+      "closed": "Closed",
+      "archived": "Archived"
     },
     "empty": {
       "all": "No conversations",
       "waiting": "No chats waiting",
       "active": "No active chats",
       "closed": "No closed chats",
+      "archived": "No archived chats",
       "noResults": "No results"
     },
     "status": {
@@ -134,7 +136,20 @@
       "take": "Take",
       "close": "Close",
       "archive": "Archive",
+      "unarchive": "Unarchive",
       "transfer": "Transfer"
+    },
+    "agents": {
+      "online": "Online Agents",
+      "noAgents": "No agents online",
+      "activeChats": "{n} active chat(s)"
+    },
+    "rating": {
+      "title": "How was your support?",
+      "placeholder": "Tell us more (optional)...",
+      "submit": "Submit rating",
+      "skip": "Skip",
+      "thankYou": "Thanks for your feedback!"
     },
     "time": {
       "now": "now",
