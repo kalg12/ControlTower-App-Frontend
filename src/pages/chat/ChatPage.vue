@@ -156,6 +156,7 @@ async function togglePresence() {
   const next = !isOnline.value;
   await chatService.setPresence(next).catch(() => {});
   isOnline.value = next;
+  sessionStorage.setItem("ct_agent_online", String(next));
 }
 
 // ── STOMP real-time ────────────────────────────────────────────────────────
@@ -163,10 +164,18 @@ async function togglePresence() {
 const stompClient = ref<StompClient | null>(null);
 
 onMounted(async () => {
-  // Restore presence state from DB (survives F5 / tab reloads)
-  try {
-    isOnline.value = await chatService.getMyPresence();
-  } catch {}
+  // Fast restore: sessionStorage survives F5 in the same tab
+  if (sessionStorage.getItem("ct_agent_online") === "true") {
+    isOnline.value = true;
+    // Re-establish DB state in case server restarted
+    chatService.setPresence(true).catch(() => {});
+  } else {
+    // Authoritative sync from DB (handles fresh logins)
+    try {
+      isOnline.value = await chatService.getMyPresence();
+      sessionStorage.setItem("ct_agent_online", String(isOnline.value));
+    } catch {}
+  }
 
   if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
   const baseUrl = (
@@ -186,13 +195,21 @@ onMounted(async () => {
   stompClient.value = client;
 });
 
-onUnmounted(async () => {
+onUnmounted(() => {
   stompClient.value?.deactivate();
-  if (isOnline.value) {
-    await chatService.setPresence(false).catch(() => {});
-    isOnline.value = false;
-  }
+  // Presence stays active when navigating within the app.
+  // The browser beforeunload event handles actual tab/window close.
 });
+
+// Set offline when the tab/window is actually closed (not on navigation)
+if (typeof window !== "undefined") {
+  window.addEventListener("beforeunload", () => {
+    if (isOnline.value) {
+      chatService.setPresence(false).catch(() => {});
+      sessionStorage.removeItem("ct_agent_online");
+    }
+  });
+}
 </script>
 
 <template>

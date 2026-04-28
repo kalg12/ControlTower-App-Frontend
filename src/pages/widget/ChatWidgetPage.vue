@@ -112,6 +112,10 @@ function connectStomp() {
             createdAt: payload.createdAt,
           })
           nextTick(scrollBottom)
+          // Notify parent window (POS floating widget) about new agent messages
+          if (payload.senderType === 'AGENT') {
+            window.parent?.postMessage({ type: 'CT_NEW_MESSAGE' }, '*')
+          }
         } else if (payload.type === 'STATUS_CHANGED') {
           convStatus.value = payload.conversationStatus ?? convStatus.value
           if (payload.senderName) agentName.value = payload.senderName
@@ -200,8 +204,8 @@ function formatTime(ts: string) {
     </button>
   </div>
 
-  <!-- Widget container -->
-  <div v-else class="fixed inset-0 flex flex-col bg-white font-sans" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif">
+  <!-- Widget container (always light mode — force color-scheme so CSS vars don't bleed in) -->
+  <div v-else class="fixed inset-0 flex flex-col bg-white font-sans" style="font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; color-scheme: light; color: #111827">
 
     <!-- ── WELCOME SCREEN ─────────────────────────────────────────────── -->
     <div v-if="screen === 'welcome'" class="flex flex-col h-full">
@@ -224,7 +228,7 @@ function formatTime(ts: string) {
             v-model="visitorName"
             type="text"
             placeholder="¿Cómo te llamas?"
-            class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-orange-400 transition-colors"
+            class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 bg-white outline-none focus:border-orange-400 transition-colors"
             @keydown.enter="startChat"
           />
         </div>
@@ -234,7 +238,7 @@ function formatTime(ts: string) {
             v-model="visitorEmail"
             type="email"
             placeholder="correo@ejemplo.com"
-            class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm outline-none focus:border-orange-400 transition-colors"
+            class="w-full border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-800 bg-white outline-none focus:border-orange-400 transition-colors"
             @keydown.enter="startChat"
           />
         </div>
@@ -355,7 +359,7 @@ function formatTime(ts: string) {
           v-model="inputText"
           type="text"
           placeholder="Escribe un mensaje..."
-          class="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm outline-none focus:border-orange-400 transition-colors"
+          class="flex-1 border border-gray-200 rounded-full px-4 py-2 text-sm text-gray-800 bg-white outline-none focus:border-orange-400 transition-colors"
           @keydown="onKeyDown"
         />
         <button

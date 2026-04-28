@@ -2,7 +2,7 @@ import axios from 'axios'
 import type { ChatMessage, StartChatRequest, StartChatResponse } from '@/types/chat'
 import type { PaginatedResponse } from '@/types/api'
 
-const baseURL = (import.meta.env.VITE_API_URL ?? 'http://localhost:8080/api/v1')
+const baseURL = `${(import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/api\/v1$/, '')}/api/v1`
 
 const publicApi = axios.create({ baseURL })
 
