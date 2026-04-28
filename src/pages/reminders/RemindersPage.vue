@@ -46,20 +46,20 @@ const clientOptions = computed(() => [
   ...(clientsData.value?.content ?? []).map(c => ({ label: c.name, value: c.id }))
 ])
 
-const statusOptions = [
+const statusOptions = computed(() => [
   { label: t('reminders.all'), value: undefined },
   { label: t('reminders.active'), value: 'ACTIVE' },
   { label: t('reminders.paused'), value: 'PAUSED' },
   { label: t('reminders.completed'), value: 'COMPLETED' },
-]
+])
 
-const recurrenceOptions = [
+const recurrenceOptions = computed(() => [
   { label: t('reminders.daily'), value: 'DAILY' },
   { label: t('reminders.weekly'), value: 'WEEKLY' },
   { label: t('reminders.biweekly'), value: 'BIWEEKLY' },
   { label: t('reminders.monthly'), value: 'MONTHLY' },
   { label: t('reminders.custom'), value: 'CUSTOM' },
-]
+])
 
 function statusSeverity(s: ClientReminder['status']) {
   return s === 'ACTIVE' ? 'success' : s === 'PAUSED' ? 'warn' : 'secondary'
