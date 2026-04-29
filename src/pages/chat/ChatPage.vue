@@ -105,7 +105,7 @@ const { data: onlineAgents } = useQuery({
   queryKey: qk.chatOnlineAgents(),
   queryFn: () => chatService.getOnlineAgents(),
   refetchInterval: 30000,
-  enabled: computed(() => auth.hasPermission('chat:read')),
+  enabled: computed(() => auth.hasPermission("chat:read")),
 });
 
 function statusSeverity(status: ConversationStatus) {
@@ -161,18 +161,32 @@ function avatarColor(name?: string) {
 }
 
 function emptyLabel() {
-  const key = activeTab.value === "ALL" ? "all" : activeTab.value.toLowerCase()
-  return t(`chatModule.empty.${key}`, key)
+  const key = activeTab.value === "ALL" ? "all" : activeTab.value.toLowerCase();
+  return t(`chatModule.empty.${key}`, key);
 }
 
 function agentInitials(name: string) {
-  return name.split(' ').map((w: string) => w[0]).join('').slice(0, 2).toUpperCase()
+  return name
+    .split(" ")
+    .map((w: string) => w[0])
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
 }
 
 function agentColor(name: string) {
-  const colors = ['#6366f1','#8b5cf6','#ec4899','#14b8a6','#f59e0b','#10b981','#3b82f6','#ef4444']
-  const idx = (name ?? '').charCodeAt(0) % colors.length
-  return colors[idx]
+  const colors = [
+    "#6366f1",
+    "#8b5cf6",
+    "#ec4899",
+    "#14b8a6",
+    "#f59e0b",
+    "#10b981",
+    "#3b82f6",
+    "#ef4444",
+  ];
+  const idx = (name ?? "").charCodeAt(0) % colors.length;
+  return colors[idx];
 }
 
 // ── Agent presence ─────────────────────────────────────────────────────────
@@ -507,31 +521,62 @@ if (typeof window !== "undefined") {
           style="height: calc(100vh - 140px); overflow-y: auto"
         >
           <!-- No conversation selected hint -->
-          <div class="flex flex-col items-center justify-center text-center border border-dashed border-[var(--border)] rounded-2xl flex-1 min-h-[200px]">
-            <MessageSquare class="w-10 h-10 text-[var(--text-muted)] opacity-30 mb-3" />
-            <p class="text-sm text-[var(--text-muted)]">{{ t("chatModule.noConversationSelected") }}</p>
+          <div
+            class="flex flex-col items-center justify-center text-center border border-dashed border-[var(--border)] rounded-2xl flex-1 min-h-[200px]"
+          >
+            <MessageSquare
+              class="w-10 h-10 text-[var(--text-muted)] opacity-30 mb-3"
+            />
+            <p class="text-sm text-[var(--text-muted)]">
+              {{ t("chatModule.noConversationSelected") }}
+            </p>
           </div>
 
           <!-- Online Agents Panel -->
-          <div class="border border-[var(--border)] rounded-2xl p-4 bg-[var(--surface)] shrink-0">
+          <div
+            class="border border-[var(--border)] rounded-2xl p-4 bg-[var(--surface)] shrink-0"
+          >
             <div class="flex items-center gap-2 mb-3">
               <span class="w-2 h-2 rounded-full bg-green-500 shrink-0" />
-              <h3 class="text-sm font-semibold text-[var(--text)]">{{ t('chatModule.agents.online') }}</h3>
-              <span class="ml-auto text-xs text-[var(--text-muted)]">{{ (onlineAgents ?? []).length }}</span>
+              <h3 class="text-sm font-semibold text-[var(--text)]">
+                {{ t("chatModule.agents.online") }}
+              </h3>
+              <span class="ml-auto text-xs text-[var(--text-muted)]">{{
+                (onlineAgents ?? []).length
+              }}</span>
             </div>
-            <div v-if="!(onlineAgents ?? []).length" class="text-xs text-[var(--text-muted)] text-center py-2">
-              {{ t('chatModule.agents.noAgents') }}
+            <div
+              v-if="!(onlineAgents ?? []).length"
+              class="text-xs text-[var(--text-muted)] text-center py-2"
+            >
+              {{ t("chatModule.agents.noAgents") }}
             </div>
-            <div v-for="agent in (onlineAgents ?? [])" :key="agent.agentId" class="flex items-center gap-3 py-1.5">
-              <div class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 relative"
-                   :style="{ backgroundColor: agentColor(agent.name) }">
+            <div
+              v-for="agent in onlineAgents ?? []"
+              :key="agent.agentId"
+              class="flex items-center gap-3 py-1.5"
+            >
+              <div
+                class="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold shrink-0 relative"
+                :style="{ backgroundColor: agentColor(agent.name) }"
+              >
                 {{ agentInitials(agent.name) }}
-                <span class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full" />
+                <span
+                  class="absolute bottom-0 right-0 w-2.5 h-2.5 bg-green-400 border-2 border-white rounded-full"
+                />
               </div>
               <div class="flex-1 min-w-0">
-                <div class="text-xs font-medium text-[var(--text)] truncate">{{ agent.name }}</div>
+                <div class="text-xs font-medium text-[var(--text)] truncate">
+                  {{ agent.name }}
+                </div>
                 <div class="text-[10px] text-[var(--text-muted)]">
-                  {{ agent.activeChats > 0 ? t('chatModule.agents.activeChats', { n: agent.activeChats }) : 'Disponible' }}
+                  {{
+                    agent.activeChats > 0
+                      ? t("chatModule.agents.activeChats", {
+                          n: agent.activeChats,
+                        })
+                      : "Disponible"
+                  }}
                 </div>
               </div>
             </div>

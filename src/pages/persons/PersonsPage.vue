@@ -272,9 +272,7 @@ function statusSeverity(
       class="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
     >
       <div>
-        <h1
-          class="text-xl font-semibold text-(--text) flex items-center gap-2"
-        >
+        <h1 class="text-xl font-semibold text-(--text) flex items-center gap-2">
           <Users class="w-6 h-6 text-(--primary)" />
           {{ t("persons.title") }}
           <PageInfoButton
@@ -380,7 +378,9 @@ function statusSeverity(
 
       <Column :header="t('persons.leadSource')" class="min-w-27.5">
         <template #body="{ data }">
-          <span class="text-sm text-(--text)">{{ leadSourceLabel(data.leadSource) }}</span>
+          <span class="text-sm text-(--text)">{{
+            leadSourceLabel(data.leadSource)
+          }}</span>
         </template>
       </Column>
 
