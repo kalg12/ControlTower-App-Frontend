@@ -4,7 +4,6 @@ import { useRoute } from 'vue-router'
 import { Client as StompClient } from '@stomp/stompjs'
 import { publicChatService } from '@/services/public-chat.service'
 import type { ChatMessage, ChatMessagePayload, ConversationStatus } from '@/types/chat'
-import type { Ref } from 'vue'
 
 const route = useRoute()
 
@@ -323,7 +322,7 @@ function formatTime(ts: string) {
     </div>
 
     <!-- ── CHAT SCREEN ────────────────────────────────────────────────── -->
-    <div v-else class="flex flex-col h-full">
+    <div v-else-if="screen === 'chat'" class="flex flex-col h-full">
       <!-- Header -->
       <div class="flex items-center justify-between px-4 py-3 flex-shrink-0" style="background: #f97316">
         <div class="flex items-center gap-3">

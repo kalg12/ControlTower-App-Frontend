@@ -6,7 +6,7 @@ import { Client as StompClient } from "@stomp/stompjs";
 import { useAuthStore } from "@/stores/auth";
 import { chatService } from "@/services/chat.service";
 import { qk } from "@/queries/keys";
-import type { ChatConversation, ConversationStatus, OnlineAgent } from "@/types/chat";
+import type { ChatConversation, ConversationStatus } from "@/types/chat";
 import Button from "primevue/button";
 import InputText from "primevue/inputtext";
 import IconField from "primevue/iconfield";
