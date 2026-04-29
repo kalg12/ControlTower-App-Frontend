@@ -1,116 +1,136 @@
 <script setup lang="ts">
-import { ref, computed } from 'vue'
-import { useI18n } from 'vue-i18n'
-import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
-import DataTable from 'primevue/datatable'
-import Column from 'primevue/column'
-import Tag from 'primevue/tag'
-import Button from 'primevue/button'
-import Select from 'primevue/select'
-import Dialog from 'primevue/dialog'
-import InputText from 'primevue/inputtext'
-import InputNumber from 'primevue/inputnumber'
-import Textarea from 'primevue/textarea'
-import { remindersService, type ClientReminder, type CreateReminderRequest } from '@/services/reminders.service'
-import { clientsService } from '@/services/clients.service'
-import { qk } from '@/queries/keys'
-import { useToast } from '@/composables/useToast'
-import { useConfirm } from 'primevue/useconfirm'
-import dayjs from 'dayjs'
+import { ref, computed } from "vue";
+import { useI18n } from "vue-i18n";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
+import DataTable from "primevue/datatable";
+import Column from "primevue/column";
+import Tag from "primevue/tag";
+import Button from "primevue/button";
+import Select from "primevue/select";
+import Dialog from "primevue/dialog";
+import InputText from "primevue/inputtext";
+import InputNumber from "primevue/inputnumber";
+import Textarea from "primevue/textarea";
+import {
+  remindersService,
+  type ClientReminder,
+  type CreateReminderRequest,
+} from "@/services/reminders.service";
+import { clientsService } from "@/services/clients.service";
+import { qk } from "@/queries/keys";
+import { useToast } from "@/composables/useToast";
+import { useConfirm } from "primevue/useconfirm";
+import dayjs from "dayjs";
 
-const { t } = useI18n()
-const queryClient = useQueryClient()
-const toast = useToast()
-const confirm = useConfirm()
+const { t } = useI18n();
+const queryClient = useQueryClient();
+const toast = useToast();
+const confirm = useConfirm();
 
-const statusFilter = ref<ClientReminder['status'] | undefined>(undefined)
-const clientFilter = ref<string | undefined>(undefined)
+const statusFilter = ref<ClientReminder["status"] | undefined>(undefined);
+const clientFilter = ref<string | undefined>(undefined);
 
-const filtersKey = computed(() => JSON.stringify({ status: statusFilter.value, client: clientFilter.value }))
+const filtersKey = computed(() =>
+  JSON.stringify({ status: statusFilter.value, client: clientFilter.value }),
+);
 
 const { data: result, isLoading } = useQuery({
   queryKey: computed(() => qk.reminders(filtersKey.value)),
-  queryFn: () => remindersService.list({ status: statusFilter.value, clientId: clientFilter.value, page: 0, size: 100 }),
+  queryFn: () =>
+    remindersService.list({
+      status: statusFilter.value,
+      clientId: clientFilter.value,
+      page: 0,
+      size: 100,
+    }),
   staleTime: 30_000,
-})
+});
 
-const reminders = computed(() => result.value?.content ?? [])
+const reminders = computed(() => result.value?.content ?? []);
 
 const { data: clientsData } = useQuery({
-  queryKey: ['clients-for-reminders'],
+  queryKey: ["clients-for-reminders"],
   queryFn: () => clientsService.list({ page: 0, size: 200 }),
   staleTime: 60_000,
-})
+});
 const clientOptions = computed(() => [
-  { label: t('reminders.all'), value: undefined },
-  ...(clientsData.value?.content ?? []).map(c => ({ label: c.name, value: c.id }))
-])
+  { label: t("reminders.all"), value: undefined },
+  ...(clientsData.value?.content ?? []).map((c) => ({
+    label: c.name,
+    value: c.id,
+  })),
+]);
 
 const statusOptions = computed(() => [
-  { label: t('reminders.all'), value: undefined },
-  { label: t('reminders.active'), value: 'ACTIVE' },
-  { label: t('reminders.paused'), value: 'PAUSED' },
-  { label: t('reminders.completed'), value: 'COMPLETED' },
-])
+  { label: t("reminders.all"), value: undefined },
+  { label: t("reminders.active"), value: "ACTIVE" },
+  { label: t("reminders.paused"), value: "PAUSED" },
+  { label: t("reminders.completed"), value: "COMPLETED" },
+]);
 
 const recurrenceOptions = computed(() => [
-  { label: t('reminders.daily'), value: 'DAILY' },
-  { label: t('reminders.weekly'), value: 'WEEKLY' },
-  { label: t('reminders.biweekly'), value: 'BIWEEKLY' },
-  { label: t('reminders.monthly'), value: 'MONTHLY' },
-  { label: t('reminders.custom'), value: 'CUSTOM' },
-])
+  { label: t("reminders.daily"), value: "DAILY" },
+  { label: t("reminders.weekly"), value: "WEEKLY" },
+  { label: t("reminders.biweekly"), value: "BIWEEKLY" },
+  { label: t("reminders.monthly"), value: "MONTHLY" },
+  { label: t("reminders.custom"), value: "CUSTOM" },
+]);
 
-function statusSeverity(s: ClientReminder['status']) {
-  return s === 'ACTIVE' ? 'success' : s === 'PAUSED' ? 'warn' : 'secondary'
+function statusSeverity(s: ClientReminder["status"]) {
+  return s === "ACTIVE" ? "success" : s === "PAUSED" ? "warn" : "secondary";
 }
-function statusLabel(s: ClientReminder['status']) {
-  return s === 'ACTIVE' ? t('reminders.active') : s === 'PAUSED' ? t('reminders.paused') : t('reminders.completed')
+function statusLabel(s: ClientReminder["status"]) {
+  return s === "ACTIVE"
+    ? t("reminders.active")
+    : s === "PAUSED"
+      ? t("reminders.paused")
+      : t("reminders.completed");
 }
-function recurrenceLabel(r: ClientReminder['recurrenceType'], days?: number) {
-  const map: Record<string, string> = { 
-    DAILY: t('reminders.daily'), 
-    WEEKLY: t('reminders.weekly'), 
-    BIWEEKLY: t('reminders.biweekly'), 
-    MONTHLY: t('reminders.monthly'), 
-    CUSTOM: `${t('reminders.every')} ${days ?? '?'} ${t('reminders.days')}` 
-  }
-  return map[r] ?? r
+function recurrenceLabel(r: ClientReminder["recurrenceType"], days?: number) {
+  const map: Record<string, string> = {
+    DAILY: t("reminders.daily"),
+    WEEKLY: t("reminders.weekly"),
+    BIWEEKLY: t("reminders.biweekly"),
+    MONTHLY: t("reminders.monthly"),
+    CUSTOM: `${t("reminders.every")} ${days ?? "?"} ${t("reminders.days")}`,
+  };
+  return map[r] ?? r;
 }
 
 // ── Dialog state ──────────────────────────────────────────────────
-const showDialog = ref(false)
-const editingId = ref<string | null>(null)
-const formClientId = ref('')
-const formTitle = ref('')
-const formDescription = ref('')
-const formRecurrenceType = ref<CreateReminderRequest['recurrenceType']>('MONTHLY')
-const formRecurrenceDays = ref<number | null>(null)
-const formStartDate = ref(dayjs().format('YYYY-MM-DD'))
-const formMaxOccurrences = ref<number | null>(null)
+const showDialog = ref(false);
+const editingId = ref<string | null>(null);
+const formClientId = ref("");
+const formTitle = ref("");
+const formDescription = ref("");
+const formRecurrenceType =
+  ref<CreateReminderRequest["recurrenceType"]>("MONTHLY");
+const formRecurrenceDays = ref<number | null>(null);
+const formStartDate = ref(dayjs().format("YYYY-MM-DD"));
+const formMaxOccurrences = ref<number | null>(null);
 
 function openCreateDialog() {
-  editingId.value = null
-  formClientId.value = ''
-  formTitle.value = ''
-  formDescription.value = ''
-  formRecurrenceType.value = 'MONTHLY'
-  formRecurrenceDays.value = null
-  formStartDate.value = dayjs().format('YYYY-MM-DD')
-  formMaxOccurrences.value = null
-  showDialog.value = true
+  editingId.value = null;
+  formClientId.value = "";
+  formTitle.value = "";
+  formDescription.value = "";
+  formRecurrenceType.value = "MONTHLY";
+  formRecurrenceDays.value = null;
+  formStartDate.value = dayjs().format("YYYY-MM-DD");
+  formMaxOccurrences.value = null;
+  showDialog.value = true;
 }
 
 function openEditDialog(r: ClientReminder) {
-  editingId.value = r.id
-  formClientId.value = r.clientId
-  formTitle.value = r.title
-  formDescription.value = r.description ?? ''
-  formRecurrenceType.value = r.recurrenceType
-  formRecurrenceDays.value = r.recurrenceDays ?? null
-  formStartDate.value = r.startDate
-  formMaxOccurrences.value = r.maxOccurrences ?? null
-  showDialog.value = true
+  editingId.value = r.id;
+  formClientId.value = r.clientId;
+  formTitle.value = r.title;
+  formDescription.value = r.description ?? "";
+  formRecurrenceType.value = r.recurrenceType;
+  formRecurrenceDays.value = r.recurrenceDays ?? null;
+  formStartDate.value = r.startDate;
+  formMaxOccurrences.value = r.maxOccurrences ?? null;
+  showDialog.value = true;
 }
 
 const saveMut = useMutation({
@@ -124,62 +144,83 @@ const saveMut = useMutation({
       startDate: formStartDate.value,
       maxOccurrences: formMaxOccurrences.value ?? undefined,
       notifyUserIds: [],
-    }
+    };
     return editingId.value
       ? remindersService.update(editingId.value, payload)
-      : remindersService.create(payload)
+      : remindersService.create(payload);
   },
   onSuccess: () => {
-    toast.success(editingId.value ? t('reminders.updated') : t('reminders.created'))
-    showDialog.value = false
-    queryClient.invalidateQueries({ queryKey: ['reminders'] })
+    toast.success(
+      editingId.value ? t("reminders.updated") : t("reminders.created"),
+    );
+    showDialog.value = false;
+    queryClient.invalidateQueries({ queryKey: ["reminders"] });
   },
-  onError: () => toast.error(t('reminders.saveFailed')),
-})
+  onError: () => toast.error(t("reminders.saveFailed")),
+});
 
 const completeMut = useMutation({
   mutationFn: (id: string) => remindersService.complete(id),
-  onSuccess: () => { toast.success(t('reminders.completed')); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
-})
+  onSuccess: () => {
+    toast.success(t("reminders.completed"));
+    queryClient.invalidateQueries({ queryKey: ["reminders"] });
+  },
+});
 
 const snoozeMut = useMutation({
   mutationFn: (id: string) => remindersService.snooze(id, 1),
-  onSuccess: () => { toast.success(t('reminders.snoozed')); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
-})
+  onSuccess: () => {
+    toast.success(t("reminders.snoozed"));
+    queryClient.invalidateQueries({ queryKey: ["reminders"] });
+  },
+});
 
 const pauseMut = useMutation({
-  mutationFn: (r: ClientReminder) => r.status === 'PAUSED' ? remindersService.resume(r.id) : remindersService.pause(r.id),
-  onSuccess: () => { toast.success(t('reminders.statusUpdated')); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
-})
+  mutationFn: (r: ClientReminder) =>
+    r.status === "PAUSED"
+      ? remindersService.resume(r.id)
+      : remindersService.pause(r.id),
+  onSuccess: () => {
+    toast.success(t("reminders.statusUpdated"));
+    queryClient.invalidateQueries({ queryKey: ["reminders"] });
+  },
+});
 
 const deleteMut = useMutation({
   mutationFn: (id: string) => remindersService.delete(id),
-  onSuccess: () => { toast.success(t('reminders.deleted')); queryClient.invalidateQueries({ queryKey: ['reminders'] }) },
-})
+  onSuccess: () => {
+    toast.success(t("reminders.deleted"));
+    queryClient.invalidateQueries({ queryKey: ["reminders"] });
+  },
+});
 
 function confirmDelete(r: ClientReminder) {
   confirm.require({
-    message: t('reminders.deleteConfirm', { title: r.title }),
-    header: t('reminders.deleteHeader'),
-    icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: t('common.cancel'), severity: 'secondary', outlined: true },
-    acceptProps: { label: t('common.delete'), severity: 'danger' },
+    message: t("reminders.deleteConfirm", { title: r.title }),
+    header: t("reminders.deleteHeader"),
+    icon: "pi pi-exclamation-triangle",
+    rejectProps: {
+      label: t("common.cancel"),
+      severity: "secondary",
+      outlined: true,
+    },
+    acceptProps: { label: t("common.delete"), severity: "danger" },
     accept: () => deleteMut.mutate(r.id),
-  })
+  });
 }
 
 // ── History drawer ────────────────────────────────────────────────
-const showHistory = ref(false)
-const historyReminderId = ref<string | null>(null)
+const showHistory = ref(false);
+const historyReminderId = ref<string | null>(null);
 const { data: history, isLoading: histLoading } = useQuery({
-  queryKey: computed(() => qk.reminderHistory(historyReminderId.value ?? '')),
+  queryKey: computed(() => qk.reminderHistory(historyReminderId.value ?? "")),
   queryFn: () => remindersService.getHistory(historyReminderId.value!),
   enabled: computed(() => !!historyReminderId.value),
-})
+});
 
 function openHistory(r: ClientReminder) {
-  historyReminderId.value = r.id
-  showHistory.value = true
+  historyReminderId.value = r.id;
+  showHistory.value = true;
 }
 </script>
 
@@ -187,103 +228,280 @@ function openHistory(r: ClientReminder) {
   <div class="space-y-4 p-4">
     <div class="flex items-center justify-between flex-wrap gap-3">
       <div>
-        <h1 class="text-xl font-bold text-[var(--text)]">{{ t('reminders.title') }}</h1>
-        <p class="text-sm text-[var(--text-muted)]">{{ t('reminders.subtitle') }}</p>
+        <h1 class="text-xl font-bold text-[var(--text)]">
+          {{ t("reminders.title") }}
+        </h1>
+        <p class="text-sm text-[var(--text-muted)]">
+          {{ t("reminders.subtitle") }}
+        </p>
       </div>
-      <Button :label="t('reminders.new')" icon="pi pi-plus" @click="openCreateDialog" />
+      <Button
+        :label="t('reminders.new')"
+        icon="pi pi-plus"
+        @click="openCreateDialog"
+      />
     </div>
 
     <!-- Filters -->
     <div class="flex flex-wrap gap-3">
-      <Select v-model="statusFilter" :options="statusOptions" option-label="label" option-value="value" :placeholder="t('reminders.statusPlaceholder')" class="w-40" />
-      <Select v-model="clientFilter" :options="clientOptions" option-label="label" option-value="value" :placeholder="t('reminders.clientPlaceholder')" filter class="w-52" />
+      <Select
+        v-model="statusFilter"
+        :options="statusOptions"
+        option-label="label"
+        option-value="value"
+        :placeholder="t('reminders.statusPlaceholder')"
+        class="w-40"
+      />
+      <Select
+        v-model="clientFilter"
+        :options="clientOptions"
+        option-label="label"
+        option-value="value"
+        :placeholder="t('reminders.clientPlaceholder')"
+        filter
+        class="w-52"
+      />
     </div>
 
     <DataTable :value="reminders" :loading="isLoading" stripedRows>
       <Column :header="t('reminders.client')" field="clientName" />
       <Column :header="t('reminders.titleCol')" field="title" />
-      <Column :header="t('reminders.recurrence')" style="width:140px">
-        <template #body="{ data }">{{ recurrenceLabel(data.recurrenceType, data.recurrenceDays) }}</template>
+      <Column :header="t('reminders.recurrence')" style="width: 140px">
+        <template #body="{ data }">{{
+          recurrenceLabel(data.recurrenceType, data.recurrenceDays)
+        }}</template>
       </Column>
-      <Column :header="t('reminders.nextDate')" style="width:130px">
-        <template #body="{ data }">{{ dayjs(data.nextDueDate).format('DD MMM YYYY') }}</template>
+      <Column :header="t('reminders.nextDate')" style="width: 130px">
+        <template #body="{ data }">{{
+          dayjs(data.nextDueDate).format("DD MMM YYYY")
+        }}</template>
       </Column>
-      <Column :header="t('reminders.status')" style="width:110px">
+      <Column :header="t('reminders.status')" style="width: 110px">
         <template #body="{ data }">
-          <Tag :severity="statusSeverity(data.status)" :value="statusLabel(data.status)" />
+          <Tag
+            :severity="statusSeverity(data.status)"
+            :value="statusLabel(data.status)"
+          />
         </template>
       </Column>
-      <Column :header="t('common.actions')" style="width:220px">
+      <Column :header="t('common.actions')" style="width: 220px">
         <template #body="{ data }">
           <div class="flex gap-1 flex-wrap">
-            <Button v-if="data.status === 'ACTIVE'" icon="pi pi-check" size="small" severity="success" text rounded :tooltip="t('reminders.complete')" @click="completeMut.mutate(data.id)" />
-            <Button v-if="data.status === 'ACTIVE'" icon="pi pi-clock" size="small" severity="warn" text rounded :tooltip="t('reminders.snooze')" @click="snoozeMut.mutate(data.id)" />
-            <Button :icon="data.status === 'PAUSED' ? 'pi pi-play' : 'pi pi-pause'" size="small" severity="secondary" text rounded :tooltip="data.status === 'PAUSED' ? t('reminders.resume') : t('reminders.pause')" @click="pauseMut.mutate(data)" />
-            <Button icon="pi pi-pencil" size="small" severity="secondary" text rounded :tooltip="t('common.edit')" @click="openEditDialog(data)" />
-            <Button icon="pi pi-history" size="small" severity="info" text rounded :tooltip="t('reminders.history')" @click="openHistory(data)" />
-            <Button icon="pi pi-trash" size="small" severity="danger" text rounded :tooltip="t('common.delete')" @click="confirmDelete(data)" />
+            <Button
+              v-if="data.status === 'ACTIVE'"
+              icon="pi pi-check"
+              size="small"
+              severity="success"
+              text
+              rounded
+              :tooltip="t('reminders.complete')"
+              @click="completeMut.mutate(data.id)"
+            />
+            <Button
+              v-if="data.status === 'ACTIVE'"
+              icon="pi pi-clock"
+              size="small"
+              severity="warn"
+              text
+              rounded
+              :tooltip="t('reminders.snooze')"
+              @click="snoozeMut.mutate(data.id)"
+            />
+            <Button
+              :icon="data.status === 'PAUSED' ? 'pi pi-play' : 'pi pi-pause'"
+              size="small"
+              severity="secondary"
+              text
+              rounded
+              :tooltip="
+                data.status === 'PAUSED'
+                  ? t('reminders.resume')
+                  : t('reminders.pause')
+              "
+              @click="pauseMut.mutate(data)"
+            />
+            <Button
+              icon="pi pi-pencil"
+              size="small"
+              severity="secondary"
+              text
+              rounded
+              :tooltip="t('common.edit')"
+              @click="openEditDialog(data)"
+            />
+            <Button
+              icon="pi pi-history"
+              size="small"
+              severity="info"
+              text
+              rounded
+              :tooltip="t('reminders.history')"
+              @click="openHistory(data)"
+            />
+            <Button
+              icon="pi pi-trash"
+              size="small"
+              severity="danger"
+              text
+              rounded
+              :tooltip="t('common.delete')"
+              @click="confirmDelete(data)"
+            />
           </div>
         </template>
       </Column>
       <template #empty>
-        <div class="text-center py-8 text-[var(--text-muted)] text-sm">{{ t('reminders.empty') }}</div>
+        <div class="text-center py-8 text-[var(--text-muted)] text-sm">
+          {{ t("reminders.empty") }}
+        </div>
       </template>
     </DataTable>
 
     <!-- Create/Edit Dialog -->
-    <Dialog v-model:visible="showDialog" :header="editingId ? t('reminders.edit') : t('reminders.new')" modal class="w-full max-w-lg">
+    <Dialog
+      v-model:visible="showDialog"
+      :header="editingId ? t('reminders.edit') : t('reminders.new')"
+      modal
+      class="w-full max-w-lg"
+    >
       <div class="flex flex-col gap-4 pt-2">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('reminders.client') }} *</label>
-          <Select v-model="formClientId" :options="clientOptions.slice(1)" option-label="label" option-value="value" filter :placeholder="t('reminders.selectClient')" class="w-full" />
+          <label class="text-sm font-medium"
+            >{{ t("reminders.client") }} *</label
+          >
+          <Select
+            v-model="formClientId"
+            :options="clientOptions.slice(1)"
+            option-label="label"
+            option-value="value"
+            filter
+            :placeholder="t('reminders.selectClient')"
+            class="w-full"
+          />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('reminders.titleCol') }} *</label>
-          <InputText v-model="formTitle" :placeholder="t('reminders.titlePlaceholder')" class="w-full" />
+          <label class="text-sm font-medium"
+            >{{ t("reminders.titleCol") }} *</label
+          >
+          <InputText
+            v-model="formTitle"
+            :placeholder="t('reminders.titlePlaceholder')"
+            class="w-full"
+          />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('reminders.description') }}</label>
-          <Textarea v-model="formDescription" :rows="2" :placeholder="t('reminders.descriptionPlaceholder')" class="w-full" />
+          <label class="text-sm font-medium">{{
+            t("reminders.description")
+          }}</label>
+          <Textarea
+            v-model="formDescription"
+            :rows="2"
+            :placeholder="t('reminders.descriptionPlaceholder')"
+            class="w-full"
+          />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">{{ t('reminders.recurrence') }} *</label>
-            <Select v-model="formRecurrenceType" :options="recurrenceOptions" option-label="label" option-value="value" class="w-full" />
+            <label class="text-sm font-medium"
+              >{{ t("reminders.recurrence") }} *</label
+            >
+            <Select
+              v-model="formRecurrenceType"
+              :options="recurrenceOptions"
+              option-label="label"
+              option-value="value"
+              class="w-full"
+            />
           </div>
-          <div v-if="formRecurrenceType === 'CUSTOM'" class="flex flex-col gap-1">
-            <label class="text-sm font-medium">{{ t('reminders.days') }}</label>
-            <InputNumber v-model="formRecurrenceDays" :min="1" :placeholder="t('reminders.daysPlaceholder')" class="w-full" />
+          <div
+            v-if="formRecurrenceType === 'CUSTOM'"
+            class="flex flex-col gap-1"
+          >
+            <label class="text-sm font-medium">{{ t("reminders.days") }}</label>
+            <InputNumber
+              v-model="formRecurrenceDays"
+              :min="1"
+              :placeholder="t('reminders.daysPlaceholder')"
+              class="w-full"
+            />
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">{{ t('reminders.startDate') }} *</label>
+            <label class="text-sm font-medium"
+              >{{ t("reminders.startDate") }} *</label
+            >
             <InputText v-model="formStartDate" type="date" class="w-full" />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">{{ t('reminders.maxOccurrences') }}</label>
-            <InputNumber v-model="formMaxOccurrences" :min="1" :placeholder="t('reminders.noLimit')" class="w-full" />
+            <label class="text-sm font-medium">{{
+              t("reminders.maxOccurrences")
+            }}</label>
+            <InputNumber
+              v-model="formMaxOccurrences"
+              :min="1"
+              :placeholder="t('reminders.noLimit')"
+              class="w-full"
+            />
           </div>
         </div>
       </div>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button :label="t('common.cancel')" severity="secondary" outlined @click="showDialog = false" />
-          <Button :label="editingId ? t('common.save') : t('common.create')" :loading="saveMut.isPending.value" :disabled="!formClientId || !formTitle" @click="saveMut.mutate()" />
+          <Button
+            :label="t('common.cancel')"
+            severity="secondary"
+            outlined
+            @click="showDialog = false"
+          />
+          <Button
+            :label="editingId ? t('common.save') : t('common.create')"
+            :loading="saveMut.isPending.value"
+            :disabled="!formClientId || !formTitle"
+            @click="saveMut.mutate()"
+          />
         </div>
       </template>
     </Dialog>
 
     <!-- History Dialog -->
-    <Dialog v-model:visible="showHistory" :header="t('reminders.history')" modal class="w-full max-w-lg">
-      <div v-if="histLoading" class="py-6 text-center text-[var(--text-muted)]">{{ t('common.loading') }}</div>
-      <div v-else-if="!history?.length" class="py-6 text-center text-sm text-[var(--text-muted)]">{{ t('reminders.noHistory') }}</div>
+    <Dialog
+      v-model:visible="showHistory"
+      :header="t('reminders.history')"
+      modal
+      class="w-full max-w-lg"
+    >
+      <div v-if="histLoading" class="py-6 text-center text-[var(--text-muted)]">
+        {{ t("common.loading") }}
+      </div>
+      <div
+        v-else-if="!history?.length"
+        class="py-6 text-center text-sm text-[var(--text-muted)]"
+      >
+        {{ t("reminders.noHistory") }}
+      </div>
       <div v-else class="space-y-2 max-h-80 overflow-y-auto">
-        <div v-for="h in history" :key="h.id" class="flex items-start gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)]">
+        <div
+          v-for="h in history"
+          :key="h.id"
+          class="flex items-start gap-3 p-3 rounded-lg border border-[var(--border)] bg-[var(--surface-raised)]"
+        >
           <div class="flex-1">
-            <p class="text-sm font-medium text-[var(--text)]">{{ h.outcome === 'COMPLETED' ? t('reminders.completed') : h.outcome === 'SNOOZED' ? t('reminders.snoozed') : t('reminders.skipped') }}</p>
-            <p class="text-xs text-[var(--text-muted)]">{{ dayjs(h.completedAt).format('DD MMM YYYY HH:mm') }}</p>
-            <p v-if="h.notes" class="text-xs text-[var(--text-muted)] mt-1">{{ h.notes }}</p>
+            <p class="text-sm font-medium text-[var(--text)]">
+              {{
+                h.outcome === "COMPLETED"
+                  ? t("reminders.completed")
+                  : h.outcome === "SNOOZED"
+                    ? t("reminders.snoozed")
+                    : t("reminders.skipped")
+              }}
+            </p>
+            <p class="text-xs text-[var(--text-muted)]">
+              {{ dayjs(h.completedAt).format("DD MMM YYYY HH:mm") }}
+            </p>
+            <p v-if="h.notes" class="text-xs text-[var(--text-muted)] mt-1">
+              {{ h.notes }}
+            </p>
           </div>
         </div>
       </div>
