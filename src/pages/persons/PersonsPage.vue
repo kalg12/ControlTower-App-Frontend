@@ -100,24 +100,46 @@ const userOpts = computed(() => [
   })),
 ]);
 
-const leadSourceOpts = [
+const leadSourceOpts = computed(() => [
   { label: t("persons.sourceWhatsapp"), value: "WHATSAPP" },
   { label: t("persons.sourceInstagram"), value: "INSTAGRAM" },
   { label: t("persons.sourceFacebook"), value: "FACEBOOK" },
   { label: t("persons.sourceTiktok"), value: "TIKTOK" },
   { label: t("persons.sourceReferral"), value: "REFERRAL" },
   { label: t("persons.sourceInbound"), value: "INBOUND" },
+  { label: t("persons.sourceOutbound"), value: "OUTBOUND" },
+  { label: t("persons.sourceSocialMedia"), value: "SOCIAL_MEDIA" },
+  { label: t("persons.sourceSupportEscalation"), value: "SUPPORT_ESCALATION" },
   { label: t("persons.sourceWebsite"), value: "WEBSITE" },
   { label: t("persons.sourceEvent"), value: "EVENT" },
   { label: t("persons.sourceOther"), value: "OTHER" },
-];
+]);
 
-const statusOpts = [
+const statusOpts = computed(() => [
   { label: t("persons.statusProspect"), value: "PROSPECT" },
   { label: t("persons.statusActive"), value: "ACTIVE" },
   { label: t("persons.statusInactive"), value: "INACTIVE" },
   { label: t("persons.statusConverted"), value: "CONVERTED" },
-];
+]);
+
+function leadSourceLabel(source?: string | null) {
+  if (!source) return "—";
+  const map: Record<string, string> = {
+    WHATSAPP: t("persons.sourceWhatsapp"),
+    INSTAGRAM: t("persons.sourceInstagram"),
+    FACEBOOK: t("persons.sourceFacebook"),
+    TIKTOK: t("persons.sourceTiktok"),
+    REFERRAL: t("persons.sourceReferral"),
+    INBOUND: t("persons.sourceInbound"),
+    OUTBOUND: t("persons.sourceOutbound"),
+    WEBSITE: t("persons.sourceWebsite"),
+    EVENT: t("persons.sourceEvent"),
+    SOCIAL_MEDIA: t("persons.sourceSocialMedia"),
+    SUPPORT_ESCALATION: t("persons.sourceSupportEscalation"),
+    OTHER: t("persons.sourceOther"),
+  };
+  return map[source] ?? source;
+}
 
 const createMutation = useMutation({
   mutationFn: (req: CreatePersonRequest) => personsService.create(req),
@@ -358,9 +380,7 @@ function statusSeverity(
 
       <Column :header="t('persons.leadSource')" class="min-w-27.5">
         <template #body="{ data }">
-          <span class="text-sm text-(--text)">{{
-            data.leadSource ?? "—"
-          }}</span>
+          <span class="text-sm text-(--text)">{{ leadSourceLabel(data.leadSource) }}</span>
         </template>
       </Column>
 

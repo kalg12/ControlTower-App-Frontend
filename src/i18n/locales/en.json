@@ -1141,6 +1141,9 @@
     "sourceTiktok": "TikTok",
     "sourceReferral": "Referral",
     "sourceInbound": "Inbound",
+    "sourceOutbound": "Outbound",
+    "sourceSocialMedia": "Social Media",
+    "sourceSupportEscalation": "Support Escalation",
     "sourceWebsite": "Website",
     "sourceEvent": "Event",
     "sourceOther": "Other",
@@ -1329,7 +1332,7 @@
     "syncError": "Could not start synchronization",
     "prefsFailed": "Error saving preferences"
   },
-  "persons": {
+  "profile": {
     "fullName": "Full Name",
     "fullNamePlaceholder": "Your full name",
     "email": "Email",
