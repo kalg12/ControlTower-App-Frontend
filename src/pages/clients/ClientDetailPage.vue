@@ -153,8 +153,9 @@ const { data: financeSummary, isLoading: financeLoading } = useQuery({
 });
 
 function fmtCurrency(n?: number | null) {
-  if (n == null) return "—";
-  return new Intl.NumberFormat("es-MX", {
+  if (n == null) return t("common.none");
+  const numberLocale = locale.value === "es" ? "es-MX" : "en-US";
+  return new Intl.NumberFormat(numberLocale, {
     style: "currency",
     currency: "MXN",
   }).format(n);
