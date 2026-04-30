@@ -223,7 +223,7 @@ function confirmDeleteUser(user: User) {
         <template #body="{ data: row }: { data: User }">
           <div class="flex flex-wrap gap-1">
             <Tag v-for="role in (row.roles as string[])" :key="role" :value="role" severity="secondary" class="text-xs" />
-            <span v-if="!(row.roles as string[])?.length" class="text-xs text-[var(--text-muted)]">—</span>
+            <span v-if="!(row.roles as string[])?.length" class="text-xs text-[var(--text-muted)]">{{ t('common.none') }}</span>
           </div>
         </template>
       </Column>
