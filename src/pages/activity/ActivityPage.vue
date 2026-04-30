@@ -480,7 +480,7 @@ function clearFilters() {
           <template #header>
             <span class="text-sm font-semibold text-[var(--text)]">{{ t('activity.topPagesToday') }}</span>
           </template>
-          <div v-if="topPages.length === 0" class="text-xs text-[var(--text-muted)] text-center py-4">—</div>
+          <div v-if="topPages.length === 0" class="text-xs text-[var(--text-muted)] text-center py-4">{{ t('common.none') }}</div>
           <div v-else class="space-y-3">
             <div v-for="p in topPages" :key="p.label">
               <div class="flex justify-between items-baseline text-xs mb-1">
@@ -502,7 +502,7 @@ function clearFilters() {
           <template #header>
             <span class="text-sm font-semibold text-[var(--text)]">{{ t('activity.topUsersToday') }}</span>
           </template>
-          <div v-if="topUsers.length === 0" class="text-xs text-[var(--text-muted)] text-center py-4">—</div>
+          <div v-if="topUsers.length === 0" class="text-xs text-[var(--text-muted)] text-center py-4">{{ t('common.none') }}</div>
           <div v-else class="space-y-3">
             <div v-for="(u, i) in topUsers" :key="u.name" class="flex items-center gap-2">
               <span class="text-xs font-bold text-[var(--text-muted)] w-4 shrink-0 tabular-nums">{{ i + 1 }}</span>
