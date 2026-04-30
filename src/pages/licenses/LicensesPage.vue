@@ -29,7 +29,7 @@ const licenses = computed(() => result.value?.content ?? [])
 const totalRecords = computed(() => result.value?.totalElements ?? 0)
 
 function periodEndText(license: License) {
-  if (!license.currentPeriodEnd) return '—'
+  if (!license.currentPeriodEnd) return t('common.none')
   const diff = dayjs(license.currentPeriodEnd).diff(dayjs(), 'day')
   if (diff < 0) return t('licenses.expiredAgo', { days: Math.abs(diff) })
   if (diff === 0) return t('licenses.expiresToday')
@@ -113,12 +113,12 @@ function confirmCancel(license: License) {
     <DataTable v-else :value="licenses" striped-rows class="rounded-xl overflow-hidden">
       <Column field="clientName" :header="t('licenses.client')" style="min-width: 180px">
         <template #body="{ data: row }: { data: License }">
-          <span class="font-medium text-[var(--text)]">{{ row.clientName ?? '—' }}</span>
+          <span class="font-medium text-[var(--text)]">{{ row.clientName ?? t('common.none') }}</span>
         </template>
       </Column>
       <Column field="plan" :header="t('licenses.plan')" style="width: 130px">
         <template #body="{ data: row }: { data: License }">
-          <span class="text-sm text-[var(--text-muted)]">{{ row.plan ?? '—' }}</span>
+          <span class="text-sm text-[var(--text-muted)]">{{ row.plan ?? t('common.none') }}</span>
         </template>
       </Column>
       <Column field="status" :header="t('licenses.status')" style="width: 120px">
