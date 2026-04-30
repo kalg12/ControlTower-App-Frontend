@@ -66,7 +66,7 @@ function resultSeverity(result?: string): 'success' | 'danger' | 'warn' | 'secon
 }
 
 function tryFormatJson(raw?: string): string {
-  if (!raw) return '—'
+  if (!raw) return t('common.none')
   try {
     return JSON.stringify(JSON.parse(raw), null, 2)
   } catch {
