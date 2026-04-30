@@ -253,7 +253,7 @@ function tenantStatusLabel(status?: string | null) {
   if (status === "ACTIVE") return t("tenants.statusActive");
   if (status === "SUSPENDED") return t("tenants.statusSuspended");
   if (status === "TRIAL") return t("tenants.statusTrial");
-  return status ?? "—";
+  return status ?? t("common.none");
 }
 </script>
 
@@ -338,7 +338,7 @@ function tenantStatusLabel(status?: string | null) {
       <Column field="slug" :header="t('tenants.slug')" style="min-width: 140px">
         <template #body="{ data: row }: { data: Tenant }">
           <span class="text-[var(--text-muted)] text-sm font-mono">{{
-            row.slug ?? "—"
+            row.slug ?? t('common.none')
           }}</span>
         </template>
       </Column>
