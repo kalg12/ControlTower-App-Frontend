@@ -416,7 +416,7 @@ const branchOptions = computed(() => {
         <Column field="branchName" :header="t('health.branch')" sortable style="min-width: 180px">
           <template #body="{ data: row }: { data: HealthCheck }">
             <div>
-              <span class="font-medium text-[var(--text)]">{{ row.branchName ?? '—' }}</span>
+              <span class="font-medium text-[var(--text)]">{{ row.branchName ?? t('common.none') }}</span>
               <span class="block text-xs text-[var(--text-muted)] font-mono">{{ row.branchId }}</span>
               <span
                 v-if="row.status === 'DOWN' && row.errorMessage"
@@ -438,14 +438,14 @@ const branchOptions = computed(() => {
         <Column field="latencyMs" :header="t('health.latency')" sortable style="width: 110px">
           <template #body="{ data: row }: { data: HealthCheck }">
             <span :class="latencyClass(row.latencyMs)">
-              {{ row.latencyMs != null ? `${row.latencyMs}ms` : '—' }}
+              {{ row.latencyMs != null ? `${row.latencyMs}ms` : t('common.none') }}
             </span>
           </template>
         </Column>
 
         <Column field="version" :header="t('health.version')" style="width: 110px">
           <template #body="{ data: row }: { data: HealthCheck }">
-            <span class="text-[var(--text-muted)] text-sm font-mono">{{ row.version ?? '—' }}</span>
+            <span class="text-[var(--text-muted)] text-sm font-mono">{{ row.version ?? t('common.none') }}</span>
           </template>
         </Column>
 
