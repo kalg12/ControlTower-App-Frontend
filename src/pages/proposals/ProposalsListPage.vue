@@ -96,11 +96,14 @@ const statusOptions = computed(() => [
 
 function formatCurrency(amount: number, currency: string) {
   const numberLocale = locale.value === "es" ? "es-MX" : "en-US";
-  return `$${amount.toLocaleString(numberLocale, { minimumFractionDigits: 2 })} ${currency}`;
+  return new Intl.NumberFormat(numberLocale, {
+    style: "currency",
+    currency,
+  }).format(amount);
 }
 
 function formatDate(d?: string | null) {
-  return d ? dayjs(d).format("DD MMM YYYY") : "—";
+  return d ? dayjs(d).format("DD MMM YYYY") : t("common.none");
 }
 </script>
 
