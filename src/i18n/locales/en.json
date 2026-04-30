@@ -1019,6 +1019,7 @@
   },
   "proposals": {
     "title": "Economic Proposals",
+    "statusLabel": "Status",
     "status": {
       "draft": "Draft",
       "sent": "Sent",

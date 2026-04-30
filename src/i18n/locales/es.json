@@ -982,6 +982,7 @@
   },
   "proposals": {
     "title": "Propuestas Económicas",
+    "statusLabel": "Estado",
     "status": {
       "draft": "Borrador",
       "sent": "Enviada",

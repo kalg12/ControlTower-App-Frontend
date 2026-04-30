@@ -170,7 +170,7 @@ function formatDate(d?: string | null) {
       <Column field="title" :header="t('proposals.titleCol')" />
       <Column
         field="status"
-        :header="t('proposals.status')"
+        :header="t('proposals.statusLabel')"
         style="width: 120px"
       >
         <template #body="{ data }">
