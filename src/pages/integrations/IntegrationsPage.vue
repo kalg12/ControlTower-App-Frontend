@@ -372,7 +372,7 @@ function openDrawer(ep: Integration) {
 // ── Helpers ───────────────────────────────────────────────────────────────────
 
 function formatDatetime(iso?: string) {
-  if (!iso) return '—'
+  if (!iso) return t('common.none')
   return new Date(iso).toLocaleString(undefined, { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
 }
 
@@ -424,7 +424,7 @@ function webhookSeverity(status: WebhookDelivery['status']) {
         <p class="text-2xl font-bold text-emerald-500">{{ stats.active }}</p>
       </div>
       <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
-        <p class="text-xs text-[var(--text-muted)] mb-1">POS</p>
+        <p class="text-xs text-[var(--text-muted)] mb-1">{{ t('integrations.filterPos') }}</p>
         <p class="text-2xl font-bold text-[var(--primary)]">{{ stats.pos }}</p>
       </div>
       <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] px-4 py-3">
@@ -482,7 +482,7 @@ function webhookSeverity(status: WebhookDelivery['status']) {
       <Column :header="t('integrations.nameType')" style="min-width: 160px">
         <template #body="{ data: row }: { data: Integration }">
           <div>
-            <p class="text-sm font-medium text-[var(--text)]">{{ row.name || '—' }}</p>
+            <p class="text-sm font-medium text-[var(--text)]">{{ row.name || t('common.none') }}</p>
             <Tag :value="row.type" :severity="row.type === 'POS' ? 'info' : 'secondary'" class="mt-1" />
           </div>
         </template>
