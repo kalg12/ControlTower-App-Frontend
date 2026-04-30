@@ -1714,6 +1714,7 @@
     "category": "Categoría",
     "categoryPlaceholder": "Ej: Saludos, Cierre",
     "shortcut": "Atajo",
+    "shortcutExample": "ej. saludo",
     "insertTemplate": "Insertar plantilla"
   },
   "finance": {

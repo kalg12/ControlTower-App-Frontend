@@ -1752,6 +1752,7 @@
     "category": "Category",
     "categoryPlaceholder": "e.g. Greetings, Closing",
     "shortcut": "Shortcut",
+    "shortcutExample": "e.g. greeting",
     "insertTemplate": "Insert template"
   },
   "finance": {

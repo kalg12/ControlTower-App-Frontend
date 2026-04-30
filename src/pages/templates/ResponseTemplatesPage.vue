@@ -203,7 +203,7 @@ const categories = computed(() => {
         </div>
         <div>
           <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">{{ t('templates.shortcut') }}</label>
-          <InputText v-model="form.shortcut" class="w-full" placeholder="e.g. greeting" />
+          <InputText v-model="form.shortcut" class="w-full" :placeholder="t('templates.shortcutExample')" />
         </div>
       </div>
     </div>
