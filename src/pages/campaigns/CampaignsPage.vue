@@ -180,7 +180,7 @@ function confirmDelete(c: Campaign) {
       </Column>
       <Column field="targetAudience" :header="t('campaigns.audience')" style="min-width: 160px">
         <template #body="{ data: row }: { data: Campaign }">
-          <span class="text-sm text-[var(--text-muted)] truncate block max-w-xs">{{ row.targetAudience ?? '—' }}</span>
+          <span class="text-sm text-[var(--text-muted)] truncate block max-w-xs">{{ row.targetAudience ?? t('common.none') }}</span>
         </template>
       </Column>
       <Column field="createdAt" :header="t('campaigns.createdAt')" sortable style="width: 130px">
