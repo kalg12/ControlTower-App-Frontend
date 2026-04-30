@@ -227,7 +227,7 @@ function slaRateSeverity(rate: number | null): 'success' | 'warning' | 'danger' 
           <Column :header="t('reports.avgTime')">
             <template #body="{ data }">
               <span v-if="data.avgMinutes !== null">{{ formatMinutes(data.avgMinutes) }}</span>
-              <span v-else class="text-[var(--text-muted)]">—</span>
+              <span v-else class="text-[var(--text-muted)]">{{ t('common.none') }}</span>
             </template>
           </Column>
           <Column :header="t('reports.slaRate')">
@@ -237,7 +237,7 @@ function slaRateSeverity(rate: number | null): 'success' | 'warning' | 'danger' 
                 :value="`${data.slaRate.toFixed(0)}%`"
                 :severity="slaRateSeverity(data.slaRate)"
               />
-              <span v-else class="text-[var(--text-muted)]">—</span>
+              <span v-else class="text-[var(--text-muted)]">{{ t('common.none') }}</span>
             </template>
           </Column>
         </DataTable>
