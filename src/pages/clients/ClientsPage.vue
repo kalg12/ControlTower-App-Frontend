@@ -118,9 +118,9 @@ function statusSeverity(
 }
 
 function formatDate(dateStr: string | undefined) {
-  if (!dateStr) return "—";
+  if (!dateStr) return t("common.none");
   const d = dayjs(dateStr);
-  return d.isValid() ? d.format("DD MMM YYYY") : "—";
+  return d.isValid() ? d.format("DD MMM YYYY") : t("common.none");
 }
 
 // --- Create Client Modal ---
@@ -339,7 +339,7 @@ const segmentOptions = computed(() => [
 ]);
 
 const leadSourceOptions = computed(() => [
-  { label: "—", value: "" },
+  { label: t("common.none"), value: "" },
   { label: t("clientsPage.leadSourceReferral"), value: "REFERRAL" },
   { label: t("clientsPage.leadSourceInbound"), value: "INBOUND" },
   { label: t("clientsPage.leadSourceOutbound"), value: "OUTBOUND" },
