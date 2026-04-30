@@ -120,7 +120,7 @@ function statusLabel(ep: Integration) {
 
 function lastContact(ep: Integration) {
   const h = healthForEndpoint(ep);
-  if (!h?.lastCheckedAt) return "—";
+  if (!h?.lastCheckedAt) return t("common.none");
   return dayjs(h.lastCheckedAt).fromNow();
 }
 
@@ -134,7 +134,7 @@ function incidentSeverity(s: string) {
 }
 
 function formatDate(d?: string | null) {
-  return d ? dayjs(d).format("DD/MM/YYYY HH:mm") : "—";
+  return d ? dayjs(d).format("DD/MM/YYYY HH:mm") : t("common.none");
 }
 
 function normalizeHealthUrl(url: string): string {
