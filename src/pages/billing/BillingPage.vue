@@ -133,7 +133,9 @@ function onPage(event: { page: number }) {
       <Column field="amount" :header="t('billing.amount')" style="width: 130px">
         <template #body="{ data: row }: { data: BillingEvent }">
           <span class="text-sm font-semibold text-[var(--text)]">{{
-            row.amount ? formatAmount(row.amount, row.currency || "MXN") : t('common.none')
+            row.amount
+              ? formatAmount(row.amount, row.currency || "MXN")
+              : t("common.none")
           }}</span>
         </template>
       </Column>
@@ -146,7 +148,7 @@ function onPage(event: { page: number }) {
           <span
             class="text-xs text-[var(--text-muted)] font-mono truncate block max-w-xs"
             :title="row.stripeEventId"
-            >{{ row.stripeEventId ?? t('common.none') }}</span
+            >{{ row.stripeEventId ?? t("common.none") }}</span
           >
         </template>
       </Column>

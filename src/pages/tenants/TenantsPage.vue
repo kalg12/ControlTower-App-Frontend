@@ -338,7 +338,7 @@ function tenantStatusLabel(status?: string | null) {
       <Column field="slug" :header="t('tenants.slug')" style="min-width: 140px">
         <template #body="{ data: row }: { data: Tenant }">
           <span class="text-[var(--text-muted)] text-sm font-mono">{{
-            row.slug ?? t('common.none')
+            row.slug ?? t("common.none")
           }}</span>
         </template>
       </Column>
