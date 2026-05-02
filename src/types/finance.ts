@@ -1,6 +1,9 @@
 export type InvoiceStatus = 'DRAFT' | 'SENT' | 'PAID' | 'OVERDUE' | 'CANCELLED' | 'VOIDED'
 export type PaymentMethod = 'BANK_TRANSFER' | 'CASH' | 'CARD' | 'CHECK' | 'CRYPTO' | 'OTHER'
+export type PaymentSource = 'MANUAL' | 'POS_IMPORT'
 export type ExpenseCategory = 'PAYROLL' | 'SERVICES' | 'RENT' | 'MARKETING' | 'TECH' | 'TRAVEL' | 'SUPPLIES' | 'TAXES' | 'OTHER'
+export type RecurrenceType = 'DAILY' | 'WEEKLY' | 'BIWEEKLY' | 'MONTHLY' | 'QUARTERLY' | 'YEARLY'
+export type PurchaseSource = 'MANUAL' | 'POS_IMPORT'
 
 export interface InvoiceLineItem {
   id: string
@@ -32,6 +35,11 @@ export interface Invoice {
   lineItems: InvoiceLineItem[]
   createdAt: string
   updatedAt: string
+  isRecurring: boolean
+  recurrenceType?: RecurrenceType | null
+  recurrenceEndDate?: string | null
+  nextOccurrenceDate?: string | null
+  parentRecurringId?: string | null
 }
 
 export interface Payment {
@@ -47,6 +55,13 @@ export interface Payment {
   notes?: string | null
   paidAt: string
   createdAt: string
+  source: PaymentSource
+  posReference?: string | null
+  isRecurring: boolean
+  recurrenceType?: RecurrenceType | null
+  recurrenceEndDate?: string | null
+  nextOccurrenceDate?: string | null
+  parentRecurringId?: string | null
 }
 
 export interface Expense {
@@ -62,6 +77,35 @@ export interface Expense {
   receiptUrl?: string | null
   notes?: string | null
   paidAt: string
+  createdAt: string
+  updatedAt: string
+  isRecurring: boolean
+  recurrenceType?: RecurrenceType | null
+  recurrenceEndDate?: string | null
+  nextOccurrenceDate?: string | null
+  parentRecurringId?: string | null
+}
+
+export interface PurchaseRecord {
+  id: string
+  tenantId: string
+  vendor?: string | null
+  description: string
+  amount: number
+  currency: string
+  category: ExpenseCategory
+  quantity: number
+  unitPrice?: number | null
+  receiptUrl?: string | null
+  notes?: string | null
+  purchasedAt: string
+  source: PurchaseSource
+  posReference?: string | null
+  isRecurring: boolean
+  recurrenceType?: RecurrenceType | null
+  recurrenceEndDate?: string | null
+  nextOccurrenceDate?: string | null
+  parentRecurringId?: string | null
   createdAt: string
   updatedAt: string
 }
@@ -81,6 +125,9 @@ export interface InvoiceRequest {
   issuedAt?: string
   dueDate?: string
   lineItems: InvoiceLineItemRequest[]
+  isRecurring?: boolean
+  recurrenceType?: RecurrenceType
+  recurrenceEndDate?: string
 }
 
 export interface PaymentRequest {
@@ -92,6 +139,11 @@ export interface PaymentRequest {
   reference?: string
   notes?: string
   paidAt?: string
+  source?: PaymentSource
+  posReference?: string
+  isRecurring?: boolean
+  recurrenceType?: RecurrenceType
+  recurrenceEndDate?: string
 }
 
 export interface ExpenseRequest {
@@ -104,6 +156,27 @@ export interface ExpenseRequest {
   receiptUrl?: string
   notes?: string
   paidAt?: string
+  isRecurring?: boolean
+  recurrenceType?: RecurrenceType
+  recurrenceEndDate?: string
+}
+
+export interface PurchaseRequest {
+  vendor?: string
+  description: string
+  amount: number
+  currency?: string
+  category?: ExpenseCategory
+  quantity?: number
+  unitPrice?: number
+  receiptUrl?: string
+  notes?: string
+  purchasedAt?: string
+  source?: PurchaseSource
+  posReference?: string
+  isRecurring?: boolean
+  recurrenceType?: RecurrenceType
+  recurrenceEndDate?: string
 }
 
 export interface MonthlyEntry {
@@ -178,4 +251,34 @@ export interface ExpenseAdvancedFilters {
   to?: string
   page?: number
   size?: number
+}
+
+export interface PurchaseFilters {
+  source?: PurchaseSource
+  category?: ExpenseCategory
+  vendor?: string
+  from?: string
+  to?: string
+  page?: number
+  size?: number
+}
+
+export interface MonthlyPnl {
+  month: string
+  income: number
+  expenses: number
+  purchases: number
+  net: number
+}
+
+export interface PnlReport {
+  from: string
+  to: string
+  totalIncome: number
+  totalExpenses: number
+  netProfit: number
+  marginPct: number
+  byMonth: MonthlyPnl[]
+  incomeByCategory: Record<string, number>
+  expensesByCategory: Record<string, number>
 }
