@@ -209,6 +209,22 @@ function onDragChange(evt: { added?: { element: KanbanCard; newIndex: number }; 
     moveCard.mutate(
       { cardId: card.id, body: { targetColumnId: columnId, position: newIndex }, boardId: board.value.id },
       {
+        onSuccess: () => {
+          if (card.assigneeIds?.length) {
+            confirm.require({
+              message: '¿Deseas notificar a los asignados por email sobre este cambio?',
+              header: 'Notificación por email',
+              icon: 'pi pi-envelope',
+              acceptLabel: 'Enviar email',
+              rejectLabel: 'No',
+              accept: () => {
+                kanbanService.moveCard(card.id, { targetColumnId: columnId, position: newIndex, notifyByEmail: true })
+                  .then(() => toast.success('Notificación enviada por email'))
+                  .catch(() => toast.error('Error al enviar notificación por email'))
+              }
+            })
+          }
+        },
         onError: () => {
           toast.error(t('kanban.moveCardFailed'))
           refetch()

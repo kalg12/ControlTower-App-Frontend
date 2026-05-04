@@ -121,27 +121,33 @@ function fromNow(dateStr: string) {
     </div>
 
     <!-- Reply input -->
-    <div class="px-5 py-3 border-t border-[var(--border)] flex gap-2 items-end">
-      <div class="flex-1 relative">
-        <Textarea
-          v-model="replyText"
-          placeholder="Escribe una respuesta al cliente POS..."
-          :rows="2"
-          class="w-full resize-none text-sm pr-10"
-          :disabled="isSubmitting"
-          @keydown="handleKeydown"
-        />
-        <div class="absolute bottom-2 right-2">
-          <TemplateSelector @select="(body) => replyText = body" />
+    <div class="px-5 py-3 border-t border-[var(--border)] flex flex-col gap-1">
+      <div class="flex gap-2 items-end">
+        <div class="flex-1 relative">
+          <Textarea
+            v-model="replyText"
+            placeholder="Escribe una respuesta al cliente POS..."
+            :rows="2"
+            class="w-full resize-none text-sm pr-10"
+            :disabled="isSubmitting"
+            @keydown="handleKeydown"
+          />
+          <div class="absolute bottom-2 right-2">
+            <TemplateSelector @select="(body) => replyText = body" />
+          </div>
         </div>
+        <Button
+          icon="pi pi-send"
+          :loading="isSubmitting"
+          :disabled="!replyText.trim()"
+          @click="submitReply"
+          v-tooltip.top="'Enviar (Enter)'"
+        />
       </div>
-      <Button
-        icon="pi pi-send"
-        :loading="isSubmitting"
-        :disabled="!replyText.trim()"
-        @click="submitReply"
-        v-tooltip.top="'Enviar (Enter)'"
-      />
+      <p class="text-[11px] text-[var(--text-muted)] flex items-center gap-1">
+        <i class="pi pi-envelope text-[11px]" />
+        Se enviará una copia por email al cliente
+      </p>
     </div>
   </div>
 </template>

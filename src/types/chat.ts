@@ -56,7 +56,7 @@ export interface ChatQuickReply {
 export interface StartChatRequest {
   tenantId: string
   visitorName: string
-  visitorEmail?: string
+  visitorEmail: string
   visitorId?: string
   source?: string
 }

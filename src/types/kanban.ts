@@ -79,6 +79,7 @@ export interface CardRequest {
 export interface MoveCardRequest {
   targetColumnId: string
   position: number
+  notifyByEmail?: boolean
 }
 
 /** PATCH /boards/cards/{id} — column changes use moveCard */
