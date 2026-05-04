@@ -71,7 +71,7 @@ async function startChat() {
     const res = await publicChatService.startChat({
       tenantId: tenantId.value,
       visitorName: visitorName.value.trim(),
-      visitorEmail: visitorEmail.value.trim() || undefined,
+      visitorEmail: visitorEmail.value.trim(),
       visitorId,
       source: "POS",
     });
