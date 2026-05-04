@@ -6,9 +6,9 @@ import InputText from 'primevue/inputtext'
 import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
-import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import { BookOpen, Search, Plus, Eye } from 'lucide-vue-next'
+import RichTextEditor from '@/components/ui/RichTextEditor.vue'
 import { useKbArticles, useKbMutations } from '@/queries/knowledge-base'
 import { useAuthStore } from '@/stores/auth'
 import type { KbArticleFilters, KbArticleRequest, KbStatus } from '@/types/knowledge-base'
@@ -201,7 +201,7 @@ function statusSeverity(s: KbStatus): 'success' | 'secondary' | 'warn' {
       v-model:visible="showCreate"
       :header="t('kb.newArticle')"
       modal
-      :style="{ width: '600px', maxWidth: '95vw' }"
+      :style="{ width: '820px', maxWidth: '95vw' }"
     >
       <div class="space-y-4">
         <div>
@@ -231,7 +231,7 @@ function statusSeverity(s: KbStatus): 'success' | 'secondary' | 'warn' {
         </div>
         <div>
           <label class="text-sm font-medium text-[var(--text)] mb-1 block">{{ t('kb.form.content') }}</label>
-          <Textarea v-model="form.content" rows="8" class="w-full text-sm" auto-resize />
+          <RichTextEditor v-model="form.content" min-height="240px" />
         </div>
       </div>
 

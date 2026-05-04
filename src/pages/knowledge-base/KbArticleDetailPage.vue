@@ -6,11 +6,11 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import InputText from 'primevue/inputtext'
-import Textarea from 'primevue/textarea'
 import Select from 'primevue/select'
 import ConfirmDialog from 'primevue/confirmdialog'
 import { useConfirm } from 'primevue/useconfirm'
 import { ArrowLeft, Edit, Trash2, Eye } from 'lucide-vue-next'
+import RichTextEditor from '@/components/ui/RichTextEditor.vue'
 import { useKbArticle, useKbMutations } from '@/queries/knowledge-base'
 import { useAuthStore } from '@/stores/auth'
 import type { KbArticleRequest, KbStatus } from '@/types/knowledge-base'
@@ -131,11 +131,12 @@ function statusSeverity(s?: KbStatus): 'success' | 'secondary' | 'warn' {
       </div>
 
       <!-- Content -->
-      <div class="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-6">
-        <p
+      <div class="rounded-[var(--radius)] border border-[var(--border)] bg-[var(--surface)] p-6 min-h-[160px]">
+        <div
           v-if="article.content"
-          class="text-sm text-[var(--text)] whitespace-pre-wrap leading-relaxed"
-        >{{ article.content }}</p>
+          class="kb-article-body text-sm text-[var(--text)] leading-relaxed"
+          v-html="article.content"
+        />
         <p v-else class="text-sm text-[var(--text-muted)] italic">{{ t('kb.noContent') }}</p>
       </div>
     </template>
@@ -145,7 +146,7 @@ function statusSeverity(s?: KbStatus): 'success' | 'secondary' | 'warn' {
       v-model:visible="showEdit"
       :header="t('kb.editArticle')"
       modal
-      :style="{ width: '600px', maxWidth: '95vw' }"
+      :style="{ width: '820px', maxWidth: '95vw' }"
     >
       <div class="space-y-4">
         <div>
@@ -175,7 +176,7 @@ function statusSeverity(s?: KbStatus): 'success' | 'secondary' | 'warn' {
         </div>
         <div>
           <label class="text-sm font-medium text-[var(--text)] mb-1 block">{{ t('kb.form.content') }}</label>
-          <Textarea v-model="editForm.content" rows="10" class="w-full text-sm" auto-resize />
+          <RichTextEditor v-model="editForm.content" min-height="280px" />
         </div>
       </div>
 
