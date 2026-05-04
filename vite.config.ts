@@ -15,7 +15,11 @@ export default defineConfig({
     port: 5173,
     proxy: {
       "/api": { target: "http://localhost:8080", changeOrigin: true },
+      "/ws":  { target: "http://localhost:8080", changeOrigin: true, ws: true },
     },
+  },
+  optimizeDeps: {
+    include: ["sockjs-client"],
   },
   build: {
     // apexcharts minified bundle is ~1.15 MB and already isolated in its own async chunk

@@ -2,6 +2,7 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { Client as StompClient } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import { publicChatService } from "@/services/public-chat.service";
 import type {
   ChatMessage,
@@ -105,11 +106,10 @@ async function loadMessages() {
 // ── STOMP ─────────────────────────────────────────────────────────────────────
 
 function connectStomp() {
-  const baseUrl = (
-    import.meta.env.VITE_WS_URL ?? "ws://localhost:8080"
-  ).replace(/\/ws$/, "");
+  const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
+  const wsUrl = apiBase ? `${apiBase}/ws` : "/ws";
   const client = new StompClient({
-    brokerURL: `${baseUrl}/ws`,
+    webSocketFactory: () => new SockJS(wsUrl),
     connectHeaders: { "X-Visitor-Token": visitorToken },
     reconnectDelay: 5000,
     onConnect: async () => {

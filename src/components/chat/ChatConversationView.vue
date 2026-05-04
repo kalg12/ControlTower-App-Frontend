@@ -3,6 +3,7 @@ import { ref, onMounted, onUnmounted, nextTick, watch } from 'vue'
 import { useMutation, useQuery } from '@tanstack/vue-query'
 import { useI18n } from 'vue-i18n'
 import { Client as StompClient } from '@stomp/stompjs'
+import SockJS from 'sockjs-client'
 import { useAuthStore } from '@/stores/auth'
 import { chatService } from '@/services/chat.service'
 import { qk } from '@/queries/keys'
@@ -57,9 +58,10 @@ const stompConnected = ref(false)
 
 onMounted(() => {
   if (!auth.accessToken) return
-  const baseUrl = (import.meta.env.VITE_WS_URL ?? 'ws://localhost:8080').replace(/\/ws$/, '')
+  const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? '').replace(/\/$/, '')
+  const wsUrl = apiBase ? `${apiBase}/ws` : '/ws'
   const client = new StompClient({
-    brokerURL: `${baseUrl}/ws`,
+    webSocketFactory: () => new SockJS(wsUrl),
     connectHeaders: { Authorization: `Bearer ${auth.accessToken}` },
     reconnectDelay: 5000,
     onConnect: () => {
