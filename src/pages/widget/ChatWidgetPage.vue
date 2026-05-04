@@ -2,7 +2,6 @@
 import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { Client as StompClient } from "@stomp/stompjs";
-import SockJS from "sockjs-client";
 import { publicChatService } from "@/services/public-chat.service";
 import type {
   ChatMessage,
@@ -105,11 +104,16 @@ async function loadMessages() {
 
 // ── STOMP ─────────────────────────────────────────────────────────────────────
 
+function buildWsUrl(): string {
+  const base = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
+  if (base) return base.replace(/^http/, "ws") + "/ws";
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  return `${proto}//${window.location.host}/ws`;
+}
+
 function connectStomp() {
-  const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
-  const wsUrl = apiBase ? `${apiBase}/ws` : "/ws";
   const client = new StompClient({
-    webSocketFactory: () => new SockJS(wsUrl),
+    brokerURL: buildWsUrl(),
     connectHeaders: { "X-Visitor-Token": visitorToken },
     reconnectDelay: 5000,
     onConnect: async () => {

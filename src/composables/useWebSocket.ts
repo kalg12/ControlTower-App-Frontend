@@ -1,14 +1,15 @@
 import { ref, onUnmounted } from 'vue'
 import { Client as StompClient, type IFrame, type IMessage } from '@stomp/stompjs'
-import SockJS from 'sockjs-client'
 import { useAuthStore } from '@/stores/auth'
 import { useNotificationsStore } from '@/stores/notifications'
 import type { Notification } from '@/types/notification'
 import { toast } from 'vue3-toastify'
 
-function sockjsUrl(): string {
+function wsUrl(): string {
   const base = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? '').replace(/\/$/, '')
-  return base ? `${base}/ws` : '/ws'
+  if (base) return base.replace(/^http/, 'ws') + '/ws'
+  const proto = window.location.protocol === 'https:' ? 'wss:' : 'ws:'
+  return `${proto}//${window.location.host}/ws`
 }
 
 const stompClient = ref<StompClient | null>(null)
@@ -54,7 +55,7 @@ export function connectWebSocket() {
   if (!token) return
 
   const client = new StompClient({
-    webSocketFactory: () => new SockJS(sockjsUrl()),
+    brokerURL: wsUrl(),
     connectHeaders: {
       Authorization: `Bearer ${token}`,
     },
