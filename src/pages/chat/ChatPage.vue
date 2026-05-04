@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted } from "vue";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { useI18n } from "vue-i18n";
 import { Client as StompClient } from "@stomp/stompjs";
+import SockJS from "sockjs-client";
 import { useAuthStore } from "@/stores/auth";
 import { chatService } from "@/services/chat.service";
 import { qk } from "@/queries/keys";
@@ -230,10 +231,9 @@ onMounted(async () => {
 
   if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
   const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
-  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
-  const wsUrl = apiBase ? apiBase.replace(/^http/, "ws") + "/ws" : `${proto}//${window.location.host}/ws`;
+  const wsUrl = apiBase ? `${apiBase}/ws` : `${window.location.origin}/ws`;
   const client = new StompClient({
-    brokerURL: wsUrl,
+    webSocketFactory: () => new SockJS(wsUrl),
     connectHeaders: { Authorization: `Bearer ${auth.accessToken}` },
     reconnectDelay: 5000,
     onConnect: () => {

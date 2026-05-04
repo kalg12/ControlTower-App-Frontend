@@ -18,6 +18,12 @@ export default defineConfig({
       "/ws":  { target: "http://localhost:8080", changeOrigin: true, ws: true },
     },
   },
+  define: {
+    global: "window",
+  },
+  optimizeDeps: {
+    include: ["sockjs-client"],
+  },
   build: {
     // apexcharts minified bundle is ~1.15 MB and already isolated in its own async chunk
     chunkSizeWarningLimit: 1200,
