@@ -19,6 +19,7 @@ export interface LoginResponse {
   permissions?: string[]
   roles?: string[]
   superAdmin?: boolean
+  avatarUrl?: string
 }
 
 // What we store in the Pinia store

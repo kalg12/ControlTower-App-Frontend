@@ -15,7 +15,8 @@ function readStoredUser(): CurrentUser | null {
       tenantId: u.tenantId ?? '',
       permissions: u.permissions ?? [],
       roles: u.roles ?? [],
-      superAdmin: u.superAdmin ?? false
+      superAdmin: u.superAdmin ?? false,
+      avatarUrl: u.avatarUrl
     }
   } catch {
     return null
@@ -33,7 +34,8 @@ function persistSession(response: LoginResponse) {
     tenantId: response.tenantId ?? '',
     permissions: response.permissions ?? [],
     roles: response.roles ?? [],
-    superAdmin: response.superAdmin ?? false
+    superAdmin: response.superAdmin ?? false,
+    avatarUrl: response.avatarUrl
   }
   return { currentUser, accessToken: response.accessToken, refreshToken: response.refreshToken }
 }
@@ -116,14 +118,20 @@ export const useAuthStore = defineStore('auth', () => {
     return p.includes(code)
   }
 
-  async function updateAvatar(avatarUrl: string) {
+  async function uploadAvatar(file: File) {
     const { default: api } = await import('@/services/api')
-    await api.put('/account/avatar', { avatarUrl })
+    const form = new FormData()
+    form.append('file', file)
+    const res = await api.post('/account/avatar/upload', form, {
+      headers: { 'Content-Type': 'multipart/form-data' }
+    })
+    const publicUrl: string = res.data.data
     if (user.value) {
-      user.value.avatarUrl = avatarUrl
+      user.value.avatarUrl = publicUrl
       localStorage.setItem('user', JSON.stringify(user.value))
     }
+    return publicUrl
   }
 
-  return { user, accessToken, loading, isAuthenticated, hasPermission, login, completeMfaLogin, logout, updateAvatar }
+  return { user, accessToken, loading, isAuthenticated, hasPermission, login, completeMfaLogin, logout, uploadAvatar }
 })

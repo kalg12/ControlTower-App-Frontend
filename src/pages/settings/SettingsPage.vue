@@ -20,28 +20,71 @@ import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useToast } from '@/composables/useToast'
 import { useSlaConfig, useTimeTrackingMutations } from '@/queries/time-tracking'
+import api from '@/services/api'
 
 const { t } = useI18n()
 const toast = useToast()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
 const activeTab = ref('profile')
+const queryClient = useQueryClient()
 
-const avatarUrl = ref(authStore.user?.avatarUrl ?? '')
+// ── Avatar upload ─────────────────────────────────────────────────────
+const fileInputRef = ref<HTMLInputElement | null>(null)
+const selectedFile = ref<File | null>(null)
+const selectedFileName = ref('')
 const savingAvatar = ref(false)
 
+function onFileSelected(e: Event) {
+  const input = e.target as HTMLInputElement
+  if (input.files?.[0]) {
+    selectedFile.value = input.files[0]
+    selectedFileName.value = input.files[0].name
+  }
+}
+
 async function saveAvatar() {
+  if (!selectedFile.value) return
   savingAvatar.value = true
   try {
-    await authStore.updateAvatar(avatarUrl.value.trim())
+    await authStore.uploadAvatar(selectedFile.value)
     toast.success(t('settings.avatarSaved'))
+    selectedFile.value = null
+    selectedFileName.value = ''
+    if (fileInputRef.value) fileInputRef.value.value = ''
   } catch {
     toast.error(t('settings.avatarError'))
   } finally {
     savingAvatar.value = false
   }
 }
-const queryClient = useQueryClient()
+
+// ── Email sender settings ─────────────────────────────────────────────
+const emailFrom = ref('')
+const savingEmail = ref(false)
+
+const { data: tenantSettings } = useQuery({
+  queryKey: ['tenant-settings'],
+  queryFn: () => api.get('/settings/tenant').then(r => r.data.data as Record<string, string>),
+  staleTime: 30000,
+})
+
+watch(tenantSettings, cfg => {
+  if (cfg?.['mail.from']) emailFrom.value = cfg['mail.from']
+}, { immediate: true })
+
+async function saveEmailSettings() {
+  savingEmail.value = true
+  try {
+    await api.put('/settings/tenant', { 'mail.from': emailFrom.value.trim() })
+    await queryClient.invalidateQueries({ queryKey: ['tenant-settings'] })
+    toast.success('Configuración de email guardada')
+  } catch {
+    toast.error('Error al guardar la configuración de email')
+  } finally {
+    savingEmail.value = false
+  }
+}
 
 const { data: preferences } = useQuery({
   queryKey: ['notification-preferences'],
@@ -196,6 +239,7 @@ async function syncGoogleNow() {
         <Tab value="security">{{ t('settings.tabSecurity') }}</Tab>
         <Tab value="notifications">{{ t('settings.tabNotifications') }}</Tab>
         <Tab value="sla">{{ t('settings.tabSla') }}</Tab>
+        <Tab value="email">Email</Tab>
         <Tab value="google">{{ t('settings.tabGoogle') }}</Tab>
       </TabList>
       <TabPanels class="mt-4">
@@ -217,15 +261,36 @@ async function syncGoogleNow() {
             </Card>
             <Card>
               <h3 class="text-sm font-semibold text-[var(--text)] mb-3">Foto de perfil</h3>
-              <div class="flex items-center gap-3 mb-3">
-                <Avatar :name="authStore.user?.fullName || 'Usuario'" :src="avatarUrl || undefined" size="lg" />
-                <p class="text-xs text-[var(--text-muted)]">Vista previa</p>
+              <div class="flex items-center gap-3 mb-4">
+                <Avatar :name="authStore.user?.fullName || 'Usuario'" :src="authStore.user?.avatarUrl" size="lg" />
+                <p class="text-xs text-[var(--text-muted)]">Foto actual</p>
               </div>
-              <div class="flex gap-2">
-                <InputText v-model="avatarUrl" placeholder="https://..." class="flex-1 text-sm" />
-                <Button label="Guardar" icon="pi pi-check" :loading="savingAvatar" @click="saveAvatar" />
+              <input
+                ref="fileInputRef"
+                type="file"
+                accept="image/*"
+                class="hidden"
+                @change="onFileSelected"
+              />
+              <div class="flex items-center gap-3">
+                <Button
+                  label="Seleccionar imagen"
+                  icon="pi pi-upload"
+                  severity="secondary"
+                  size="small"
+                  @click="fileInputRef?.click()"
+                />
+                <span v-if="selectedFileName" class="text-xs text-[var(--text-muted)] truncate max-w-[160px]">{{ selectedFileName }}</span>
+                <Button
+                  v-if="selectedFile"
+                  label="Subir foto"
+                  icon="pi pi-check"
+                  size="small"
+                  :loading="savingAvatar"
+                  @click="saveAvatar"
+                />
               </div>
-              <p class="text-xs text-[var(--text-muted)] mt-1">Ingresa la URL de tu foto de perfil (HTTPS recomendado).</p>
+              <p class="text-xs text-[var(--text-muted)] mt-2">Formatos admitidos: JPG, PNG, GIF, WebP.</p>
             </Card>
           </div>
         </TabPanel>
@@ -313,6 +378,31 @@ async function syncGoogleNow() {
                 icon="pi pi-check"
                 :loading="savingSla"
                 @click="saveSlaConfig"
+              />
+            </div>
+          </Card>
+        </TabPanel>
+
+        <!-- Email Sender Tab -->
+        <TabPanel value="email">
+          <Card>
+            <h3 class="text-sm font-semibold text-[var(--text)] mb-1">Remitente de emails</h3>
+            <p class="text-xs text-[var(--text-muted)] mb-4">
+              Dirección que aparecerá como remitente en todos los emails del sistema
+              (notificaciones de tickets, respuestas de chat, actualizaciones de kanban).
+            </p>
+            <div class="flex gap-2 max-w-sm">
+              <InputText
+                v-model="emailFrom"
+                placeholder="soporte@miempresa.com"
+                class="flex-1 text-sm"
+              />
+              <Button
+                label="Guardar"
+                icon="pi pi-check"
+                :loading="savingEmail"
+                :disabled="!emailFrom.trim()"
+                @click="saveEmailSettings"
               />
             </div>
           </Card>
