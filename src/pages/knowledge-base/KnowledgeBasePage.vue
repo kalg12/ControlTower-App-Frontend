@@ -231,7 +231,7 @@ function statusSeverity(s: KbStatus): 'success' | 'secondary' | 'warn' {
         </div>
         <div>
           <label class="text-sm font-medium text-[var(--text)] mb-1 block">{{ t('kb.form.content') }}</label>
-          <RichTextEditor v-model="form.content" min-height="240px" />
+          <RichTextEditor :model-value="form.content ?? ''" @update:model-value="v => form.content = v" min-height="240px" />
         </div>
       </div>
 
