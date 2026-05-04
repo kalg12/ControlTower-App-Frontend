@@ -99,6 +99,16 @@ const unarchiveMut = useMutation({
   },
 });
 
+const deleteMut = useMutation({
+  mutationFn: (id: string) => chatService.delete(id),
+  onSuccess: () => {
+    invalidate();
+    if (selectedConv.value?.id === deleteMut.variables.value) selectedConv.value = null;
+  },
+});
+
+const confirmDeleteId = ref<string | null>(null);
+
 // ── Online agents panel ──────────────────────────────────────────────────────
 
 const { data: onlineAgents } = useQuery({
@@ -219,11 +229,11 @@ onMounted(async () => {
   }
 
   if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
-  const baseUrl = (
-    import.meta.env.VITE_WS_URL ?? "ws://localhost:8080"
-  ).replace(/\/ws$/, "");
+  const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
+  const proto = window.location.protocol === "https:" ? "wss:" : "ws:";
+  const wsUrl = apiBase ? apiBase.replace(/^http/, "ws") + "/ws" : `${proto}//${window.location.host}/ws`;
   const client = new StompClient({
-    brokerURL: `${baseUrl}/ws`,
+    brokerURL: wsUrl,
     connectHeaders: { Authorization: `Bearer ${auth.accessToken}` },
     reconnectDelay: 5000,
     onConnect: () => {
@@ -490,6 +500,37 @@ if (typeof window !== "undefined") {
               "
               @click="unarchiveMut.mutate(conv.id)"
             />
+            <!-- Delete (two-step confirm) — CLOSED or ARCHIVED only -->
+            <template v-if="conv.status === 'CLOSED' || conv.status === 'ARCHIVED'">
+              <template v-if="confirmDeleteId === conv.id">
+                <Button
+                  :label="t('chatModule.actions.confirmDelete')"
+                  size="small"
+                  severity="danger"
+                  class="!py-1 !px-2 !text-xs"
+                  :loading="deleteMut.isPending.value && deleteMut.variables.value === conv.id"
+                  @click.stop="deleteMut.mutate(conv.id); confirmDeleteId = null"
+                />
+                <Button
+                  icon="pi pi-times"
+                  size="small"
+                  severity="secondary"
+                  text
+                  class="!p-1"
+                  @click.stop="confirmDeleteId = null"
+                />
+              </template>
+              <Button
+                v-else
+                icon="pi pi-trash"
+                size="small"
+                severity="danger"
+                text
+                class="!p-1"
+                :title="t('chatModule.actions.delete')"
+                @click.stop="confirmDeleteId = conv.id"
+              />
+            </template>
           </div>
         </div>
       </div>
@@ -507,12 +548,10 @@ if (typeof window !== "undefined") {
             :conversation="selectedConv"
             @close="selectedConv = null"
             @transfer="showTransfer = true"
-            @closed="
-              () => {
-                invalidate();
-                selectedConv = null;
-              }
-            "
+            @closed="() => { invalidate(); selectedConv = null }"
+            @archived="() => { invalidate(); selectedConv = null }"
+            @unarchived="() => { invalidate(); selectedConv = null }"
+            @deleted="() => { invalidate(); selectedConv = null }"
           />
         </div>
         <div

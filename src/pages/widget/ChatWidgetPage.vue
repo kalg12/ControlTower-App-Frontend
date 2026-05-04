@@ -49,6 +49,9 @@ const stompClient = ref<StompClient | null>(null);
 const stompConnected = ref(false);
 let pendingMessage: string | null = null;
 
+// Tracks content of messages added optimistically so the STOMP echo is deduped
+const _sentContents = new Set<string>();
+
 // ── Resume session ────────────────────────────────────────────────────────────
 
 onMounted(async () => {
@@ -123,18 +126,27 @@ function connectStomp() {
         const payload: ChatMessagePayload = JSON.parse(frame.body);
 
         if (payload.type === "MESSAGE" || payload.type === "SYSTEM") {
-          messages.value.push({
-            id: payload.id ?? crypto.randomUUID(),
-            conversationId,
-            senderType: payload.senderType ?? "SYSTEM",
-            senderId: payload.senderId,
-            senderName: payload.senderName,
-            senderAvatarUrl: payload.senderAvatarUrl,
-            content: payload.content ?? "",
-            isRead: payload.isRead ?? false,
-            createdAt: payload.createdAt,
-          });
-          nextTick(scrollBottom);
+          // Deduplicate: visitor's own messages are added optimistically in sendMessage()
+          if (
+            payload.senderType === "VISITOR" &&
+            payload.content &&
+            _sentContents.has(payload.content)
+          ) {
+            _sentContents.delete(payload.content);
+          } else {
+            messages.value.push({
+              id: payload.id ?? crypto.randomUUID(),
+              conversationId,
+              senderType: payload.senderType ?? "SYSTEM",
+              senderId: payload.senderId,
+              senderName: payload.senderName,
+              senderAvatarUrl: payload.senderAvatarUrl,
+              content: payload.content ?? "",
+              isRead: payload.isRead ?? false,
+              createdAt: payload.createdAt,
+            });
+            nextTick(scrollBottom);
+          }
           if (payload.senderType === "AGENT") {
             window.parent?.postMessage({ type: "CT_NEW_MESSAGE" }, "*");
           }
@@ -231,13 +243,28 @@ function sendMessage() {
   const text = inputText.value.trim();
   if (!text) return;
   inputText.value = "";
+
+  // Optimistic: show visitor's own message immediately without waiting for the STOMP echo
+  messages.value.push({
+    id: crypto.randomUUID(),
+    conversationId,
+    senderType: "VISITOR" as const,
+    senderName: visitorName.value,
+    content: text,
+    isRead: false,
+    createdAt: new Date().toISOString(),
+  });
+  nextTick(scrollBottom);
+  _sentContents.add(text);
+  setTimeout(() => _sentContents.delete(text), 15000);
+
   if (!stompConnected.value) {
     pendingMessage = text; // will be flushed on STOMP connect
     return;
   }
   stompClient.value?.publish({
     destination: "/app/chat.visitor.message",
-    body: JSON.stringify({ content: text }),
+    body: JSON.stringify({ content: text, conversationId }),
   });
 }
 

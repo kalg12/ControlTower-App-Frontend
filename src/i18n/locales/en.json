@@ -137,7 +137,9 @@
       "close": "Close",
       "archive": "Archive",
       "unarchive": "Unarchive",
-      "transfer": "Transfer"
+      "transfer": "Transfer",
+      "delete": "Delete",
+      "confirmDelete": "Confirm?"
     },
     "agents": {
       "online": "Online Agents",

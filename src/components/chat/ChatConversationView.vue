@@ -15,6 +15,9 @@ const emit = defineEmits<{
   close: []
   transfer: []
   closed: []
+  archived: []
+  unarchived: []
+  deleted: []
 }>()
 
 const auth = useAuthStore()
@@ -171,12 +174,29 @@ async function onFileSelected(e: Event) {
   if (fileInputEl.value) fileInputEl.value.value = ''
 }
 
-// ── Close ────────────────────────────────────────────────────────────────────
+// ── Close / Archive / Unarchive / Delete ─────────────────────────────────────
 
 const closeMut = useMutation({
   mutationFn: () => chatService.close(props.conversation.id),
   onSuccess: () => emit('closed'),
 })
+
+const archiveMut = useMutation({
+  mutationFn: () => chatService.archive(props.conversation.id),
+  onSuccess: () => emit('archived'),
+})
+
+const unarchiveMut = useMutation({
+  mutationFn: () => chatService.unarchive(props.conversation.id),
+  onSuccess: () => emit('unarchived'),
+})
+
+const deleteMut = useMutation({
+  mutationFn: () => chatService.delete(props.conversation.id),
+  onSuccess: () => emit('deleted'),
+})
+
+const showDeleteConfirm = ref(false)
 
 // ── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -229,13 +249,33 @@ function applyQuickReply(r: ChatQuickReply) {
           </div>
         </div>
       </div>
-      <div class="flex items-center gap-2">
+      <div class="flex items-center gap-2 flex-wrap">
         <button v-if="conversation.status === 'ACTIVE'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" @click="emit('transfer')">
           {{ t('chatModule.actions.transfer') }}
         </button>
         <button v-if="conversation.status === 'ACTIVE'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" @click="closeMut.mutate()">
           {{ t('chatModule.actions.close') }}
         </button>
+        <button v-if="conversation.status === 'CLOSED'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" :class="archiveMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="archiveMut.mutate()">
+          {{ t('chatModule.actions.archive') }}
+        </button>
+        <button v-if="conversation.status === 'ARCHIVED'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" :class="unarchiveMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="unarchiveMut.mutate()">
+          {{ t('chatModule.actions.unarchive') }}
+        </button>
+        <!-- Delete with two-step confirm -->
+        <template v-if="conversation.status === 'CLOSED' || conversation.status === 'ARCHIVED'">
+          <template v-if="showDeleteConfirm">
+            <button class="text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600" :class="deleteMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="deleteMut.mutate()">
+              {{ t('chatModule.actions.confirmDelete') }}
+            </button>
+            <button class="text-xs opacity-70 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" @click="showDeleteConfirm = false">
+              {{ t('common.cancel') }}
+            </button>
+          </template>
+          <button v-else class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-red-400/60 text-red-200 hover:bg-red-500/20" @click="showDeleteConfirm = true">
+            {{ t('chatModule.actions.delete') }}
+          </button>
+        </template>
       </div>
     </div>
 

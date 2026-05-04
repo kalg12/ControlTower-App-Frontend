@@ -139,7 +139,9 @@
       "close": "Cerrar",
       "archive": "Archivar",
       "unarchive": "Desarchivar",
-      "transfer": "Transferir"
+      "transfer": "Transferir",
+      "delete": "Eliminar",
+      "confirmDelete": "¿Confirmar?"
     },
     "agents": {
       "online": "Agentes en línea",
