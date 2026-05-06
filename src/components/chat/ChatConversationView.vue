@@ -63,9 +63,16 @@ onMounted(() => {
   if (!auth.accessToken) return
   const base = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? '').replace(/\/$/, '')
   const wsUrl = base ? `${base}/ws` : `${window.location.origin}/ws`
-  const client = new StompClient({
+
+  // Use `let` so beforeConnect can reference the client instance to refresh the JWT
+  let client: StompClient
+  client = new StompClient({
     webSocketFactory: () => new SockJS(wsUrl),
     connectHeaders: { Authorization: `Bearer ${auth.accessToken}` },
+    beforeConnect: () => {
+      // Refresh the JWT header on every connect/reconnect attempt
+      if (auth.accessToken) client.connectHeaders = { Authorization: `Bearer ${auth.accessToken}` }
+    },
     reconnectDelay: 5000,
     onConnect: () => {
       stompConnected.value = true
@@ -96,6 +103,9 @@ onMounted(() => {
         }
       })
     },
+    onDisconnect: () => { stompConnected.value = false },
+    onStompError: () => { stompConnected.value = false },
+    onWebSocketError: () => { stompConnected.value = false },
   })
   client.activate()
   stompClient.value = client

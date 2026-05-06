@@ -53,10 +53,13 @@ export function connectWebSocket() {
   const token = authStore.accessToken
   if (!token) return
 
-  const client = new StompClient({
+  let client: StompClient
+  client = new StompClient({
     webSocketFactory: () => new SockJS(sockjsUrl()),
-    connectHeaders: {
-      Authorization: `Bearer ${token}`,
+    connectHeaders: { Authorization: `Bearer ${token}` },
+    beforeConnect: () => {
+      const freshToken = authStore.accessToken
+      if (freshToken) client.connectHeaders = { Authorization: `Bearer ${freshToken}` }
     },
     reconnectDelay: 5000,
     heartbeatIncoming: 10000,

@@ -203,12 +203,15 @@ function agentColor(name: string) {
 // ── Agent presence ─────────────────────────────────────────────────────────
 
 const isOnline = ref(false);
+const PRESENCE_KEY = "ct_agent_online";
 
 async function togglePresence() {
   const next = !isOnline.value;
   await chatService.setPresence(next).catch(() => {});
   isOnline.value = next;
-  sessionStorage.setItem("ct_agent_online", String(next));
+  // localStorage persists across refreshes so the agent doesn't lose their
+  // "go online" state after pressing F5.
+  localStorage.setItem(PRESENCE_KEY, String(next));
 }
 
 // ── STOMP real-time ────────────────────────────────────────────────────────
@@ -216,25 +219,30 @@ async function togglePresence() {
 const stompClient = ref<StompClient | null>(null);
 
 onMounted(async () => {
-  // Fast restore: sessionStorage survives F5 in the same tab
-  if (sessionStorage.getItem("ct_agent_online") === "true") {
+  // localStorage survives page refresh; sync intent back to the DB in case
+  // the server restarted or the DB state was cleared.
+  if (localStorage.getItem(PRESENCE_KEY) === "true") {
     isOnline.value = true;
-    // Re-establish DB state in case server restarted
     chatService.setPresence(true).catch(() => {});
   } else {
-    // Authoritative sync from DB (handles fresh logins)
+    // First visit or agent explicitly went offline: authoritative DB read.
     try {
       isOnline.value = await chatService.getMyPresence();
-      sessionStorage.setItem("ct_agent_online", String(isOnline.value));
+      localStorage.setItem(PRESENCE_KEY, String(isOnline.value));
     } catch {}
   }
 
   if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
   const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
   const wsUrl = apiBase ? `${apiBase}/ws` : `${window.location.origin}/ws`;
-  const client = new StompClient({
+
+  let client: StompClient;
+  client = new StompClient({
     webSocketFactory: () => new SockJS(wsUrl),
     connectHeaders: { Authorization: `Bearer ${auth.accessToken}` },
+    beforeConnect: () => {
+      if (auth.accessToken) client.connectHeaders = { Authorization: `Bearer ${auth.accessToken}` };
+    },
     reconnectDelay: 5000,
     onConnect: () => {
       const tenantId = auth.user?.tenantId;
@@ -248,19 +256,11 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stompClient.value?.deactivate();
-  // Presence stays active when navigating within the app.
-  // The browser beforeunload event handles actual tab/window close.
 });
 
-// Set offline when the tab/window is actually closed (not on navigation)
-if (typeof window !== "undefined") {
-  window.addEventListener("beforeunload", () => {
-    if (isOnline.value) {
-      chatService.setPresence(false).catch(() => {});
-      sessionStorage.removeItem("ct_agent_online");
-    }
-  });
-}
+// Presence is intentionally NOT cleared on tab close (sendBeacon cannot send
+// auth headers). The agent manually clicks "Go Offline" when they're done.
+// localStorage preserves the intent across F5 refreshes.
 </script>
 
 <template>
