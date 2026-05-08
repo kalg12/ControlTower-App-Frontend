@@ -196,6 +196,12 @@ const router = createRouter({
       meta: { layout: 'app', titleKey: 'nav.audit', permission: 'audit:read' }
     },
     {
+      path: '/logs',
+      name: 'logs',
+      component: () => import('@/pages/monitoring/LogsPage.vue'),
+      meta: { layout: 'app', titleKey: 'nav.logs', permission: 'integration:read' }
+    },
+    {
       path: '/billing',
       name: 'billing',
       component: () => import('@/pages/billing/BillingPage.vue'),

@@ -26,7 +26,8 @@ import {
   DollarSign,
   CalendarDays,
   Banknote,
-  MessageCircle
+  MessageCircle,
+  TerminalSquare
 } from 'lucide-vue-next'
 import { useQuery } from '@tanstack/vue-query'
 import { chatService } from '@/services/chat.service'
@@ -112,6 +113,7 @@ const adminItems = computed(() =>
     { to: '/users', label: t('nav.users'), icon: Users, permission: 'user:read' },
     { to: '/roles', label: t('nav.roles'), icon: Shield, permission: 'user:read' },
     { to: '/audit', label: t('nav.audit'), icon: ClipboardList, permission: 'audit:read' },
+    { to: '/logs', label: t('nav.logs'), icon: TerminalSquare, permission: 'integration:read' },
     { to: '/activity', label: t('nav.activity'), icon: Activity, permission: 'activity:read' }
   ])
 )

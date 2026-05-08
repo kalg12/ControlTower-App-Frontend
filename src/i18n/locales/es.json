@@ -82,6 +82,7 @@
     "tenants": "Inquilinos",
     "users": "Usuarios",
     "audit": "Registro de auditoría",
+    "logs": "Registros del sistema",
     "notifications": "Notificaciones",
     "settings": "Ajustes",
     "ticketDetail": "Ticket",
@@ -1951,5 +1952,23 @@
     "reminderCompleted": "Recordatorio completado",
     "reminderSnoozed": "Recordatorio posposto 1 día",
     "contacts": "Contactos"
+  },
+  "logs": {
+    "title": "Registros del sistema",
+    "subtitle": "Errores y advertencias capturados desde sistemas integrados (POS, etc.)",
+    "levelFilter": "Nivel",
+    "levelAll": "Todos los niveles",
+    "serviceFilter": "Servicio",
+    "businessFilter": "Negocio",
+    "from": "Desde",
+    "to": "Hasta",
+    "colTime": "Fecha y hora",
+    "colLevel": "Nivel",
+    "colBusiness": "Negocio",
+    "colService": "Servicio",
+    "colMessage": "Mensaje",
+    "expandStack": "Stack trace",
+    "expandMeta": "Metadatos",
+    "noRows": "Sin registros para los filtros seleccionados"
   }
 }

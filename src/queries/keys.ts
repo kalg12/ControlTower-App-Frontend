@@ -44,4 +44,5 @@ export const qk = {
   chatQuickReplies: () => ['chat-quick-replies'] as const,
   chatOnlineAgents: () => ['chat-online-agents'] as const,
   chatRating: (id: string) => ['chat-rating', id] as const,
+  remoteLogs: (filters?: string) => ['remote-logs', filters ?? ''] as const,
 }

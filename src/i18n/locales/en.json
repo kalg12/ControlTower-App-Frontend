@@ -80,6 +80,7 @@
     "tenants": "Tenants",
     "users": "Users",
     "audit": "Audit Log",
+    "logs": "System Logs",
     "notifications": "Notifications",
     "settings": "Settings",
     "ticketDetail": "Ticket",
@@ -1950,5 +1951,23 @@
     "reminderCompleted": "Reminder completed",
     "reminderSnoozed": "Reminder snoozed for 1 day",
     "contacts": "Contacts"
+  },
+  "logs": {
+    "title": "System Logs",
+    "subtitle": "Errors and warnings captured from integrated systems (POS, etc.)",
+    "levelFilter": "Level",
+    "levelAll": "All levels",
+    "serviceFilter": "Service",
+    "businessFilter": "Business",
+    "from": "From",
+    "to": "To",
+    "colTime": "Timestamp",
+    "colLevel": "Level",
+    "colBusiness": "Business",
+    "colService": "Service",
+    "colMessage": "Message",
+    "expandStack": "Stack trace",
+    "expandMeta": "Metadata",
+    "noRows": "No logs found for the selected filters"
   }
 }
