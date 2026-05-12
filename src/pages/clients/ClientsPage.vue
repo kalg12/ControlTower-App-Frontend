@@ -11,8 +11,6 @@ import DataTable from "primevue/datatable";
 import Column from "primevue/column";
 import Tag from "primevue/tag";
 import InputText from "primevue/inputtext";
-import IconField from "primevue/iconfield";
-import InputIcon from "primevue/inputicon";
 import Textarea from "primevue/textarea";
 import Select from "primevue/select";
 import Button from "primevue/button";
@@ -20,6 +18,8 @@ import AppDialog from "@/components/ui/AppDialog.vue";
 import FormField from "@/components/ui/FormField.vue";
 import SkeletonTable from "@/components/ui/SkeletonTable.vue";
 import PageInfoButton from "@/components/ui/PageInfoButton.vue";
+import EmptyState from "@/components/ui/EmptyState.vue";
+import { AlertCircle, Building2, Search } from "lucide-vue-next";
 import { clientsService } from "@/services/clients.service";
 import { useToast } from "@/composables/useToast";
 import dayjs from "dayjs";
@@ -506,25 +506,18 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <div class="flex flex-wrap items-start justify-between gap-3">
+  <div class="space-y-6">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex items-center gap-2">
         <div>
-          <h2 class="text-lg font-semibold text-(--text)">
-            {{ t("clientsPage.title") }}
-          </h2>
-          <p class="text-sm text-(--text-muted)">
-            {{ t("clientsPage.totalCount", { count: totalRecords }) }}
-          </p>
+          <h1 class="text-xl font-bold text-[var(--text)]">{{ t("clientsPage.title") }}</h1>
+          <p class="text-sm text-[var(--text-muted)]">{{ t("clientsPage.totalCount", { count: totalRecords }) }}</p>
         </div>
-        <PageInfoButton
-          :title="t('clientsPage.title')"
-          :description="t('pageInfo.clients')"
-        />
+        <PageInfoButton :title="t('clientsPage.title')" :description="t('pageInfo.clients')" />
       </div>
-      <div class="flex flex-wrap gap-2">
+      <div class="flex gap-2">
         <Button
-          :aria-label="t('common.retry')"
           icon="pi pi-refresh"
           severity="secondary"
           outlined
@@ -538,169 +531,165 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
       </div>
     </div>
 
-    <div class="flex flex-wrap gap-3">
-      <IconField class="max-w-md w-full">
-        <InputIcon class="pi pi-search" />
-        <InputText
-          v-model="globalFilter"
-          :placeholder="t('clientsPage.searchPlaceholder')"
-          class="w-full"
-          @input="onSearch"
-        />
-      </IconField>
+    <!-- Search -->
+    <div class="relative max-w-md">
+      <Search class="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[var(--text-muted)] pointer-events-none" />
+      <InputText
+        v-model="globalFilter"
+        :placeholder="t('clientsPage.searchPlaceholder')"
+        class="w-full pl-10"
+        @input="onSearch"
+      />
     </div>
 
-    <section
-      class="min-h-[min(360px,55vh)] rounded-xl border border-(--border) bg-(--surface) p-3 md:p-4"
+    <!-- Error state -->
+    <div
+      v-if="isError"
+      class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex flex-col gap-2"
     >
-      <div
-        v-if="isError"
-        class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex flex-col gap-2"
-      >
-        <div class="flex flex-wrap items-center justify-between gap-2">
+      <div class="flex items-center justify-between gap-2">
+        <div class="flex items-center gap-2">
+          <AlertCircle class="w-4 h-4" />
           <span>{{ t("clientsPage.loadError") }}</span>
-          <Button
-            :label="t('common.retry')"
-            size="small"
-            severity="danger"
-            text
-            @click="refetch()"
-          />
         </div>
-        <p v-if="queryErrorText" class="text-xs font-mono opacity-90 break-all">
-          {{ queryErrorText }}
-        </p>
+        <Button
+          :label="t('common.retry')"
+          size="small"
+          severity="danger"
+          text
+          @click="refetch()"
+        />
       </div>
+      <p v-if="queryErrorText" class="text-xs font-mono opacity-70 break-all">
+        {{ queryErrorText }}
+      </p>
+    </div>
 
-      <SkeletonTable v-else-if="isPending" :rows="5" :cols="6" />
+    <SkeletonTable v-if="isPending" :rows="5" :cols="6" />
 
-      <DataTable
-        v-else
-        :key="appliedFilter"
-        :value="filteredClients"
-        :loading="isFetching"
-        :rows="pageSize"
-        paginator
-        removable-sort
-        striped-rows
-        class="rounded-lg overflow-hidden border-0 bg-transparent"
+    <DataTable
+      v-else
+      :key="appliedFilter"
+      :value="filteredClients"
+      :loading="isFetching"
+      :rows="pageSize"
+      paginator
+      removable-sort
+      striped-rows
+      class="rounded-[var(--radius-lg)] overflow-hidden"
+    >
+      <Column
+        field="name"
+        :header="t('clientsPage.name')"
+        sortable
+        style="min-width: 180px"
       >
-        <Column
-          field="name"
-          :header="t('clientsPage.name')"
-          sortable
-          style="min-width: 180px"
-        >
-          <template #body="{ data: row }: { data: Client }">
-            <button
-              class="font-medium text-(--text) hover:text-(--primary) hover:underline cursor-pointer text-left"
-              @click="router.push('/clients/' + row.id)"
-            >
-              {{ row.name }}
-            </button>
-          </template>
-        </Column>
+        <template #body="{ data: row }: { data: Client }">
+          <button
+            class="font-medium text-[var(--text)] hover:text-[var(--primary)] hover:underline cursor-pointer text-left transition-colors"
+            @click="router.push('/clients/' + row.id)"
+          >
+            {{ row.name }}
+          </button>
+        </template>
+      </Column>
 
-        <Column
-          field="legalName"
-          :header="t('clientsPage.legalName')"
-          style="min-width: 160px"
-        >
-          <template #body="{ data: row }: { data: Client }">
-            <span class="text-(--text-muted) text-sm">{{
-              row.legalName ?? t("common.none")
-            }}</span>
-          </template>
-        </Column>
+      <Column
+        field="legalName"
+        :header="t('clientsPage.legalName')"
+        style="min-width: 160px"
+      >
+        <template #body="{ data: row }: { data: Client }">
+          <span class="text-[var(--text-muted)] text-sm">{{ row.legalName ?? "—" }}</span>
+        </template>
+      </Column>
 
-        <Column
-          field="country"
-          :header="t('clientsPage.country')"
-          style="width: 110px"
-        >
-          <template #body="{ data: row }: { data: Client }">
-            <span class="text-(--text-muted) text-sm">{{
-              row.country ?? t("common.none")
-            }}</span>
-          </template>
-        </Column>
+      <Column
+        field="country"
+        :header="t('clientsPage.country')"
+        style="width: 110px"
+      >
+        <template #body="{ data: row }: { data: Client }">
+          <span class="text-[var(--text-muted)] text-sm">{{ row.country ?? "—" }}</span>
+        </template>
+      </Column>
 
-        <Column
-          field="status"
-          :header="t('clientsPage.status')"
-          style="width: 110px"
-        >
-          <template #body="{ data: row }: { data: Client }">
-            <Tag
-              :severity="statusSeverity(row.status)"
-              :value="row.status ?? 'N/A'"
+      <Column
+        field="status"
+        :header="t('clientsPage.status')"
+        style="width: 110px"
+      >
+        <template #body="{ data: row }: { data: Client }">
+          <Tag
+            :severity="statusSeverity(row.status)"
+            :value="row.status ?? 'N/A'"
+          />
+        </template>
+      </Column>
+
+      <Column
+        field="taxId"
+        :header="t('clientsPage.taxId')"
+        style="width: 130px"
+      >
+        <template #body="{ data: row }: { data: Client }">
+          <span class="text-[var(--text-muted)] text-sm font-mono">{{ row.taxId ?? "—" }}</span>
+        </template>
+      </Column>
+
+      <Column
+        field="createdAt"
+        :header="t('clientsPage.created')"
+        sortable
+        style="width: 120px"
+      >
+        <template #body="{ data: row }: { data: Client }">
+          <span class="text-[var(--text-muted)] text-sm whitespace-nowrap">{{ formatDate(row.createdAt) }}</span>
+        </template>
+      </Column>
+
+      <Column :header="t('common.actions')" style="width: 130px">
+        <template #body="{ data: row }: { data: Client }">
+          <div class="flex gap-1">
+            <Button
+              icon="pi pi-pencil"
+              severity="secondary"
+              text
+              rounded
+              v-tooltip.top="t('common.edit')"
+              @click="openEditDialog(row)"
             />
-          </template>
-        </Column>
-
-        <Column
-          field="taxId"
-          :header="t('clientsPage.taxId')"
-          style="width: 130px"
-        >
-          <template #body="{ data: row }: { data: Client }">
-            <span class="text-(--text-muted) text-sm font-mono">{{
-              row.taxId ?? t("common.none")
-            }}</span>
-          </template>
-        </Column>
-
-        <Column
-          field="createdAt"
-          :header="t('clientsPage.created')"
-          sortable
-          style="width: 130px"
-        >
-          <template #body="{ data: row }: { data: Client }">
-            <span class="text-(--text-muted) text-sm">{{
-              formatDate(row.createdAt)
-            }}</span>
-          </template>
-        </Column>
-
-        <Column :header="t('common.actions')" style="width: 140px">
-          <template #body="{ data: row }: { data: Client }">
-            <div class="flex gap-1">
-              <Button
-                icon="pi pi-pencil"
-                severity="secondary"
-                text
-                rounded
-                :title="t('common.edit')"
-                @click="openEditDialog(row)"
-              />
-              <Button
-                icon="pi pi-eye"
-                severity="secondary"
-                text
-                rounded
-                :title="t('nav.clientDetail')"
-                @click="router.push('/clients/' + row.id)"
-              />
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                text
-                rounded
-                :title="t('common.delete')"
-                @click="confirmDeleteClient(row)"
-              />
-            </div>
-          </template>
-        </Column>
-
-        <template #empty>
-          <div class="text-center py-10 text-(--text-muted)">
-            {{ t("clientsPage.noRows") }}
+            <Button
+              icon="pi pi-eye"
+              severity="secondary"
+              text
+              rounded
+              v-tooltip.top="t('nav.clientDetail')"
+              @click="router.push('/clients/' + row.id)"
+            />
+            <Button
+              icon="pi pi-trash"
+              severity="danger"
+              text
+              rounded
+              v-tooltip.top="t('common.delete')"
+              @click="confirmDeleteClient(row)"
+            />
           </div>
         </template>
-      </DataTable>
-    </section>
+      </Column>
+
+      <template #empty>
+        <EmptyState
+          :title="t('clientsPage.noRows')"
+          description="No se encontraron clientes con los filtros actuales"
+        >
+          <template #icon>
+            <Building2 class="w-6 h-6 text-[var(--text-muted)]" />
+          </template>
+        </EmptyState>
+      </template>
+    </DataTable>
   </div>
 
   <!-- Create Client Dialog -->
