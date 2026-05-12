@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, onMounted, onUnmounted } from 'vue'
+import { ref, onMounted, onUnmounted, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import AppSidebar from './AppSidebar.vue'
 import AppHeader from './AppHeader.vue'
@@ -19,6 +19,13 @@ const commandPaletteOpen = ref(false)
 const { connect, disconnect } = useWebSocket()
 onMounted(connect)
 onUnmounted(disconnect)
+
+// Close sidebar on route change for mobile
+watch(() => route.path, () => {
+  if (window.innerWidth < 1024) {
+    sidebarOpen.value = false
+  }
+})
 
 function toggleSidebar() {
   sidebarOpen.value = !sidebarOpen.value
@@ -50,15 +57,15 @@ onUnmounted(() => document.removeEventListener('keydown', handleGlobalKeydown))
     >
       <div
         v-if="sidebarOpen"
-        class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+        class="fixed inset-0 z-40 bg-black/60 lg:hidden"
         @click="closeSidebar"
       />
     </Transition>
 
-    <!-- Sidebar (desktop: fixed, mobile: overlay) -->
+    <!-- Sidebar (desktop: sticky, mobile: overlay) -->
     <div
       :class="[
-        'fixed inset-y-0 left-0 z-50 min-h-0 transform transition-all duration-200 lg:relative lg:translate-x-0 lg:flex-shrink-0',
+        'fixed inset-y-0 left-0 z-50 min-h-0 transform transition-all duration-300 lg:relative lg:translate-x-0 lg:flex-shrink-0',
         sidebarOpen ? 'translate-x-0' : '-translate-x-full',
         sidebarCollapsed ? 'w-14' : 'w-[var(--sidebar-width)]'
       ]"
@@ -71,7 +78,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleGlobalKeydown))
       <AppHeader @toggle-sidebar="toggleSidebar" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" @open-search="commandPaletteOpen = true" />
 
       <main class="min-h-0 flex-1 overflow-y-auto bg-[var(--bg-subtle)]">
-        <div class="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8">
+        <div class="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
           <RouterView v-slot="{ Component }">
             <Transition name="page" mode="out-in">
               <component :is="Component" :key="route.path" />
