@@ -116,6 +116,7 @@ const onSubmit = signupForm.handleSubmit(async (values) => {
         :error="signupForm.errors.value.tenantName"
         :disabled="isSubmitting"
         required
+        autocomplete="organization"
       />
 
       <div>
@@ -129,6 +130,7 @@ const onSubmit = signupForm.handleSubmit(async (values) => {
           :disabled="isSubmitting"
           required
           @input="onSlugInput"
+          autocomplete="off"
         />
         <p class="mt-1 text-xs text-[var(--text-muted)]">{{ t('auth.signup.slugHint') }}</p>
       </div>
@@ -142,6 +144,7 @@ const onSubmit = signupForm.handleSubmit(async (values) => {
         :error="signupForm.errors.value.adminFullName"
         :disabled="isSubmitting"
         required
+        autocomplete="name"
       />
 
       <Input
@@ -153,6 +156,7 @@ const onSubmit = signupForm.handleSubmit(async (values) => {
         :error="signupForm.errors.value.adminEmail"
         :disabled="isSubmitting"
         required
+        autocomplete="email"
       />
 
       <Input
@@ -164,6 +168,7 @@ const onSubmit = signupForm.handleSubmit(async (values) => {
         :error="signupForm.errors.value.adminPassword"
         :disabled="isSubmitting"
         required
+        autocomplete="new-password"
       />
 
       <Input
@@ -175,6 +180,7 @@ const onSubmit = signupForm.handleSubmit(async (values) => {
         :error="signupForm.errors.value.confirmPassword"
         :disabled="isSubmitting"
         required
+        autocomplete="new-password"
       />
 
       <Button type="submit" variant="primary" size="md" full-width :loading="isSubmitting">

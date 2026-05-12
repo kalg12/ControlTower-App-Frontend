@@ -7,6 +7,7 @@ import { toTypedSchema } from '@vee-validate/zod'
 import { z } from 'zod'
 import Input from '@/components/ui/Input.vue'
 import Button from '@/components/ui/Button.vue'
+import { LogIn } from 'lucide-vue-next'
 import { useAuthStore } from '@/stores/auth'
 import { useToast } from '@/composables/useToast'
 
@@ -75,6 +76,7 @@ const onSubmit = loginForm.handleSubmit(async (values) => {
           :error="loginForm.errors.value.email"
           :disabled="isSubmitting"
           required
+          autocomplete="email"
         />
         <Input
           v-model="password"
@@ -85,6 +87,7 @@ const onSubmit = loginForm.handleSubmit(async (values) => {
           :error="loginForm.errors.value.password"
           :disabled="isSubmitting"
           required
+          autocomplete="current-password"
         />
       </template>
 
@@ -101,10 +104,12 @@ const onSubmit = loginForm.handleSubmit(async (values) => {
           placeholder="000000"
           :disabled="isSubmitting"
           required
+          autocomplete="current-password"
         />
       </template>
 
       <Button type="submit" variant="primary" size="md" full-width :loading="isSubmitting">
+        <LogIn v-if="!isSubmitting && !isMfa" class="w-4 h-4" />
         {{ isMfa ? t('auth.verifySignIn') : t('auth.signIn') }}
       </Button>
 
