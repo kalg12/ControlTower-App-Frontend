@@ -19,11 +19,13 @@ import TabList from "primevue/tablist";
 import Tab from "primevue/tab";
 import TabPanels from "primevue/tabpanels";
 import TabPanel from "primevue/tabpanel";
-import { AlertTriangle } from "lucide-vue-next";
+import { AlertTriangle, AlertCircle, MessageSquare } from "lucide-vue-next";
 import AppDialog from "@/components/ui/AppDialog.vue";
 import FormField from "@/components/ui/FormField.vue";
 import SkeletonTable from "@/components/ui/SkeletonTable.vue";
 import PageInfoButton from "@/components/ui/PageInfoButton.vue";
+import EmptyState from "@/components/ui/EmptyState.vue";
+import Badge from "@/components/ui/Badge.vue";
 import { ticketsService } from "@/services/tickets.service";
 import { clientsService } from "@/services/clients.service";
 import { useToast } from "@/composables/useToast";
@@ -496,22 +498,15 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
 </script>
 
 <template>
-  <div class="space-y-4">
-    <!-- Header -->
-    <div class="flex items-center justify-between">
+  <div class="space-y-6">
+    <!-- Page header -->
+    <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex items-center gap-2">
         <div>
-          <h2 class="text-lg font-semibold text-(--text)">
-            {{ t("tickets.title") }}
-          </h2>
-          <p class="text-sm text-(--text-muted)">
-            {{ totalRecords }} {{ t("tickets.totalCount") }}
-          </p>
+          <h1 class="text-xl font-bold text-[var(--text)]">{{ t("tickets.title") }}</h1>
+          <p class="text-sm text-[var(--text-muted)]">{{ totalRecords }} {{ t("tickets.totalCount") }}</p>
         </div>
-        <PageInfoButton
-          :title="t('tickets.title')"
-          :description="t('pageInfo.tickets')"
-        />
+        <PageInfoButton :title="t('tickets.title')" :description="t('pageInfo.tickets')" />
       </div>
       <div class="flex gap-2">
         <Button
@@ -535,11 +530,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         <Tab value="active">{{ t("tickets.activeTab") }}</Tab>
         <Tab value="trash">
           {{ t("tickets.trashTab") }}
-          <span
-            v-if="trashTotal > 0"
-            class="ml-1.5 inline-flex items-center justify-center text-xs bg-(--surface-d) rounded-full px-1.5 min-w-5"
-            >{{ trashTotal }}</span
-          >
+          <Badge v-if="trashTotal > 0" variant="default" class="ml-1.5">{{ trashTotal }}</Badge>
         </Tab>
       </TabList>
 
@@ -549,45 +540,57 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
           <div class="space-y-4">
             <!-- Filters -->
             <div class="flex flex-col sm:flex-row gap-3">
-              <InputText
-                v-model="globalFilter"
-                :placeholder="t('tickets.searchPlaceholder')"
-                class="flex-1"
-                @input="onSearch"
-              />
-              <Select
-                v-model="statusFilter"
-                :options="statusOptionsFilter"
-                option-label="label"
-                option-value="value"
-                :placeholder="t('tickets.allStatus')"
-                class="w-48"
-                @change="applyFilters"
-              />
-              <Select
-                v-model="priorityFilter"
-                :options="priorityOptionsFilter"
-                option-label="label"
-                option-value="value"
-                :placeholder="t('tickets.allPriority')"
-                class="w-44"
-                @change="applyFilters"
-              />
-              <Select
-                v-model="sourceFilter"
-                :options="sourceOptionsFilter"
-                option-label="label"
-                option-value="value"
-                :placeholder="t('tickets.allSources')"
-                class="w-44"
-                @change="applyFilters"
-              />
-              <Button
-                icon="pi pi-refresh"
-                severity="secondary"
-                outlined
-                @click="refetch()"
-              />
+              <span class="p-input-icon-left flex-1">
+                <i class="pi pi-search" />
+                <InputText
+                  v-model="globalFilter"
+                  :placeholder="t('tickets.searchPlaceholder')"
+                  class="w-full"
+                  @input="onSearch"
+                />
+              </span>
+              <div class="flex gap-2 flex-wrap">
+                <Select
+                  v-model="statusFilter"
+                  :options="statusOptionsFilter"
+                  option-label="label"
+                  option-value="value"
+                  :placeholder="t('tickets.allStatus')"
+                  class="w-44"
+                  @change="applyFilters"
+                />
+                <Select
+                  v-model="priorityFilter"
+                  :options="priorityOptionsFilter"
+                  option-label="label"
+                  option-value="value"
+                  :placeholder="t('tickets.allPriority')"
+                  class="w-40"
+                  @change="applyFilters"
+                />
+                <Select
+                  v-model="sourceFilter"
+                  :options="sourceOptionsFilter"
+                  option-label="label"
+                  option-value="value"
+                  :placeholder="t('tickets.allSources')"
+                  class="w-40"
+                  @change="applyFilters"
+                />
+                <Button
+                  icon="pi pi-filter-slash"
+                  severity="secondary"
+                  outlined
+                  v-tooltip.top="'Limpiar filtros'"
+                  @click="() => { statusFilter = null; priorityFilter = null; sourceFilter = null; globalFilter = ''; applyFilters() }"
+                />
+                <Button
+                  icon="pi pi-refresh"
+                  severity="secondary"
+                  outlined
+                  @click="refetch()"
+                />
+              </div>
             </div>
 
             <!-- Error state -->
@@ -595,7 +598,10 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               v-if="isError"
               class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between"
             >
-              <span>{{ t("tickets.loadFailed") }}</span>
+              <div class="flex items-center gap-2">
+                <AlertCircle class="w-4 h-4" />
+                <span>{{ t("tickets.loadFailed") }}</span>
+              </div>
               <Button
                 :label="t('common.retry')"
                 size="small"
@@ -611,11 +617,10 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
             <!-- Bulk actions toolbar -->
             <div
               v-if="selectedTickets.length > 0"
-              class="flex items-center gap-3 rounded-xl border border-(--border) bg-(--surface) px-4 py-2 flex-wrap"
+              class="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 flex-wrap shadow-sm"
             >
-              <span class="text-sm font-medium text-(--text) shrink-0"
-                >{{ selectedTickets.length }} seleccionado(s)</span
-              >
+              <span class="text-sm font-semibold text-[var(--text)] shrink-0">{{ selectedTickets.length }} seleccionado(s)</span>
+              <div class="h-4 w-px bg-[var(--border)]" />
               <div class="flex items-center gap-2">
                 <Select
                   v-model="bulkAssigneeId"
@@ -623,7 +628,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   option-label="fullName"
                   option-value="id"
                   :placeholder="t('tickets.assignTo')"
-                  class="w-40 text-xs"
+                  class="w-40"
                   :disabled="isBulkProcessing"
                 />
                 <Button
@@ -641,7 +646,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   option-label="label"
                   option-value="value"
                   :placeholder="t('tickets.changeStatus')"
-                  class="w-44 text-xs"
+                  class="w-44"
                   :disabled="isBulkProcessing"
                 />
                 <Button
@@ -653,22 +658,24 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   @click="bulkChangeStatus"
                 />
               </div>
-              <Button
-                icon="pi pi-trash"
-                severity="danger"
-                outlined
-                size="small"
-                :loading="isBulkProcessing"
-                v-tooltip.top="'Eliminar seleccionados'"
-                @click="bulkDeleteConfirm"
-              />
-              <Button
-                icon="pi pi-times"
-                severity="secondary"
-                text
-                size="small"
-                @click="selectedTickets = []"
-              />
+              <div class="ml-auto flex items-center gap-1">
+                <Button
+                  icon="pi pi-trash"
+                  severity="danger"
+                  outlined
+                  size="small"
+                  :loading="isBulkProcessing"
+                  v-tooltip.top="'Eliminar seleccionados'"
+                  @click="bulkDeleteConfirm"
+                />
+                <Button
+                  icon="pi pi-times"
+                  severity="secondary"
+                  text
+                  size="small"
+                  @click="selectedTickets = []"
+                />
+              </div>
             </div>
 
             <!-- DataTable -->
@@ -686,7 +693,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               :rows-per-page-options="[10, 20, 50]"
               removable-sort
               striped-rows
-              class="rounded-xl overflow-hidden"
+              class="rounded-[var(--radius-lg)] overflow-hidden"
               @page="onPage"
             >
               <Column selection-mode="multiple" style="width: 3rem" />
@@ -698,7 +705,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               >
                 <template #body="{ data: row }: { data: Ticket }">
                   <button
-                    class="font-medium text-(--text) line-clamp-1 text-left hover:text-(--primary) hover:underline cursor-pointer"
+                    class="font-medium text-[var(--text)] line-clamp-1 text-left hover:text-[var(--primary)] hover:underline cursor-pointer transition-colors"
                     @click="router.push('/tickets/' + row.id)"
                   >
                     {{ row.title }}
@@ -709,7 +716,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               <Column
                 field="status"
                 :header="t('tickets.status')"
-                style="width: 150px"
+                style="width: 140px"
               >
                 <template #body="{ data: row }: { data: Ticket }">
                   <Tag
@@ -722,7 +729,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               <Column
                 field="priority"
                 :header="t('tickets.priority')"
-                style="width: 130px"
+                style="width: 120px"
               >
                 <template #body="{ data: row }: { data: Ticket }">
                   <div class="flex items-center gap-1.5">
@@ -741,7 +748,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                 </template>
               </Column>
 
-              <Column header="SLA" style="width: 90px">
+              <Column header="SLA" style="width: 85px">
                 <template #body="{ data: row }: { data: Ticket }">
                   <span
                     v-if="slaChip(row)"
@@ -751,14 +758,14 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   >
                     {{ slaChip(row)!.label }}
                   </span>
-                  <span v-else class="text-muted-foreground text-xs">—</span>
+                  <span v-else class="text-[var(--text-muted)] text-xs">—</span>
                 </template>
               </Column>
 
               <Column
                 field="source"
                 :header="t('tickets.source')"
-                style="width: 140px"
+                style="width: 130px"
               >
                 <template #body="{ data: row }: { data: Ticket }">
                   <SourceBadge :source="row.source" />
@@ -771,7 +778,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                 style="min-width: 140px"
               >
                 <template #body="{ data: row }: { data: Ticket }">
-                  <span class="text-(--text-muted) text-sm">{{
+                  <span class="text-[var(--text-muted)] text-sm">{{
                     row.clientName ?? row.clientId ?? "—"
                   }}</span>
                 </template>
@@ -781,16 +788,16 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                 field="createdAt"
                 :header="t('tickets.createdAt')"
                 sortable
-                style="width: 130px"
+                style="width: 120px"
               >
                 <template #body="{ data: row }: { data: Ticket }">
-                  <span class="text-(--text-muted) text-sm">{{
+                  <span class="text-[var(--text-muted)] text-sm whitespace-nowrap">{{
                     formatDate(row.createdAt)
                   }}</span>
                 </template>
               </Column>
 
-              <Column :header="t('common.actions')" style="width: 140px">
+              <Column :header="t('common.actions')" style="width: 130px">
                 <template #body="{ data: row }: { data: Ticket }">
                   <div class="flex gap-1">
                     <Button
@@ -806,7 +813,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                       severity="secondary"
                       text
                       rounded
-                      v-tooltip.top="t('common.edit')"
+                      v-tooltip.top="t('common.view')"
                       @click="router.push('/tickets/' + row.id)"
                     />
                     <Button
@@ -822,9 +829,14 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               </Column>
 
               <template #empty>
-                <div class="text-center py-8 text-(--text-muted)">
-                  {{ t("common.noRows") }}
-                </div>
+                <EmptyState
+                  :title="t('common.noRows')"
+                  :description="t('tickets.emptyDescription')"
+                >
+                  <template #icon>
+                    <MessageSquare class="w-6 h-6 text-[var(--text-muted)]" />
+                  </template>
+                </EmptyState>
               </template>
             </DataTable>
           </div>
@@ -844,7 +856,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
             :rows="50"
             :total-records="trashTotal"
             striped-rows
-            class="rounded-xl overflow-hidden"
+            class="rounded-[var(--radius-lg)] overflow-hidden"
           >
             <Column
               field="title"
@@ -852,7 +864,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               style="min-width: 240px"
             >
               <template #body="{ data: row }: { data: Ticket }">
-                <span class="font-medium text-(--text) line-clamp-1">{{
+                <span class="font-medium text-[var(--text)] line-clamp-1">{{
                   row.title
                 }}</span>
               </template>
@@ -861,7 +873,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
             <Column
               field="priority"
               :header="t('tickets.priority')"
-              style="width: 130px"
+              style="width: 120px"
             >
               <template #body="{ data: row }: { data: Ticket }">
                 <Tag
@@ -871,11 +883,9 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               </template>
             </Column>
 
-            <Column :header="t('tickets.deletedAt')" style="width: 160px">
+            <Column :header="t('tickets.deletedAt')" style="width: 150px">
               <template #body="{ data: row }: { data: Ticket }">
-                <span class="text-(--text-muted) text-sm">{{
-                  row.deletedAt ? formatDate(row.deletedAt) : "—"
-                }}</span>
+                <span class="text-[var(--text-muted)] text-sm">{{ row.deletedAt ? formatDate(row.deletedAt) : "—" }}</span>
               </template>
             </Column>
 
@@ -893,9 +903,14 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
             </Column>
 
             <template #empty>
-              <div class="text-center py-8 text-(--text-muted)">
-                {{ t("tickets.trashEmpty") }}
-              </div>
+              <EmptyState
+                :title="t('tickets.trashEmpty')"
+                description="Los tickets eliminados aparecerán aquí"
+              >
+                <template #icon>
+                  <MessageSquare class="w-6 h-6 text-[var(--text-muted)]" />
+                </template>
+              </EmptyState>
             </template>
           </DataTable>
         </TabPanel>
