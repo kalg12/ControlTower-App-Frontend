@@ -85,7 +85,7 @@ const alignClass: Record<string, string> = {
       <tbody class="divide-y divide-[var(--border-subtle)]">
         <tr v-if="loading">
           <td :colspan="columns.length" class="py-16 text-center">
-            <Spinner class="w-6 h-6 mx-auto text-[var(--primary)]" />
+            <Spinner className="w-6 h-6 mx-auto text-[var(--primary)]" />
           </td>
         </tr>
 

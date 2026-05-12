@@ -48,7 +48,7 @@ const sizeClasses: Record<string, string> = {
             <h2 class="text-base font-semibold text-[var(--text)]">{{ title }}</h2>
             <p v-if="subtitle" class="text-sm text-[var(--text-muted)] mt-0.5">{{ subtitle }}</p>
           </div>
-          <Spinner v-if="loading" class="w-4 h-4 text-[var(--primary)]" />
+          <Spinner v-if="loading" className="w-4 h-4 text-[var(--primary)]" />
         </div>
         <button
           class="p-1.5 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] transition-colors"

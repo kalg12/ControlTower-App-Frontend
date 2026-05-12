@@ -20,6 +20,8 @@ withDefaults(defineProps<Props>(), {
       variant === 'subtle' ? 'bg-[var(--bg-subtle)]' : '',
       variant === 'interactive' ? 'hover:border-[var(--primary)]/40 hover:shadow-md cursor-pointer active:scale-[0.99]' : ''
     ]"
+    :role="(hover || variant === 'interactive') ? 'button' : undefined"
+    :tabindex="(hover || variant === 'interactive') ? 0 : undefined"
   >
     <div v-if="$slots.header" class="px-5 py-3.5 border-b border-[var(--border)] flex items-center justify-between">
       <slot name="header" />

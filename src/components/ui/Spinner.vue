@@ -1,13 +1,14 @@
 <script setup lang="ts">
-defineProps<{ class?: string }>()
+defineProps<{ className?: string }>()
 </script>
 
 <template>
   <svg
-    :class="['animate-spin', $props.class ?? 'w-5 h-5']"
+    :class="['animate-spin', className ?? 'w-5 h-5']"
     xmlns="http://www.w3.org/2000/svg"
     fill="none"
     viewBox="0 0 24 24"
+    aria-hidden="true"
   >
     <circle
       class="opacity-25"

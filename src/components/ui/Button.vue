@@ -61,7 +61,7 @@ const classes = computed(() => {
     :class="classes"
     :aria-busy="loading"
   >
-    <Spinner v-if="loading" class="w-4 h-4" />
+    <Spinner v-if="loading" className="w-4 h-4" />
     <slot />
   </button>
 </template>
