@@ -70,8 +70,14 @@ onUnmounted(() => document.removeEventListener('keydown', handleGlobalKeydown))
     <div class="flex min-h-0 min-w-0 flex-1 flex-col overflow-hidden">
       <AppHeader @toggle-sidebar="toggleSidebar" @toggle-collapse="sidebarCollapsed = !sidebarCollapsed" @open-search="commandPaletteOpen = true" />
 
-      <main class="min-h-0 flex-1 overflow-y-auto p-4 md:p-6 bg-[var(--bg-subtle)]">
-        <RouterView :key="route.path" />
+      <main class="min-h-0 flex-1 overflow-y-auto bg-[var(--bg-subtle)]">
+        <div class="mx-auto w-full max-w-7xl p-4 md:p-6 lg:p-8">
+          <RouterView v-slot="{ Component }">
+            <Transition name="page" mode="out-in">
+              <component :is="Component" :key="route.path" />
+            </Transition>
+          </RouterView>
+        </div>
       </main>
     </div>
   </div>

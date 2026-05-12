@@ -5,12 +5,14 @@ interface Props {
   variant?: 'default' | 'success' | 'warning' | 'danger' | 'info' | 'purple'
   dot?: boolean
   size?: 'sm' | 'md'
+  pill?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   variant: 'default',
   dot: false,
-  size: 'sm'
+  size: 'sm',
+  pill: false
 })
 
 const variantClasses: Record<string, string> = {
@@ -37,7 +39,7 @@ const sizeClasses: Record<string, string> = {
 }
 
 const classes = computed(() =>
-  `inline-flex items-center gap-1.5 font-medium rounded-full ${variantClasses[props.variant]} ${sizeClasses[props.size]}`
+  `inline-flex items-center gap-1.5 font-medium ${props.pill ? 'rounded-full' : 'rounded-md'} ${variantClasses[props.variant]} ${sizeClasses[props.size]}`
 )
 </script>
 

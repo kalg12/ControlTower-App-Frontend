@@ -2,6 +2,7 @@
 import { ref } from 'vue'
 import { ChevronUp, ChevronDown, ChevronsUpDown } from 'lucide-vue-next'
 import Spinner from './Spinner.vue'
+import EmptyState from './EmptyState.vue'
 
 interface Column {
   key: string
@@ -16,11 +17,15 @@ interface Props {
   rows: Record<string, unknown>[]
   loading?: boolean
   rowKey?: string
+  emptyTitle?: string
+  emptyDescription?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
-  rowKey: 'id'
+  rowKey: 'id',
+  emptyTitle: 'No data available',
+  emptyDescription: ''
 })
 
 const emit = defineEmits<{
@@ -50,7 +55,7 @@ const alignClass: Record<string, string> = {
 </script>
 
 <template>
-  <div class="overflow-x-auto rounded-[var(--radius)] border border-[var(--border)]">
+  <div class="overflow-x-auto rounded-[var(--radius-lg)] border border-[var(--border)]">
     <table class="w-full text-sm">
       <thead class="bg-[var(--bg-subtle)] border-b border-[var(--border)]">
         <tr>
@@ -58,7 +63,7 @@ const alignClass: Record<string, string> = {
             v-for="col in columns"
             :key="col.key"
             :class="[
-              'px-4 py-3 font-medium text-[var(--text-muted)] whitespace-nowrap',
+              'px-4 py-3 font-medium text-[var(--text-muted)] whitespace-nowrap text-xs uppercase tracking-wider',
               alignClass[col.align ?? 'left'],
               col.sortable ? 'cursor-pointer hover:text-[var(--text)] select-none' : ''
             ]"
@@ -79,21 +84,26 @@ const alignClass: Record<string, string> = {
 
       <tbody class="divide-y divide-[var(--border-subtle)]">
         <tr v-if="loading">
-          <td :colspan="columns.length" class="py-12 text-center">
+          <td :colspan="columns.length" class="py-16 text-center">
             <Spinner class="w-6 h-6 mx-auto text-[var(--primary)]" />
           </td>
         </tr>
 
         <template v-else>
           <tr v-if="rows.length === 0">
-            <td :colspan="columns.length" class="py-12 text-center text-[var(--text-muted)] text-sm">
-              No data available
+            <td :colspan="columns.length" class="py-12">
+              <EmptyState :title="emptyTitle" :description="emptyDescription">
+                <template #icon>
+                  <slot name="empty-icon" />
+                </template>
+              </EmptyState>
             </td>
           </tr>
           <tr
             v-for="row in rows"
             :key="String(row[rowKey])"
             class="bg-[var(--surface)] hover:bg-[var(--bg-subtle)] transition-colors duration-100"
+            :class="{ 'cursor-pointer': !!$attrs.onRowClick }"
             @click="emit('rowClick', row)"
           >
             <td

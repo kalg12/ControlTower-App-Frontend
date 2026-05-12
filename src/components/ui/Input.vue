@@ -62,9 +62,9 @@ const inputId = computed(() => props.id ?? `input-${Math.random().toString(36).s
         :class="[
           'w-full bg-[var(--surface)] text-[var(--text)] border rounded-[var(--radius)] px-3 py-2 text-sm transition-all duration-150',
           'placeholder:text-[var(--text-placeholder)]',
-          'focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:border-[var(--primary)]',
-          'disabled:opacity-50 disabled:cursor-not-allowed',
-          error ? 'border-[var(--danger)] focus:ring-[var(--danger)]' : 'border-[var(--border)]',
+          'focus:outline-none focus:ring-2 focus:ring-[var(--primary)]/20 focus:border-[var(--primary)]',
+          'disabled:opacity-50 disabled:cursor-not-allowed disabled:bg-[var(--surface-raised)]',
+          error ? 'border-[var(--danger)] focus:ring-[var(--danger)]/20 focus:border-[var(--danger)]' : 'border-[var(--border)]',
           $slots.icon ? 'pl-10' : '',
           type === 'password' ? 'pr-10' : ''
         ]"
@@ -75,6 +75,7 @@ const inputId = computed(() => props.id ?? `input-${Math.random().toString(36).s
         v-if="type === 'password'"
         type="button"
         class="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--text-muted)] hover:text-[var(--text)] transition-colors"
+        tabindex="-1"
         @click="showPassword = !showPassword"
       >
         <EyeOff v-if="showPassword" class="w-4 h-4" />
@@ -82,7 +83,12 @@ const inputId = computed(() => props.id ?? `input-${Math.random().toString(36).s
       </button>
     </div>
 
-    <p v-if="error" class="text-xs text-[var(--danger)] mt-0.5">{{ error }}</p>
-    <p v-else-if="hint" class="text-xs text-[var(--text-muted)] mt-0.5">{{ hint }}</p>
+    <p v-if="error" class="text-xs text-[var(--danger)] flex items-center gap-1">
+      <svg class="w-3 h-3 flex-shrink-0" fill="currentColor" viewBox="0 0 20 20">
+        <path fill-rule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7 4a1 1 0 11-2 0 1 1 0 012 0zm-1-9a1 1 0 00-1 1v4a1 1 0 102 0V6a1 1 0 00-1-1z" clip-rule="evenodd" />
+      </svg>
+      {{ error }}
+    </p>
+    <p v-else-if="hint" class="text-xs text-[var(--text-muted)]">{{ hint }}</p>
   </div>
 </template>
