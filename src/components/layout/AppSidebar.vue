@@ -172,7 +172,7 @@ function renderNavItems(items: NavItem[]) {
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-5" aria-label="Main navigation">
+    <nav class="flex-1 overflow-y-auto py-3 px-2 space-y-5" :aria-label="$t('nav.main')">
 
       <!-- Dashboard -->
       <div>
@@ -189,7 +189,7 @@ function renderNavItems(items: NavItem[]) {
 
       <!-- CRM -->
       <div v-if="crmItems.length">
-        <p v-if="!collapsed" class="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-placeholder)]">CRM</p>
+        <p v-if="!collapsed" class="px-3 mb-1.5 text-[10px] font-semibold uppercase tracking-[0.1em] text-[var(--text-placeholder)]">{{ $t('sidebarCrm') }}</p>
         <div class="space-y-0.5">
           <RouterLink
             v-for="item in renderNavItems(crmItems)"

@@ -68,24 +68,24 @@ function healthColor(score?: number) {
           text
           rounded
           size="small"
-          v-tooltip.top="'Ver cliente'"
+          v-tooltip.top="$t('clientDetail.viewClient')"
           @click="router.push(`/clients/${clientId}`)"
         />
       </div>
 
       <div class="grid grid-cols-3 gap-2 text-center">
         <div class="rounded-lg bg-[var(--surface)] p-2">
-          <p class="text-xs text-[var(--text-muted)]">Estado</p>
+          <p class="text-xs text-[var(--text-muted)]">{{ $t('clientDetail.status') }}</p>
           <Tag :severity="statusSeverity(client.status)" :value="client.status ?? '—'" class="text-xs mt-0.5" />
         </div>
         <div class="rounded-lg bg-[var(--surface)] p-2">
-          <p class="text-xs text-[var(--text-muted)]">Health</p>
+          <p class="text-xs text-[var(--text-muted)]">{{ $t('clientDetail.health') }}</p>
           <p class="text-base font-bold" :class="healthColor(client.healthScore)">
             {{ client.healthScore ?? '—' }}
           </p>
         </div>
         <div class="rounded-lg bg-[var(--surface)] p-2">
-          <p class="text-xs text-[var(--text-muted)]">Tickets abiertos</p>
+          <p class="text-xs text-[var(--text-muted)]">{{ $t('clientDetail.openTickets') }}</p>
           <p class="text-base font-bold" :class="openCount > 0 ? 'text-amber-500' : 'text-[var(--text)]'">
             <span v-if="loadingTickets">…</span>
             <span v-else>{{ openCount }}</span>

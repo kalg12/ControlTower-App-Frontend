@@ -156,7 +156,7 @@ const expandedRows = ref<Record<string, boolean>>({})
         class="min-w-[150px]"
         @update:model-value="page = 0"
       />
-      <Button icon="pi pi-times" severity="secondary" outlined :title="'Limpiar filtros'" @click="clearFilters" />
+      <Button icon="pi pi-times" severity="secondary" outlined :title="$t('logsPage.clearFilters')" @click="clearFilters" />
     </div>
 
     <!-- Error state -->
@@ -164,8 +164,8 @@ const expandedRows = ref<Record<string, boolean>>({})
       v-if="isError"
       class="rounded-lg border border-red-200 bg-red-50 dark:bg-red-950/30 dark:border-red-900 px-4 py-3 text-sm text-red-600 dark:text-red-400 flex items-center justify-between"
     >
-      <span>Error cargando registros</span>
-      <Button label="Reintentar" size="small" severity="danger" text @click="refetch()" />
+      <span>{{ $t('logsPage.loadError') }}</span>
+      <Button :label="$t('logsPage.retry')" size="small" severity="danger" text @click="refetch()" />
     </div>
 
     <SkeletonTable v-if="isLoading && !result" :rows="8" :cols="5" />

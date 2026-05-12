@@ -324,11 +324,11 @@ async function bulkAssign() {
       bulkAssigneeId.value,
     );
     await queryClient.invalidateQueries({ queryKey: ["tickets"] });
-    toast.success(`${selectedTickets.value.length} tickets asignados`);
+    toast.success(t('ticketsPage.ticketsAssigned', { count: selectedTickets.value.length }));
     selectedTickets.value = [];
     bulkAssigneeId.value = null;
   } catch {
-    toast.error("No se pudo asignar los tickets");
+    toast.error(t('ticketsPage.assignFailed'));
   } finally {
     isBulkProcessing.value = false;
   }
@@ -343,11 +343,11 @@ async function bulkChangeStatus() {
       bulkStatus.value,
     );
     await queryClient.invalidateQueries({ queryKey: ["tickets"] });
-    toast.success(`${selectedTickets.value.length} tickets actualizados`);
+    toast.success(t('ticketsPage.ticketsUpdated', { count: selectedTickets.value.length }));
     selectedTickets.value = [];
     bulkStatus.value = null;
   } catch {
-    toast.error("No se pudo actualizar los tickets");
+    toast.error(t('ticketsPage.updateFailed'));
   } finally {
     isBulkProcessing.value = false;
   }
@@ -356,8 +356,8 @@ async function bulkChangeStatus() {
 function bulkDeleteConfirm() {
   if (!selectedTickets.value.length) return;
   confirm.require({
-    message: `¿Eliminar ${selectedTickets.value.length} ticket(s)?`,
-    header: "Eliminar tickets",
+message: t('ticketsPage.bulkDeleteConfirm', { count: selectedTickets.value.length }),
+        header: t('ticketsPage.bulkDeleteHeader'),
     icon: "pi pi-exclamation-triangle",
     rejectProps: {
       label: t("common.cancel"),
@@ -372,10 +372,10 @@ function bulkDeleteConfirm() {
           selectedTickets.value.map((t) => ticketsService.delete(t.id)),
         );
         await queryClient.invalidateQueries({ queryKey: ["tickets"] });
-        toast.success(`${selectedTickets.value.length} tickets eliminados`);
+        toast.success(t('ticketsPage.bulkDeleteSuccess', { count: selectedTickets.value.length }));
         selectedTickets.value = [];
       } catch {
-        toast.error("No se pudieron eliminar todos los tickets");
+        toast.error(t('ticketsPage.deleteAllFailed'));
       } finally {
         isBulkProcessing.value = false;
       }
@@ -581,7 +581,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   icon="pi pi-filter-slash"
                   severity="secondary"
                   outlined
-                  v-tooltip.top="'Limpiar filtros'"
+                  :v-tooltip.top="t('common.clearFilters')"
                   @click="() => { statusFilter = null; priorityFilter = null; sourceFilter = null; globalFilter = ''; applyFilters() }"
                 />
                 <Button
@@ -619,7 +619,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
               v-if="selectedTickets.length > 0"
               class="flex items-center gap-3 rounded-[var(--radius-lg)] border border-[var(--border)] bg-[var(--surface)] px-4 py-2.5 flex-wrap shadow-sm"
             >
-              <span class="text-sm font-semibold text-[var(--text)] shrink-0">{{ selectedTickets.length }} seleccionado(s)</span>
+              <span class="text-sm font-semibold text-[var(--text)] shrink-0">{{ t('ticketsPage.selected', { count: selectedTickets.length }) }}</span>
               <div class="h-4 w-px bg-[var(--border)]" />
               <div class="flex items-center gap-2">
                 <Select
@@ -650,7 +650,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   :disabled="isBulkProcessing"
                 />
                 <Button
-                  label="Aplicar"
+                  :label="t('common.apply')"
                   size="small"
                   severity="secondary"
                   :loading="isBulkProcessing"
@@ -665,7 +665,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   outlined
                   size="small"
                   :loading="isBulkProcessing"
-                  v-tooltip.top="'Eliminar seleccionados'"
+                  :v-tooltip.top="t('ticketsPage.deleteSelected')"
                   @click="bulkDeleteConfirm"
                 />
                 <Button
@@ -905,7 +905,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
             <template #empty>
               <EmptyState
                 :title="t('tickets.trashEmpty')"
-                description="Los tickets eliminados aparecerán aquí"
+                :description="t('ticketsPage.trashEmptyDescription')"
               >
                 <template #icon>
                   <MessageSquare class="w-6 h-6 text-[var(--text-muted)]" />

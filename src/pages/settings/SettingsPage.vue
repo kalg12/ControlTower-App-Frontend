@@ -78,9 +78,9 @@ async function saveEmailSettings() {
   try {
     await api.put('/settings/tenant', { 'mail.from': emailFrom.value.trim() })
     await queryClient.invalidateQueries({ queryKey: ['tenant-settings'] })
-    toast.success('Configuración de email guardada')
+    toast.success(t('settingsPage.emailSaved'))
   } catch {
-    toast.error('Error al guardar la configuración de email')
+    toast.error(t('settingsPage.emailSaveError'))
   } finally {
     savingEmail.value = false
   }
@@ -239,7 +239,7 @@ async function syncGoogleNow() {
         <Tab value="security">{{ t('settings.tabSecurity') }}</Tab>
         <Tab value="notifications">{{ t('settings.tabNotifications') }}</Tab>
         <Tab value="sla">{{ t('settings.tabSla') }}</Tab>
-        <Tab value="email">Email</Tab>
+        <Tab value="email">{{ $t('settingsPage.tabEmail') }}</Tab>
         <Tab value="google">{{ t('settings.tabGoogle') }}</Tab>
       </TabList>
       <TabPanels class="mt-4">
@@ -260,10 +260,10 @@ async function syncGoogleNow() {
               </div>
             </Card>
             <Card>
-              <h3 class="text-sm font-semibold text-[var(--text)] mb-3">Foto de perfil</h3>
+              <h3 class="text-sm font-semibold text-[var(--text)] mb-3">{{ $t('settingsPage.profilePhoto') }}</h3>
               <div class="flex items-center gap-3 mb-4">
-                <Avatar :name="authStore.user?.fullName || 'Usuario'" :src="authStore.user?.avatarUrl" size="lg" />
-                <p class="text-xs text-[var(--text-muted)]">Foto actual</p>
+                <Avatar :name="authStore.user?.fullName || $t('common.loading')" :src="authStore.user?.avatarUrl" size="lg" />
+                <p class="text-xs text-[var(--text-muted)]">{{ $t('settingsPage.currentPhoto') }}</p>
               </div>
               <input
                 ref="fileInputRef"
@@ -274,7 +274,7 @@ async function syncGoogleNow() {
               />
               <div class="flex items-center gap-3">
                 <Button
-                  label="Seleccionar imagen"
+                  :label="$t('settingsPage.selectImage')"
                   icon="pi pi-upload"
                   severity="secondary"
                   size="small"
@@ -283,14 +283,14 @@ async function syncGoogleNow() {
                 <span v-if="selectedFileName" class="text-xs text-[var(--text-muted)] truncate max-w-[160px]">{{ selectedFileName }}</span>
                 <Button
                   v-if="selectedFile"
-                  label="Subir foto"
+                  :label="$t('settingsPage.uploadPhoto')"
                   icon="pi pi-check"
                   size="small"
                   :loading="savingAvatar"
                   @click="saveAvatar"
                 />
               </div>
-              <p class="text-xs text-[var(--text-muted)] mt-2">Formatos admitidos: JPG, PNG, GIF, WebP.</p>
+              <p class="text-xs text-[var(--text-muted)] mt-2">{{ $t('settingsPage.formatsHint') }}</p>
             </Card>
           </div>
         </TabPanel>
@@ -337,10 +337,9 @@ async function syncGoogleNow() {
         <TabPanel value="sla">
           <Card>
             <div class="mb-4">
-              <h3 class="text-sm font-semibold text-[var(--text)]">Ventanas SLA por prioridad</h3>
+              <h3 class="text-sm font-semibold text-[var(--text)]">{{ $t('settingsPage.slaTitle') }}</h3>
               <p class="text-xs text-[var(--text-muted)] mt-0.5">
-                Define cuántas horas tienen los agentes para resolver un ticket según su prioridad.
-                Los nuevos tickets usarán automáticamente estos valores.
+                {{ $t('settingsPage.slaDescription') }}
               </p>
             </div>
 
@@ -374,7 +373,7 @@ async function syncGoogleNow() {
 
             <div class="flex justify-end mt-5">
               <Button
-                label="Guardar configuración SLA"
+                :label="$t('settingsPage.saveSla')"
                 icon="pi pi-check"
                 :loading="savingSla"
                 @click="saveSlaConfig"
@@ -386,19 +385,18 @@ async function syncGoogleNow() {
         <!-- Email Sender Tab -->
         <TabPanel value="email">
           <Card>
-            <h3 class="text-sm font-semibold text-[var(--text)] mb-1">Remitente de emails</h3>
+            <h3 class="text-sm font-semibold text-[var(--text)] mb-1">{{ $t('settingsPage.emailSender') }}</h3>
             <p class="text-xs text-[var(--text-muted)] mb-4">
-              Dirección que aparecerá como remitente en todos los emails del sistema
-              (notificaciones de tickets, respuestas de chat, actualizaciones de kanban).
+              {{ $t('settingsPage.emailSenderDesc') }}
             </p>
             <div class="flex gap-2 max-w-sm">
               <InputText
                 v-model="emailFrom"
-                placeholder="soporte@miempresa.com"
+                :placeholder="$t('settingsPage.emailSenderPlaceholder')"
                 class="flex-1 text-sm"
               />
               <Button
-                label="Guardar"
+                :label="$t('settingsPage.emailSave')"
                 icon="pi pi-check"
                 :loading="savingEmail"
                 :disabled="!emailFrom.trim()"
@@ -412,10 +410,9 @@ async function syncGoogleNow() {
         <TabPanel value="google">
           <Card>
             <div class="mb-4">
-              <h3 class="text-sm font-semibold text-[var(--text)]">Integración con Google Calendar</h3>
+              <h3 class="text-sm font-semibold text-[var(--text)]">{{ $t('settingsPage.googleCalendar') }}</h3>
               <p class="text-xs text-[var(--text-muted)] mt-0.5">
-                Sincroniza tus eventos del calendario con Google Calendar. 
-                Los eventos se bidireccional: los cambios en cualquiera de los calendarios se reflejarán en ambos.
+                {{ $t('settingsPage.googleCalendarDesc') }}
               </p>
             </div>
 
@@ -430,17 +427,17 @@ async function syncGoogleNow() {
                     {{ googleCalendarLabel }}
                   </p>
                 </div>
-                <Tag v-if="googleConnected" severity="success" value="Activo" class="ml-auto" />
+                <Tag v-if="googleConnected" severity="success" :value="$t('settingsPage.active')" class="ml-auto" />
               </div>
 
               <div v-if="googleEmail" class="text-xs text-[var(--text-muted)] mb-4">
-                <p>Cuenta: {{ googleEmail }}</p>
+                <p>{{ $t('settingsPage.account', { email: googleEmail }) }}</p>
               </div>
 
               <div class="flex gap-2">
                 <Button
                   v-if="googleConnected"
-                  label="Desconectar"
+                  :label="$t('settingsPage.disconnect')"
                   icon="pi pi-times"
                   severity="secondary"
                   outlined
@@ -449,7 +446,7 @@ async function syncGoogleNow() {
                 />
                 <Button
                   v-if="googleConnected"
-                  label="Sincronizar ahora"
+                  :label="$t('settingsPage.syncNow')"
                   icon="pi pi-sync"
                   size="small"
                   @click="syncGoogleNow"
@@ -458,7 +455,7 @@ async function syncGoogleNow() {
 
               <div v-if="!googleConnected" class="mt-4 p-3 rounded-lg bg-gray-50 dark:bg-gray-800">
                 <p class="text-xs text-[var(--text-muted)]">
-                  <strong>Para conectar:</strong> Crea credenciales OAuth en Google Cloud Console y configura las variables de entorno.
+                  {{ $t('settingsPage.oauthHint') }}
                 </p>
               </div>
             </div>

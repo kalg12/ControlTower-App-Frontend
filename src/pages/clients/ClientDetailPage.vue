@@ -539,9 +539,9 @@ const onSubmitBranch = branchForm.handleSubmit(async (values) => {
     });
     await queryClient.invalidateQueries({ queryKey: ["branches", id.value] });
     showBranchDialog.value = false;
-    toast.success("Branch created");
+    toast.success(t('clientDetail.branchCreated'));
   } catch {
-    toast.error("Failed to create branch");
+    toast.error(t('clientDetail.branchCreateFailed'));
   } finally {
     isSubmittingBranch.value = false;
   }
@@ -556,7 +556,7 @@ const isEditingBranch = ref(false);
 const editBranchForm = useForm({
   validationSchema: toTypedSchema(
     z.object({
-      name: z.string().min(2, "Min 2 characters"),
+name: z.string().min(2, t('clientDetail.minLength')),
       address: z.string().optional(),
       city: z.string().optional(),
       isActive: z.boolean(),
@@ -592,9 +592,9 @@ const onEditBranchSubmit = editBranchForm.handleSubmit(async (values) => {
     });
     await queryClient.invalidateQueries({ queryKey: ["branches", id.value] });
     showEditBranchDialog.value = false;
-    toast.success("Branch updated");
+    toast.success(t('clientDetail.branchUpdated'));
   } catch {
-    toast.error("Failed to update branch");
+    toast.error(t('clientDetail.branchUpdateFailed'));
   } finally {
     isEditingBranch.value = false;
   }
@@ -602,8 +602,8 @@ const onEditBranchSubmit = editBranchForm.handleSubmit(async (values) => {
 
 function confirmDeleteBranch(branch: ClientBranch) {
   confirm.require({
-    message: `Delete branch "${branch.name}"?`,
-    header: "Delete Branch",
+    message: t('clientDetail.branchDeleteConfirm', { name: branch.name }),
+    header: t('clientDetail.branchDeleteTitle'),
     icon: "pi pi-exclamation-triangle",
     rejectProps: {
       label: t("common.cancel"),
@@ -617,9 +617,9 @@ function confirmDeleteBranch(branch: ClientBranch) {
         await queryClient.invalidateQueries({
           queryKey: ["branches", id.value],
         });
-        toast.success("Branch deleted");
+        toast.success(t('clientDetail.branchDeleted'));
       } catch {
-        toast.error("Failed to delete branch");
+        toast.error(t('clientDetail.branchDeleteFailed'));
       }
     },
   });
@@ -648,10 +648,10 @@ const segmentOptions = computed(() => [
 const contactForm = useForm({
   validationSchema: toTypedSchema(
     z.object({
-      fullName: z.string().min(2, "Min 2 characters"),
-      email: z.string().email("Invalid email").optional().or(z.literal("")),
-      phone: z.string().optional(),
-      role: z.string().min(1, "Select a role"),
+fullName: z.string().min(2, t('clientDetail.minLength')),
+        email: z.string().email(t('clientDetail.invalidEmail')).optional().or(z.literal("")),
+        phone: z.string().optional(),
+        role: z.string().min(1, t('clientDetail.selectRole')),
       primary: z.boolean(),
       notes: z.string().optional(),
     }),
@@ -714,9 +714,9 @@ const onSubmitContact = contactForm.handleSubmit(async (values) => {
     await queryClient.invalidateQueries({ queryKey: ["contacts", id.value] });
     await queryClient.invalidateQueries({ queryKey: ["client", id.value] });
     showContactDialog.value = false;
-    toast.success(editingContact.value ? "Contact updated" : "Contact added");
+    toast.success(t('clientDetail.contactSaved'));
   } catch {
-    toast.error("Failed to save contact");
+    toast.error(t('clientDetail.contactSaveFailed'));
   } finally {
     isSubmittingContact.value = false;
   }
@@ -724,8 +724,8 @@ const onSubmitContact = contactForm.handleSubmit(async (values) => {
 
 function confirmDeleteContact(c: ClientContact) {
   confirm.require({
-    message: `Remove ${c.fullName}?`,
-    header: "Remove Contact",
+    message: t('clientDetail.contactRemoveConfirm', { name: c.fullName }),
+    header: t('clientDetail.contactRemoveTitle'),
     icon: "pi pi-exclamation-triangle",
     rejectProps: {
       label: t("common.cancel"),
@@ -740,9 +740,9 @@ function confirmDeleteContact(c: ClientContact) {
           queryKey: ["contacts", id.value],
         });
         await queryClient.invalidateQueries({ queryKey: ["client", id.value] });
-        toast.success("Contact removed");
+        toast.success(t('clientDetail.contactRemoved'));
       } catch {
-        toast.error("Failed to remove contact");
+        toast.error(t('clientDetail.contactRemoveFailed'));
       }
     },
   });
@@ -766,9 +766,9 @@ const interactionTypeOptions = [
 ];
 
 const interactionSchema = z.object({
-  title: z.string().min(2, "Min 2 characters"),
-  description: z.string().optional(),
-  interactionType: z.string().min(1, "Select a type"),
+title: z.string().min(2, t('clientDetail.minLength')),
+    description: z.string().optional(),
+    interactionType: z.string().min(1, t('clientDetail.selectType')),
   branchId: z.string().optional(),
   occurredAt: z.string().optional(),
   outcome: z.string().optional(),
@@ -830,7 +830,7 @@ const onSubmitInteraction = interactionForm.handleSubmit(async (values) => {
 function confirmDeleteInteraction(inter: ClientInteraction) {
   confirm.require({
     message: t("crm.deleteInteractionConfirm"),
-    header: "Delete Interaction",
+    header: t('clientDetail.deleteInteractionTitle'),
     icon: "pi pi-exclamation-triangle",
     rejectProps: {
       label: t("common.cancel"),
@@ -887,7 +887,7 @@ const currencyOptions = [
 ];
 
 const oppSchema = z.object({
-  title: z.string().min(2, "Min 2 characters"),
+  title: z.string().min(2, t('clientDetail.minLength')),
   description: z.string().optional(),
   value: z.string().optional(),
   currency: z.string().min(1),
@@ -1884,7 +1884,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                 class="text-base font-semibold text-[var(--text)] flex items-center gap-2"
               >
                 <Ticket class="w-4 h-4" />
-                Historial de tickets
+                {{ t('clientDetail.ticketHistory') }}
                 <span
                   v-if="clientTickets.length"
                   class="text-[var(--text-muted)] font-normal text-sm"
@@ -1908,7 +1908,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
               "
               row-hover
             >
-              <Column field="title" header="Título" style="min-width: 200px">
+              <Column field="title" :header="t('tickets.formTitle')" style="min-width: 200px">
                 <template #body="{ data: row }: { data: TicketType }">
                   <span
                     class="text-sm font-medium text-[var(--text)] cursor-pointer hover:underline"
@@ -1916,7 +1916,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                   >
                 </template>
               </Column>
-              <Column field="status" header="Estado" style="width: 130px">
+              <Column field="status" :header="t('tickets.status')" style="width: 130px">
                 <template #body="{ data: row }: { data: TicketType }">
                   <Tag
                     :severity="ticketStatusSeverity(row.status)"
@@ -1924,7 +1924,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                   />
                 </template>
               </Column>
-              <Column field="priority" header="Prioridad" style="width: 110px">
+              <Column field="priority" :header="t('tickets.priority')" style="width: 110px">
                 <template #body="{ data: row }: { data: TicketType }">
                   <Tag
                     :severity="
@@ -1940,7 +1940,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
               </Column>
               <Column
                 field="assigneeName"
-                header="Asignado"
+                :header="t('tickets.assignee')"
                 style="width: 140px"
               >
                 <template #body="{ data: row }: { data: TicketType }">
@@ -1949,7 +1949,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                   }}</span>
                 </template>
               </Column>
-              <Column field="createdAt" header="Creado" style="width: 140px">
+              <Column field="createdAt" :header="t('tickets.createdAt')" style="width: 140px">
                 <template #body="{ data: row }: { data: TicketType }">
                   <span class="text-sm text-[var(--text-muted)]">{{
                     formatDate(row.createdAt)
@@ -1958,7 +1958,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
               </Column>
               <template #empty>
                 <div class="text-center py-8 text-[var(--text-muted)]">
-                  Este cliente no tiene tickets aún.
+                  {{ t('clientDetail.noTickets') }}
                 </div>
               </template>
             </DataTable>
@@ -1989,7 +1989,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                       {{ fmtCurrency(financeSummary.totalInvoiced) }}
                     </p>
                     <p class="text-xs text-[var(--text-muted)] mt-0.5">
-                      {{ financeSummary.invoiceCount }} facturas
+                      {{ t('clientDetail.invoiceCount', { count: financeSummary.invoiceCount }) }}
                     </p>
                   </div>
                   <div
@@ -2006,7 +2006,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                       {{ fmtCurrency(financeSummary.totalPaid) }}
                     </p>
                     <p class="text-xs text-[var(--text-muted)] mt-0.5">
-                      {{ financeSummary.paymentCount }} pagos
+                      {{ t('clientDetail.paymentCount', { count: financeSummary.paymentCount }) }}
                     </p>
                   </div>
                   <div
@@ -2040,7 +2040,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                       {{ fmtCurrency(financeSummary.totalExpenses) }}
                     </p>
                     <p class="text-xs text-[var(--text-muted)] mt-0.5">
-                      {{ financeSummary.expenseCount }} gastos
+                      {{ t('clientDetail.expenseCount', { count: financeSummary.expenseCount }) }}
                     </p>
                   </div>
                 </div>
@@ -2050,20 +2050,18 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
                 >
                   {{ t("finance.summary.lastInvoice") }}:
                   {{
-                    financeSummary.lastInvoiceAt
-                      ? new Date(
-                          financeSummary.lastInvoiceAt,
-                        ).toLocaleDateString("es-MX")
-                      : "—"
+financeSummary.lastInvoiceAt
+                       ? formatDate(financeSummary.lastInvoiceAt)
+                       : "—"
                   }}
                 </div>
               </template>
-              <div
-                v-else
-                class="text-center py-8 text-sm text-[var(--text-muted)]"
-              >
-                Sin datos financieros para este cliente.
-              </div>
+<div
+                 v-else
+                 class="text-center py-8 text-sm text-[var(--text-muted)]"
+               >
+                 {{ t('clientDetail.noFinanceData') }}
+               </div>
             </div>
           </TabPanel>
 
@@ -2389,7 +2387,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
           id="edit-website"
           v-model="editWebsite"
           v-bind="editWebsiteAttrs"
-          placeholder="https://example.com"
+          :placeholder="t('clientsPage.websitePlaceholder')"
           class="w-full"
           :disabled="isEditSubmitting"
         />
@@ -2734,7 +2732,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
         <FormField :label="t('crm.durationMinutes')" name="int-duration">
           <InputText
             v-model="intDuration"
-            placeholder="60"
+            :placeholder="t('clientDetail.durationPlaceholder')"
             class="w-full"
             :disabled="isSubmittingInteraction"
           />
@@ -2802,7 +2800,7 @@ function confirmDeleteOpp(opp: ClientOpportunity) {
         <FormField :label="t('crm.value')" name="opp-value">
           <InputText
             v-model="oppValue"
-            placeholder="0"
+            :placeholder="t('clientDetail.valuePlaceholder')"
             class="w-full"
             :disabled="isSubmittingOpp"
           />

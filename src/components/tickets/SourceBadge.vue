@@ -1,8 +1,10 @@
 <script setup lang="ts">
 import Tag from 'primevue/tag'
+import { useI18n } from 'vue-i18n'
 import type { TicketSource } from '@/types/ticket'
 
 defineProps<{ source?: TicketSource }>()
+const { t } = useI18n()
 
 function severity(s?: TicketSource): string {
   const map: Record<string, string> = {
@@ -17,13 +19,13 @@ function severity(s?: TicketSource): string {
 
 function label(s?: TicketSource): string {
   const map: Record<string, string> = {
-    POS: 'POS',
-    HEALTH_ALERT: 'Health Alert',
-    MANUAL: 'Manual',
-    WEBHOOK: 'Webhook',
-    EMAIL: 'Email'
+    POS: t('sourceBadge.pos'),
+    HEALTH_ALERT: t('sourceBadge.healthAlert'),
+    MANUAL: t('sourceBadge.manual'),
+    WEBHOOK: t('sourceBadge.webhook'),
+    EMAIL: t('sourceBadge.email')
   }
-  return map[s ?? 'MANUAL'] ?? 'Manual'
+  return map[s ?? 'MANUAL'] ?? t('sourceBadge.manual')
 }
 
 function icon(s?: TicketSource): string {

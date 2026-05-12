@@ -20,31 +20,29 @@ const themeStore = useThemeStore()
           <div class="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center">
             <Zap class="w-5 h-5 text-white" />
           </div>
-          <span class="text-white font-bold text-lg tracking-tight">Control Tower</span>
+           <span class="text-white font-bold text-lg tracking-tight">{{ $t('authLayout.brandName') }}</span>
         </div>
 
         <div class="flex-1 flex flex-col justify-center">
-          <h2 class="text-3xl xl:text-4xl font-bold text-white leading-tight mb-4">
-            Manage your<br />POS clients<br />effortlessly.
-          </h2>
+          <h2 class="text-3xl xl:text-4xl font-bold text-white leading-tight mb-4" v-html="$t('authLayout.tagline')" />
           <p class="text-white/70 text-base leading-relaxed max-w-xs">
-            A powerful CRM/ERP dashboard for monitoring licenses, health, tickets, and more.
+            {{ $t('authLayout.description') }}
           </p>
 
           <ul class="mt-8 space-y-3">
-            <li v-for="feature in ['Real-time health monitoring', 'Support ticket management', 'License & billing control']" :key="feature"
+            <li v-for="(feature, i) in ['authLayout.features.health', 'authLayout.features.tickets', 'authLayout.features.billing']" :key="i"
               class="flex items-center gap-2.5 text-white/80 text-sm">
               <div class="w-5 h-5 rounded-full bg-white/20 flex items-center justify-center flex-shrink-0">
                 <svg class="w-3 h-3 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M5 13l4 4L19 7" />
                 </svg>
               </div>
-              {{ feature }}
+              {{ $t(feature) }}
             </li>
           </ul>
         </div>
 
-        <p class="text-white/40 text-xs">&copy; 2026 Control Tower. All rights reserved.</p>
+        <p class="text-white/40 text-xs">{{ $t('authLayout.footer') }}</p>
       </div>
     </div>
 
@@ -53,7 +51,7 @@ const themeStore = useThemeStore()
       <div class="flex justify-end p-4 sm:p-6">
         <button
           class="p-2 rounded-md text-[var(--text-muted)] hover:text-[var(--text)] hover:bg-[var(--surface-raised)] transition-colors"
-          :title="themeStore.isDark ? 'Light mode' : 'Dark mode'"
+          :title="$t('authLayout.' + (themeStore.isDark ? 'lightMode' : 'darkMode'))"
           @click="themeStore.toggle()"
         >
           <Moon v-if="themeStore.isDark" class="w-5 h-5" />
@@ -67,7 +65,7 @@ const themeStore = useThemeStore()
             <div class="w-9 h-9 rounded-lg bg-[var(--primary)] flex items-center justify-center">
               <Zap class="w-5 h-5 text-white" />
             </div>
-            <span class="font-bold text-[var(--text)] text-base">Control Tower</span>
+            <span class="font-bold text-[var(--text)] text-base">{{ $t('authLayout.brandName') }}</span>
           </div>
 
           <RouterView />

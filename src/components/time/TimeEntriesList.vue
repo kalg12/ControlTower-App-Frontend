@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useTimeSummary, useTimeTrackingMutations } from '@/queries/time-tracking'
 import { useToast } from '@/composables/useToast'
 import type { TimeEntityType } from '@/types/time-tracking'
@@ -25,6 +26,7 @@ const entityIdRef    = computed(() => props.entityId)
 
 const { data: summary, isLoading } = useTimeSummary(entityTypeRef, entityIdRef)
 const { deleteEntry, logManual }   = useTimeTrackingMutations()
+const { t } = useI18n()
 const toast = useToast()
 
 const isExpanded   = ref(false)
@@ -41,9 +43,9 @@ async function handleDelete(entryId: string) {
       entityType: props.entityType,
       entityId: props.entityId,
     })
-    toast.success('Entrada eliminada')
+    toast.success(t('timeTracking.entryDeleted'))
   } catch {
-    toast.error('No se pudo eliminar')
+    toast.error(t('timeTracking.deleteFailed'))
   }
 }
 
@@ -59,15 +61,15 @@ async function handleLogManual() {
     logMinutes.value = null
     logNote.value    = ''
     showLogForm.value = false
-    toast.success('Tiempo registrado')
+    toast.success(t('timeTracking.timeLogged'))
   } catch {
-    toast.error('No se pudo registrar el tiempo')
+    toast.error(t('timeTracking.logFailed'))
   }
 }
 
 function entryDuration(entry: { minutes?: number | null; startedAt: string; endedAt?: string | null }) {
   if (entry.minutes != null) return formatMinutes(entry.minutes)
-  if (!entry.endedAt) return 'En curso'
+  if (!entry.endedAt) return t('timeTracking.inProgress')
   const mins = Math.round((new Date(entry.endedAt).getTime() - new Date(entry.startedAt).getTime()) / 60000)
   return formatMinutes(mins)
 }
@@ -81,9 +83,9 @@ function entryDuration(entry: { minutes?: number | null; startedAt: string; ende
       @click="isExpanded = !isExpanded"
     >
       <span class="flex items-center gap-2">
-        <span>Tiempo</span>
+        <span>{{ $t('timeTracking.title') }}</span>
         <span v-if="summary" class="text-xs text-muted-foreground font-normal">
-          {{ formatMinutes(summary.loggedMinutes) }} registrado
+          {{ formatMinutes(summary.loggedMinutes) }} {{ $t('timeTracking.logged') }}
         </span>
         <LoaderCircleIcon v-if="isLoading" class="h-3 w-3 animate-spin text-muted-foreground" />
       </span>
@@ -112,7 +114,7 @@ function entryDuration(entry: { minutes?: number | null; startedAt: string; ende
               <span class="text-muted-foreground">{{ dayjs(entry.startedAt).fromNow() }}</span>
               <span v-if="entry.active"
                     class="rounded-full bg-green-500/20 text-green-600 dark:text-green-400 px-1.5 py-0.5 font-medium">
-                En curso
+                {{ $t('timeTracking.inProgress') }}
               </span>
             </div>
             <p v-if="entry.note" class="text-muted-foreground mt-0.5 truncate">{{ entry.note }}</p>
@@ -129,7 +131,7 @@ function entryDuration(entry: { minutes?: number | null; startedAt: string; ende
       </div>
 
       <p v-else-if="summary && !isLoading" class="text-xs text-muted-foreground italic">
-        Sin entradas de tiempo registradas.
+        {{ $t('timeTracking.noEntries') }}
       </p>
 
       <!-- Manual log form -->
@@ -139,13 +141,13 @@ function entryDuration(entry: { minutes?: number | null; startedAt: string; ende
             v-model.number="logMinutes"
             type="number"
             min="1"
-            placeholder="Minutos"
+            :placeholder="$t('timeTracking.minutesPlaceholder')"
             class="w-24 rounded border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
           />
           <input
             v-model="logNote"
             type="text"
-            placeholder="Nota (opcional)"
+            :placeholder="$t('timeTracking.notePlaceholder')"
             class="flex-1 rounded border border-border bg-background px-2 py-1 text-xs focus:outline-none focus:ring-1 focus:ring-primary"
           />
         </div>
@@ -155,13 +157,13 @@ function entryDuration(entry: { minutes?: number | null; startedAt: string; ende
             :disabled="!logMinutes || logManual.isPending.value"
             @click="handleLogManual"
           >
-            Guardar
+            {{ $t('timeTracking.save') }}
           </button>
           <button
             class="rounded px-2 py-1 text-xs text-muted-foreground hover:text-foreground"
             @click="showLogForm = false; logMinutes = null; logNote = ''"
           >
-            Cancelar
+            {{ $t('timeTracking.cancel') }}
           </button>
         </div>
       </div>
@@ -173,7 +175,7 @@ function entryDuration(entry: { minutes?: number | null; startedAt: string; ende
         @click="showLogForm = true"
       >
         <PlusIcon class="h-3 w-3" />
-        Agregar tiempo manualmente
+        {{ $t('timeTracking.addManual') }}
       </button>
     </div>
   </div>

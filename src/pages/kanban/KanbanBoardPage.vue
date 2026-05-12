@@ -212,16 +212,16 @@ function onDragChange(evt: { added?: { element: KanbanCard; newIndex: number }; 
         onSuccess: () => {
           if (card.assigneeIds?.length) {
             confirm.require({
-              message: '¿Deseas notificar a los asignados por email sobre este cambio?',
-              header: 'Notificación por email',
-              icon: 'pi pi-envelope',
-              acceptLabel: 'Enviar email',
-              rejectLabel: 'No',
-              accept: () => {
-                kanbanService.moveCard(card.id, { targetColumnId: columnId, position: newIndex, notifyByEmail: true })
-                  .then(() => toast.success('Notificación enviada por email'))
-                  .catch(() => toast.error('Error al enviar notificación por email'))
-              }
+message: t('kanbanBoard.emailNotifyConfirm'),
+               header: t('kanbanBoard.emailNotifyHeader'),
+               icon: 'pi pi-envelope',
+               acceptLabel: t('kanbanBoard.sendEmail'),
+               rejectLabel: t('common.no'),
+               accept: () => {
+                 kanbanService.moveCard(card.id, { targetColumnId: columnId, position: newIndex, notifyByEmail: true })
+                   .then(() => toast.success(t('kanbanBoard.emailNotificationSent')))
+                   .catch(() => toast.error(t('kanbanBoard.emailNotificationError')))
+               }
             })
           }
         },
@@ -447,9 +447,9 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
   if (attendedAt) return null
   const d = dayjs(dueDate)
   const today = dayjs()
-  if (d.isBefore(today, 'day')) return 'VENCIDA'
-  if (d.isSame(today, 'day')) return 'HOY'
-  if (d.isSame(today.add(1, 'day'), 'day')) return 'MAÑANA'
+  if (d.isBefore(today, 'day')) return t('kanbanBoard.dueOverdue')
+  if (d.isSame(today, 'day')) return t('kanbanBoard.dueToday')
+  if (d.isSame(today.add(1, 'day'), 'day')) return t('kanbanBoard.dueTomorrow')
   return null
 }
 </script>
@@ -578,15 +578,15 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
                 >{{ dueBadgeLabel(card.dueDate, col.columnKind, card.attendedAt) }}</span>
               </div>
               <div v-if="card.wasOverdue && card.attendedAt" class="text-[10px] text-green-600 dark:text-green-400 mb-1">
-                ✓ Atendida
+                {{ t('kanbanBoard.markedAttended') }}
               </div>
               <button
-                v-if="dueBadgeLabel(card.dueDate, col.columnKind, card.attendedAt) === 'VENCIDA' && canWriteKanban"
+                v-if="dueBadgeLabel(card.dueDate, col.columnKind, card.attendedAt) === t('kanbanBoard.dueOverdue') && canWriteKanban"
                 type="button"
                 class="mt-1 text-[10px] text-green-600 hover:text-green-700 dark:text-green-400 font-medium flex items-center gap-0.5 disabled:opacity-50"
                 :disabled="attendingCardId === card.id"
                 @click.stop="attendCard(card.id)"
-              >✓ Marcar atendida</button>
+              >{{ t('kanbanBoard.markAttended') }}</button>
               <p v-if="card.description" class="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">{{ card.description }}</p>
               <div class="flex items-center justify-between gap-1 mt-2">
                 <div class="flex flex-wrap gap-1">
@@ -663,10 +663,10 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
             :max-selected-labels="3"
           />
         </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Tiempo estimado (min)</label>
-          <InputText v-model="cardEstimatedMinutes" type="number" min="1" placeholder="ej. 90" class="w-full" />
-        </div>
+<div class="flex flex-col gap-1">
+           <label class="text-sm font-medium">{{ t('kanbanBoard.estimatedTime') }}</label>
+           <InputText v-model="cardEstimatedMinutes" type="number" min="1" :placeholder="t('kanbanBoard.estimatedTimePlaceholder')" class="w-full" />
+         </div>
         <div class="flex justify-end gap-2 pt-2">
           <Button :label="t('common.cancel')" severity="secondary" outlined @click="showCardDialog = false" />
           <Button :label="t('common.create')" :loading="savingCard" :disabled="!cardTitle.trim()" @click="submitCard" />
@@ -750,10 +750,10 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
             :disabled="!canWriteKanban"
           />
         </div>
-        <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Tiempo estimado (min)</label>
-          <InputText v-model="detailEstimatedMinutes" type="number" min="1" placeholder="ej. 90" class="w-full" :readonly="!canWriteKanban" />
-        </div>
+<div class="flex flex-col gap-1">
+           <label class="text-sm font-medium">{{ t('kanbanBoard.estimatedTime') }}</label>
+           <InputText v-model="detailEstimatedMinutes" type="number" min="1" :placeholder="t('kanbanBoard.estimatedTimePlaceholder')" class="w-full" :readonly="!canWriteKanban" />
+         </div>
         <div v-if="canWriteKanban" class="flex justify-end gap-2">
           <Button
             :label="t('common.save')"
@@ -789,10 +789,10 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
 
         <!-- Time tracking section -->
         <div class="border-t border-[var(--border)] pt-4 space-y-3">
-          <h3 class="text-sm font-semibold flex items-center gap-1.5">
-            <TimerIcon class="h-4 w-4 text-muted-foreground" />
-            Tiempo
-          </h3>
+<h3 class="text-sm font-semibold flex items-center gap-1.5">
+           <TimerIcon class="h-4 w-4 text-muted-foreground" />
+           {{ t('kanbanBoard.timeTracking') }}
+         </h3>
           <TimerWidget entity-type="CARD" :entity-id="selectedCard.id" />
           <TimeEntriesList entity-type="CARD" :entity-id="selectedCard.id" />
         </div>

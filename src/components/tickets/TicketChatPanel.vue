@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch, nextTick, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import Textarea from 'primevue/textarea'
@@ -14,6 +15,7 @@ import TemplateSelector from '@/components/templates/TemplateSelector.vue'
 dayjs.extend(relativeTime)
 
 const props = defineProps<{ ticketId: string }>()
+const { t } = useI18n()
 const toast = useToast()
 const qc = useQueryClient()
 const notifStore = useNotificationsStore()
@@ -53,9 +55,9 @@ async function submitReply() {
     await ticketsService.addComment(props.ticketId, replyText.value.trim(), false)
     replyText.value = ''
     await qc.invalidateQueries({ queryKey: ['ticket-comments', props.ticketId] })
-    toast.success('Reply sent')
+    toast.success(t('ticketChat.replySent'))
   } catch {
-    toast.error('Failed to send reply')
+    toast.error(t('ticketChat.replyFailed'))
   } finally {
     isSubmitting.value = false
   }
@@ -78,9 +80,9 @@ function fromNow(dateStr: string) {
     <!-- Header -->
     <div class="flex items-center gap-2 px-5 py-3 border-b border-[var(--border)] bg-orange-50 dark:bg-orange-950/20">
       <i class="pi pi-comments text-orange-500 text-sm" />
-      <span class="text-sm font-semibold text-orange-600 dark:text-orange-400">Chat con POS</span>
+      <span class="text-sm font-semibold text-orange-600 dark:text-orange-400">{{ $t('ticketChat.title') }}</span>
       <span v-if="comments" class="ml-auto text-xs text-[var(--text-muted)]">
-        {{ comments.length }} mensaje{{ comments.length !== 1 ? 's' : '' }}
+        {{ $t('ticketChat.messageCount', { count: comments.length }) }}
       </span>
     </div>
 
@@ -92,7 +94,7 @@ function fromNow(dateStr: string) {
 
       <template v-else-if="!comments || comments.length === 0">
         <p class="text-center text-sm text-[var(--text-muted)] py-4">
-          No hay mensajes aún.
+          {{ $t('ticketChat.noMessages') }}
         </p>
       </template>
 
@@ -104,7 +106,7 @@ function fromNow(dateStr: string) {
           :class="msg.senderType === 'OPERATOR' ? 'items-end' : 'items-start'"
         >
           <p class="text-xs font-medium text-[var(--text-muted)]">
-            {{ msg.senderType === 'OPERATOR' ? 'Tú (operador)' : 'Cliente POS' }}
+            {{ msg.senderType === 'OPERATOR' ? $t('ticketChat.senderOperator') : $t('ticketChat.senderPosClient') }}
           </p>
           <div
             class="max-w-[80%] rounded-2xl px-3 py-2 text-sm break-words"
@@ -126,7 +128,7 @@ function fromNow(dateStr: string) {
         <div class="flex-1 relative">
           <Textarea
             v-model="replyText"
-            placeholder="Escribe una respuesta al cliente POS..."
+            :placeholder="$t('ticketChat.placeholder')"
             :rows="2"
             class="w-full resize-none text-sm pr-10"
             :disabled="isSubmitting"
@@ -141,12 +143,12 @@ function fromNow(dateStr: string) {
           :loading="isSubmitting"
           :disabled="!replyText.trim()"
           @click="submitReply"
-          v-tooltip.top="'Enviar (Enter)'"
+          v-tooltip.top="$t('ticketChat.sendTooltip')"
         />
       </div>
       <p class="text-[11px] text-[var(--text-muted)] flex items-center gap-1">
         <i class="pi pi-envelope text-[11px]" />
-        Se enviará una copia por email al cliente
+        {{ $t('ticketChat.copyToClient') }}
       </p>
     </div>
   </div>

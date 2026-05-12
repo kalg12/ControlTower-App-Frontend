@@ -1,31 +1,36 @@
 <script setup lang="ts">
 import { useEditor, EditorContent } from '@tiptap/vue-3'
+import { useI18n } from 'vue-i18n'
 import StarterKit from '@tiptap/starter-kit'
 import Underline from '@tiptap/extension-underline'
 import Placeholder from '@tiptap/extension-placeholder'
-import { watch, onBeforeUnmount } from 'vue'
+import { watch, computed, onBeforeUnmount } from 'vue'
 import {
   Bold, Italic, UnderlineIcon, Heading1, Heading2, Heading3,
   List, ListOrdered, Quote, Minus, Undo2, Redo2
 } from 'lucide-vue-next'
+
+const { t } = useI18n()
 
 const props = withDefaults(defineProps<{
   modelValue: string
   placeholder?: string
   minHeight?: string
 }>(), {
-  placeholder: 'Escribe el contenido aquí…',
+  placeholder: '',
   minHeight: '200px'
 })
 
 const emit = defineEmits<{ 'update:modelValue': [value: string] }>()
+
+const resolvedPlaceholder = computed(() => props.placeholder || t('richTextEditor.placeholder'))
 
 const editor = useEditor({
   content: props.modelValue,
   extensions: [
     StarterKit,
     Underline,
-    Placeholder.configure({ placeholder: props.placeholder }),
+    Placeholder.configure({ placeholder: resolvedPlaceholder.value }),
   ],
   editorProps: {
     attributes: { class: 'rte-content focus:outline-none' },
@@ -45,21 +50,21 @@ onBeforeUnmount(() => editor.value?.destroy())
 
 type Level = 1 | 2 | 3
 const tools = [
-  { icon: Bold,         action: () => editor.value?.chain().focus().toggleBold().run(),         active: () => !!editor.value?.isActive('bold'),         title: 'Negrita' },
-  { icon: Italic,       action: () => editor.value?.chain().focus().toggleItalic().run(),       active: () => !!editor.value?.isActive('italic'),       title: 'Cursiva' },
-  { icon: UnderlineIcon,action: () => editor.value?.chain().focus().toggleUnderline().run(),   active: () => !!editor.value?.isActive('underline'),    title: 'Subrayado' },
+  { icon: Bold,         action: () => editor.value?.chain().focus().toggleBold().run(),         active: () => !!editor.value?.isActive('bold'),         title: t('richTextEditor.bold') },
+  { icon: Italic,       action: () => editor.value?.chain().focus().toggleItalic().run(),       active: () => !!editor.value?.isActive('italic'),       title: t('richTextEditor.italic') },
+  { icon: UnderlineIcon,action: () => editor.value?.chain().focus().toggleUnderline().run(),   active: () => !!editor.value?.isActive('underline'),    title: t('richTextEditor.underline') },
   null,
-  { icon: Heading1,     action: () => editor.value?.chain().focus().toggleHeading({ level: 1 as Level }).run(), active: () => !!editor.value?.isActive('heading', { level: 1 }), title: 'Título 1' },
-  { icon: Heading2,     action: () => editor.value?.chain().focus().toggleHeading({ level: 2 as Level }).run(), active: () => !!editor.value?.isActive('heading', { level: 2 }), title: 'Título 2' },
-  { icon: Heading3,     action: () => editor.value?.chain().focus().toggleHeading({ level: 3 as Level }).run(), active: () => !!editor.value?.isActive('heading', { level: 3 }), title: 'Título 3' },
+  { icon: Heading1,     action: () => editor.value?.chain().focus().toggleHeading({ level: 1 as Level }).run(), active: () => !!editor.value?.isActive('heading', { level: 1 }), title: t('richTextEditor.heading1') },
+  { icon: Heading2,     action: () => editor.value?.chain().focus().toggleHeading({ level: 2 as Level }).run(), active: () => !!editor.value?.isActive('heading', { level: 2 }), title: t('richTextEditor.heading2') },
+  { icon: Heading3,     action: () => editor.value?.chain().focus().toggleHeading({ level: 3 as Level }).run(), active: () => !!editor.value?.isActive('heading', { level: 3 }), title: t('richTextEditor.heading3') },
   null,
-  { icon: List,         action: () => editor.value?.chain().focus().toggleBulletList().run(),   active: () => !!editor.value?.isActive('bulletList'),   title: 'Lista' },
-  { icon: ListOrdered,  action: () => editor.value?.chain().focus().toggleOrderedList().run(),  active: () => !!editor.value?.isActive('orderedList'),  title: 'Lista numerada' },
-  { icon: Quote,        action: () => editor.value?.chain().focus().toggleBlockquote().run(),   active: () => !!editor.value?.isActive('blockquote'),   title: 'Cita' },
-  { icon: Minus,        action: () => editor.value?.chain().focus().setHorizontalRule().run(),  active: () => false,                                    title: 'Separador' },
+  { icon: List,         action: () => editor.value?.chain().focus().toggleBulletList().run(),   active: () => !!editor.value?.isActive('bulletList'),   title: t('richTextEditor.list') },
+  { icon: ListOrdered,  action: () => editor.value?.chain().focus().toggleOrderedList().run(),  active: () => !!editor.value?.isActive('orderedList'),  title: t('richTextEditor.orderedList') },
+  { icon: Quote,        action: () => editor.value?.chain().focus().toggleBlockquote().run(),   active: () => !!editor.value?.isActive('blockquote'),   title: t('richTextEditor.blockquote') },
+  { icon: Minus,        action: () => editor.value?.chain().focus().setHorizontalRule().run(),  active: () => false,                                    title: t('richTextEditor.divider') },
   null,
-  { icon: Undo2,        action: () => editor.value?.chain().focus().undo().run(),               active: () => false,                                    title: 'Deshacer' },
-  { icon: Redo2,        action: () => editor.value?.chain().focus().redo().run(),               active: () => false,                                    title: 'Rehacer' },
+  { icon: Undo2,        action: () => editor.value?.chain().focus().undo().run(),               active: () => false,                                    title: t('richTextEditor.undo') },
+  { icon: Redo2,        action: () => editor.value?.chain().focus().redo().run(),               active: () => false,                                    title: t('richTextEditor.redo') },
 ]
 </script>
 

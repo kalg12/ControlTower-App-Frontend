@@ -425,8 +425,8 @@ const summaryCards = computed<StatCard[]>(() => [
       <Card>
         <div class="flex items-center gap-2 mb-4">
           <TimerIcon class="w-4 h-4 text-[var(--text-muted)]" />
-          <h3 class="text-sm font-semibold text-[var(--text)]">Rendimiento de Tiempo</h3>
-          <span class="text-xs text-[var(--text-muted)] ml-auto">últimos 30 días</span>
+          <h3 class="text-sm font-semibold text-[var(--text)]">{{ t('dashboardPage.timePerformance') }}</h3>
+          <span class="text-xs text-[var(--text-muted)] ml-auto">{{ t('dashboardPage.last30Days') }}</span>
         </div>
 
         <div v-if="loadingTimeAnalytics" class="grid grid-cols-2 sm:grid-cols-4 gap-4">
@@ -440,7 +440,7 @@ const summaryCards = computed<StatCard[]>(() => [
             <p class="text-lg font-bold text-[var(--text)]">
               {{ formatMinutes(Math.round(timeAnalytics.avgResolutionMinutes)) }}
             </p>
-            <p class="text-xs text-[var(--text-muted)] mt-1">Tiempo promedio resolución</p>
+            <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('dashboardPage.avgResolution') }}</p>
           </div>
 
           <!-- SLA compliance -->
@@ -448,7 +448,7 @@ const summaryCards = computed<StatCard[]>(() => [
             <ShieldCheckIcon class="w-5 h-5 mx-auto mb-2"
               :class="timeAnalytics.slaComplianceRate >= 90 ? 'text-green-500' : timeAnalytics.slaComplianceRate >= 75 ? 'text-yellow-500' : 'text-red-500'" />
             <p class="text-lg font-bold text-[var(--text)]">{{ timeAnalytics.slaComplianceRate.toFixed(1) }}%</p>
-            <p class="text-xs text-[var(--text-muted)] mt-1">Cumplimiento SLA</p>
+            <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('dashboardPage.slaCompliance') }}</p>
           </div>
 
           <!-- Total logged -->
@@ -457,20 +457,20 @@ const summaryCards = computed<StatCard[]>(() => [
             <p class="text-lg font-bold text-[var(--text)]">
               {{ formatMinutes(Number(timeAnalytics.totalLoggedMinutes)) }}
             </p>
-            <p class="text-xs text-[var(--text-muted)] mt-1">Tiempo total registrado</p>
+            <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('dashboardPage.totalLoggedTime') }}</p>
           </div>
 
           <!-- Total entries -->
           <div class="rounded-xl bg-[var(--surface-raised)] p-4 text-center">
             <Activity class="w-5 h-5 text-amber-500 mx-auto mb-2" />
             <p class="text-lg font-bold text-[var(--text)]">{{ timeAnalytics.totalEntries }}</p>
-            <p class="text-xs text-[var(--text-muted)] mt-1">Entradas de tiempo</p>
+            <p class="text-xs text-[var(--text-muted)] mt-1">{{ t('dashboardPage.timeEntries') }}</p>
           </div>
         </div>
 
         <!-- Top users by logged time -->
         <div v-if="timeAnalytics && timeAnalytics.topUsers.length > 0" class="mt-4 border-t border-[var(--border)] pt-4">
-          <p class="text-xs font-medium text-[var(--text-muted)] mb-3 uppercase tracking-wider">Top agentes por tiempo</p>
+          <p class="text-xs font-medium text-[var(--text-muted)] mb-3 uppercase tracking-wider">{{ t('dashboardPage.topAgentsByTime') }}</p>
           <div class="space-y-2">
             <div v-for="(u, i) in timeAnalytics.topUsers.slice(0, 5)" :key="u.userId"
                  class="flex items-center gap-3 text-sm">

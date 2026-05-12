@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import DataTable from 'primevue/datatable'
 import Column from 'primevue/column'
@@ -17,6 +18,7 @@ import dayjs from 'dayjs'
 
 const props = defineProps<{ clientId: string }>()
 const queryClient = useQueryClient()
+const { t } = useI18n()
 const toast = useToast()
 
 const { data: reminders, isLoading } = useQuery({
@@ -25,19 +27,19 @@ const { data: reminders, isLoading } = useQuery({
   staleTime: 30_000,
 })
 
-const recurrenceOptions = [
-  { label: 'Diario', value: 'DAILY' },
-  { label: 'Semanal', value: 'WEEKLY' },
-  { label: 'Quincenal', value: 'BIWEEKLY' },
-  { label: 'Mensual', value: 'MONTHLY' },
-  { label: 'Personalizado', value: 'CUSTOM' },
-]
+const recurrenceOptions = computed(() => [
+  { label: t('reminders.daily'), value: 'DAILY' },
+  { label: t('reminders.weekly'), value: 'WEEKLY' },
+  { label: t('reminders.biweekly'), value: 'BIWEEKLY' },
+  { label: t('reminders.monthly'), value: 'MONTHLY' },
+  { label: t('reminders.custom'), value: 'CUSTOM' },
+])
 
 function statusSeverity(s: ClientReminder['status']) {
   return s === 'ACTIVE' ? 'success' : s === 'PAUSED' ? 'warn' : 'secondary'
 }
 function statusLabel(s: ClientReminder['status']) {
-  return s === 'ACTIVE' ? 'Activo' : s === 'PAUSED' ? 'Pausado' : 'Completado'
+  return s === 'ACTIVE' ? t('reminders.active') : s === 'PAUSED' ? t('reminders.paused') : t('reminders.completed')
 }
 
 const showDialog = ref(false)
@@ -89,36 +91,36 @@ const saveMut = useMutation({
     }
     return editingId.value ? remindersService.update(editingId.value, payload) : remindersService.create(payload)
   },
-  onSuccess: () => { toast.success(editingId.value ? 'Actualizado' : 'Creado'); showDialog.value = false; invalidate() },
-  onError: () => toast.error('Error al guardar'),
+  onSuccess: () => { toast.success(editingId.value ? t('reminders.updated') : t('reminders.created')); showDialog.value = false; invalidate() },
+  onError: () => toast.error(t('reminders.saveFailed')),
 })
 
 const completeMut = useMutation({
   mutationFn: (id: string) => remindersService.complete(id),
-  onSuccess: () => { toast.success('Completado'); invalidate() },
+  onSuccess: () => { toast.success(t('reminders.statusUpdated')); invalidate() },
 })
 
 const deleteMut = useMutation({
   mutationFn: (id: string) => remindersService.delete(id),
-  onSuccess: () => { toast.success('Eliminado'); invalidate() },
+  onSuccess: () => { toast.success(t('reminders.deleted')); invalidate() },
 })
 </script>
 
 <template>
   <div class="space-y-3 pt-2">
     <div class="flex justify-end">
-      <Button label="Nuevo recordatorio" icon="pi pi-plus" size="small" @click="openCreate" />
+      <Button :label="$t('clientDetail.reminderNew')" icon="pi pi-plus" size="small" @click="openCreate" />
     </div>
 
     <DataTable :value="reminders ?? []" :loading="isLoading" stripedRows tableStyle="min-width: 36rem">
-      <Column field="title" header="Título" />
-      <Column header="Recurrencia" style="width:120px">
+      <Column field="title" :header="$t('clientDetail.reminderTitle')" />
+      <Column :header="$t('clientDetail.reminderRecurrence')" style="width:120px">
         <template #body="{ data }">{{ data.recurrenceType === 'CUSTOM' ? `Cada ${data.recurrenceDays} días` : data.recurrenceType }}</template>
       </Column>
-      <Column header="Próxima fecha" style="width:130px">
+      <Column :header="$t('clientDetail.reminderNextDate')" style="width:130px">
         <template #body="{ data }">{{ dayjs(data.nextDueDate).format('DD MMM YYYY') }}</template>
       </Column>
-      <Column header="Estado" style="width:100px">
+      <Column :header="$t('clientDetail.reminderStatus')" style="width:100px">
         <template #body="{ data }">
           <Tag :severity="statusSeverity(data.status)" :value="statusLabel(data.status)" />
         </template>
@@ -126,55 +128,55 @@ const deleteMut = useMutation({
       <Column header="" style="width:120px">
         <template #body="{ data }">
           <div class="flex gap-1">
-            <Button v-if="data.status === 'ACTIVE'" icon="pi pi-check" size="small" severity="success" text rounded v-tooltip="'Completar'" @click="completeMut.mutate(data.id)" />
-            <Button icon="pi pi-pencil" size="small" severity="secondary" text rounded v-tooltip="'Editar'" @click="openEdit(data)" />
-            <Button icon="pi pi-trash" size="small" severity="danger" text rounded v-tooltip="'Eliminar'" @click="deleteMut.mutate(data.id)" />
+            <Button v-if="data.status === 'ACTIVE'" icon="pi pi-check" size="small" severity="success" text rounded v-tooltip="$t('clientDetail.reminderComplete')" @click="completeMut.mutate(data.id)" />
+            <Button icon="pi pi-pencil" size="small" severity="secondary" text rounded v-tooltip="$t('clientDetail.reminderEdit')" @click="openEdit(data)" />
+            <Button icon="pi pi-trash" size="small" severity="danger" text rounded v-tooltip="$t('clientDetail.reminderDelete')" @click="deleteMut.mutate(data.id)" />
           </div>
         </template>
       </Column>
       <template #empty>
         <div class="text-center py-6 text-sm text-[var(--text-muted)]">
-          <p>Sin recordatorios para este cliente.</p>
-          <Button label="Crear primero" text size="small" class="mt-2" @click="openCreate" />
+          <p>{{ $t('clientDetail.reminderNoReminders') }}</p>
+          <Button :label="$t('clientDetail.reminderCreateFirst')" text size="small" class="mt-2" @click="openCreate" />
         </div>
       </template>
     </DataTable>
 
-    <Dialog v-model:visible="showDialog" :header="editingId ? 'Editar recordatorio' : 'Nuevo recordatorio'" modal class="w-full max-w-lg">
+    <Dialog v-model:visible="showDialog" :header="editingId ? $t('reminders.edit') : $t('reminders.new')" modal class="w-full max-w-lg">
       <div class="flex flex-col gap-4 pt-2">
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Título *</label>
+          <label class="text-sm font-medium">{{ $t('clientReminderForm.title') }}</label>
           <InputText v-model="formTitle" class="w-full" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">Descripción</label>
+          <label class="text-sm font-medium">{{ $t('clientReminderForm.description') }}</label>
           <Textarea v-model="formDescription" :rows="2" class="w-full" />
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Recurrencia *</label>
+            <label class="text-sm font-medium">{{ $t('clientReminderForm.recurrence') }}</label>
             <Select v-model="formRecurrenceType" :options="recurrenceOptions" option-label="label" option-value="value" class="w-full" />
           </div>
           <div v-if="formRecurrenceType === 'CUSTOM'" class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Días</label>
+            <label class="text-sm font-medium">{{ $t('clientReminderForm.days') }}</label>
             <InputNumber v-model="formRecurrenceDays" :min="1" class="w-full" />
           </div>
         </div>
         <div class="grid grid-cols-2 gap-3">
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Fecha inicio *</label>
+            <label class="text-sm font-medium">{{ $t('clientReminderForm.startDate') }}</label>
             <InputText v-model="formStartDate" type="date" class="w-full" />
           </div>
           <div class="flex flex-col gap-1">
-            <label class="text-sm font-medium">Máx. ocurrencias</label>
-            <InputNumber v-model="formMaxOccurrences" :min="1" placeholder="Sin límite" class="w-full" />
+            <label class="text-sm font-medium">{{ $t('clientReminderForm.maxOccurrences') }}</label>
+            <InputNumber v-model="formMaxOccurrences" :min="1" :placeholder="$t('clientReminderForm.noLimit')" class="w-full" />
           </div>
         </div>
       </div>
       <template #footer>
         <div class="flex justify-end gap-2">
-          <Button label="Cancelar" severity="secondary" outlined @click="showDialog = false" />
-          <Button :label="editingId ? 'Guardar' : 'Crear'" :loading="saveMut.isPending.value" :disabled="!formTitle" @click="saveMut.mutate()" />
+          <Button :label="$t('clientReminderForm.cancel')" severity="secondary" outlined @click="showDialog = false" />
+          <Button :label="editingId ? $t('clientReminderForm.save') : $t('clientReminderForm.create')" :loading="saveMut.isPending.value" :disabled="!formTitle" @click="saveMut.mutate()" />
         </div>
       </template>
     </Dialog>

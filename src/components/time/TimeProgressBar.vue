@@ -27,12 +27,12 @@ const barColor = computed(() => {
 <template>
   <div class="space-y-1">
     <div class="flex items-center justify-between text-xs text-muted-foreground">
-      <span>Registrado: <strong class="text-foreground">{{ formatMinutes(loggedMinutes) }}</strong></span>
+      <span>{{ $t('timeTracking.loggedLabel') }} <strong class="text-foreground">{{ formatMinutes(loggedMinutes) }}</strong></span>
       <span v-if="estimatedMinutes">
-        Estimado: <strong class="text-foreground">{{ formatMinutes(estimatedMinutes) }}</strong>
+        {{ $t('timeTracking.estimatedLabel') }} <strong class="text-foreground">{{ formatMinutes(estimatedMinutes) }}</strong>
         <span :class="pct! > 100 ? 'text-red-500 font-semibold ml-1' : 'ml-1'">({{ pct }}%)</span>
       </span>
-      <span v-else class="italic">Sin estimación</span>
+      <span v-else class="italic">{{ $t('timeTracking.noEstimate') }}</span>
     </div>
 
     <div v-if="estimatedMinutes" class="h-1.5 w-full rounded-full bg-muted overflow-hidden">

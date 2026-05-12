@@ -9,10 +9,12 @@ import type { ChatConversation } from '@/types/chat'
 import ChatConversationView from './ChatConversationView.vue'
 import ChatTransferDialog from './ChatTransferDialog.vue'
 import { useConfirm } from 'primevue/useconfirm'
+import { useI18n } from 'vue-i18n'
 
 const auth = useAuthStore()
 const qc = useQueryClient()
 const confirm = useConfirm()
+const { t } = useI18n()
 
 const open = ref(false)
 const activeTab = ref<'WAITING' | 'ACTIVE' | 'ALL'>('WAITING')
@@ -52,6 +54,12 @@ const displayList = computed(() => {
   if (activeTab.value === 'ACTIVE') return activeList.value
   return [...waitingList.value, ...activeList.value]
 })
+
+const tabs = computed(() => [
+  { key: 'WAITING', label: t('chatModule.status.waiting') },
+  { key: 'ACTIVE', label: t('chatModule.status.active') },
+  { key: 'ALL', label: t('chatModule.status.all') },
+])
 
 // ── Mutations ────────────────────────────────────────────────────────────────
 
@@ -138,16 +146,16 @@ function openConversation(conv: ChatConversation) {
 
 function confirmClose(conv: ChatConversation) {
   confirm.require({
-    message: `¿Cerrar la conversación con ${conv.visitorName}?`,
-    header: 'Cerrar conversación',
+    message: t('chatModule.confirmClose', { name: conv.visitorName }),
+    header: t('chatModule.actions.close'),
     accept: () => closeMut.mutate(conv.id),
   })
 }
 
 function confirmArchive(conv: ChatConversation) {
   confirm.require({
-    message: `¿Archivar esta conversación?`,
-    header: 'Archivar',
+    message: t('chatModule.confirmArchive'),
+    header: t('chatModule.actions.archive'),
     accept: () => archiveMut.mutate(conv.id),
   })
 }
@@ -155,7 +163,7 @@ function confirmArchive(conv: ChatConversation) {
 function timeAgo(ts: string) {
   const diff = Date.now() - new Date(ts).getTime()
   const m = Math.floor(diff / 60000)
-  if (m < 1) return 'ahora'
+  if (m < 1) return t('chatModule.time.now')
   if (m < 60) return `${m}m`
   return `${Math.floor(m / 60)}h`
 }
@@ -192,10 +200,10 @@ function avatarColor(name: string) {
         <div class="flex items-center justify-between px-4 py-3 bg-[var(--primary)] text-white">
           <div class="flex items-center gap-2">
             <i class="pi pi-comments text-lg" />
-            <span class="font-semibold">Chat de Soporte</span>
+            <span class="font-semibold">{{ $t('chatModule.title') }}</span>
           </div>
           <div class="flex items-center gap-2">
-            <button class="opacity-70 hover:opacity-100 transition-opacity text-lg" @click="toggleSound" :title="soundEnabled ? 'Silenciar' : 'Activar sonido'">
+            <button class="opacity-70 hover:opacity-100 transition-opacity text-lg" @click="toggleSound" :title="soundEnabled ? $t('common.mute') : $t('common.unmute')">
               {{ soundEnabled ? '🔔' : '🔕' }}
             </button>
             <button class="opacity-70 hover:opacity-100 transition-opacity" @click="open = false">
@@ -207,7 +215,7 @@ function avatarColor(name: string) {
         <!-- Tabs -->
         <div class="flex border-b border-[var(--border)]">
           <button
-            v-for="tab in [{ key: 'WAITING', label: 'Esperando' }, { key: 'ACTIVE', label: 'Activos' }, { key: 'ALL', label: 'Todos' }]"
+            v-for="tab in tabs"
             :key="tab.key"
             class="flex-1 py-2 text-xs font-medium transition-colors"
             :class="activeTab === tab.key ? 'border-b-2 border-[var(--primary)] text-[var(--primary)]' : 'text-[var(--text-muted)] hover:text-[var(--text)]'"
@@ -222,7 +230,7 @@ function avatarColor(name: string) {
         <div class="flex-1 overflow-y-auto divide-y divide-[var(--border)]">
           <div v-if="!displayList.length" class="flex flex-col items-center justify-center h-32 text-[var(--text-muted)] text-sm gap-2">
             <i class="pi pi-inbox text-2xl opacity-40" />
-            <span>Sin conversaciones</span>
+            <span>{{ $t('chatModule.empty.all') }}</span>
           </div>
 
           <div
@@ -249,7 +257,7 @@ function avatarColor(name: string) {
                         'bg-green-100 text-green-700': conv.status === 'ACTIVE',
                         'bg-gray-100 text-gray-500': conv.status === 'CLOSED' || conv.status === 'ARCHIVED',
                       }">
-                  {{ conv.status === 'WAITING' ? 'Esperando' : conv.status === 'ACTIVE' ? 'En vivo' : conv.status }}
+                  {{ conv.status === 'WAITING' ? $t('chatModule.status.waiting') : conv.status === 'ACTIVE' ? $t('chatModule.status.active') : conv.status }}
                 </span>
                 <span v-if="conv.agentName" class="text-[10px] text-[var(--text-muted)] truncate">{{ conv.agentName }}</span>
               </div>
@@ -257,10 +265,10 @@ function avatarColor(name: string) {
 
             <!-- Actions -->
             <div class="flex-shrink-0 hidden group-hover:flex items-center gap-1" @click.stop>
-              <button v-if="conv.status === 'ACTIVE'" class="p-1 rounded hover:bg-red-50 text-red-500 text-xs" title="Cerrar" @click="confirmClose(conv)">
+              <button v-if="conv.status === 'ACTIVE'" class="p-1 rounded hover:bg-red-50 text-red-500 text-xs" :title="$t('common.close')" @click="confirmClose(conv)">
                 <i class="pi pi-times" />
               </button>
-              <button v-if="conv.status === 'CLOSED'" class="p-1 rounded hover:bg-gray-100 text-gray-400 text-xs" title="Archivar" @click="confirmArchive(conv)">
+              <button v-if="conv.status === 'CLOSED'" class="p-1 rounded hover:bg-gray-100 text-gray-400 text-xs" :title="$t('chatModule.actions.archive')" @click="confirmArchive(conv)">
                 <i class="pi pi-inbox" />
               </button>
             </div>

@@ -146,10 +146,10 @@ const unreadCount = computed(() => notifStore.unreadCount)
       <!-- User avatar -->
       <button
         class="rounded-full hover:opacity-80 transition-opacity focus:outline-none focus:ring-2 focus:ring-[var(--primary)] focus:ring-offset-2"
-        :title="authStore.user?.fullName || 'Usuario'"
+        :title="authStore.user?.fullName || $t('common.loading')"
         @click="toggleUserPanel"
       >
-        <Avatar :name="authStore.user?.fullName || 'Usuario'" :src="authStore.user?.avatarUrl" size="sm" />
+        <Avatar :name="authStore.user?.fullName || $t('common.loading')" :src="authStore.user?.avatarUrl" size="sm" />
       </button>
     </div>
   </header>

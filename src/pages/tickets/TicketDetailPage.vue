@@ -107,9 +107,9 @@ async function onAssigneeChange(assigneeId: string | null) {
     }
     await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
     await queryClient.invalidateQueries({ queryKey: ['tickets'] })
-    toast.success('Agente asignado')
+    toast.success(t('ticketDetailPage.agentAssigned'))
   } catch {
-    toast.error('No se pudo cambiar el agente')
+    toast.error(t('ticketDetailPage.agentAssignFailed'))
     selectedAssignee.value = ticket.value.assigneeId ?? null
   } finally {
     isChangingAssignee.value = false
@@ -122,9 +122,9 @@ async function autoAssign() {
     const res = await ticketsService.autoAssign(id.value)
     selectedAssignee.value = res.assigneeId ?? null
     await queryClient.invalidateQueries({ queryKey: ['ticket', id.value] })
-    toast.success(`Auto-asignado a ${res.assigneeName ?? res.assigneeId}`)
+    toast.success(t('ticketDetailPage.selfAssigned', { name: res.assigneeName ?? res.assigneeId }))
   } catch {
-    toast.error('No se pudo auto-asignar')
+    toast.error(t('ticketDetailPage.selfAssignFailed'))
   } finally {
     isChangingAssignee.value = false
   }
@@ -324,7 +324,7 @@ function fromNow(dateStr: string) {
                 :options="users"
                 option-label="fullName"
                 option-value="id"
-                placeholder="Sin asignar"
+                :placeholder="t('ticketDetailPage.unassigned')"
                 class="w-40 text-xs"
                 :disabled="isChangingAssignee"
                 show-clear
@@ -336,7 +336,7 @@ function fromNow(dateStr: string) {
                 text
                 rounded
                 size="small"
-                v-tooltip.top="'Auto-asignar al agente con menor carga'"
+                :v-tooltip.top="t('ticketDetailPage.autoAssignTooltip')"
                 :loading="isChangingAssignee"
                 @click="autoAssign"
               />
@@ -370,7 +370,7 @@ function fromNow(dateStr: string) {
             <span class="text-[var(--text)]">{{ formatDate(ticket.slaDeadline) }}</span>
           </div>
           <div v-if="ticket.estimatedMinutes" class="flex justify-between text-sm">
-            <span class="text-[var(--text-muted)]">Tiempo estimado</span>
+            <span class="text-[var(--text-muted)]">{{ t('ticketDetailPage.estimatedTime') }}</span>
             <span class="text-[var(--text)] font-medium">
               {{ ticket.estimatedMinutes >= 60
                   ? `${Math.floor(ticket.estimatedMinutes / 60)}h ${ticket.estimatedMinutes % 60 > 0 ? `${ticket.estimatedMinutes % 60}m` : ''}`
@@ -440,10 +440,10 @@ function fromNow(dateStr: string) {
 
       <!-- Time tracking panel -->
       <div class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-6 space-y-4">
-        <h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide flex items-center gap-2">
-          <TimerIcon class="w-4 h-4" />
-          Tiempo de trabajo
-        </h2>
+<h2 class="text-sm font-semibold text-[var(--text)] uppercase tracking-wide flex items-center gap-2">
+           <TimerIcon class="w-4 h-4" />
+           {{ t('ticketDetailPage.timeTracking') }}
+         </h2>
         <TimerWidget entity-type="TICKET" :entity-id="ticket.id" />
         <TimeEntriesList entity-type="TICKET" :entity-id="ticket.id" />
       </div>
@@ -499,7 +499,7 @@ function fromNow(dateStr: string) {
       <p class="text-sm text-[var(--text-muted)]">{{ t('ticketDetail.mergeHint') }}</p>
       <div>
         <label class="block text-xs font-medium text-[var(--text-muted)] mb-1">{{ t('ticketDetail.mergeTargetId') }}</label>
-        <InputText v-model="mergeTargetId" class="w-full" placeholder="UUID del ticket destino" />
+        <InputText v-model="mergeTargetId" class="w-full" :placeholder="t('ticketDetailPage.mergeTargetPlaceholder')" />
       </div>
     </div>
     <template #footer>

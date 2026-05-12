@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { useNotesList, useNoteMutations } from '@/queries/notes'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from 'primevue/useconfirm'
@@ -20,6 +21,7 @@ const props = defineProps<{
 
 const toast = useToast()
 const confirm = useConfirm()
+const { t } = useI18n()
 const { create, update, remove } = useNoteMutations()
 
 const isOpen = ref(true)
@@ -47,9 +49,9 @@ async function saveNote() {
     })
     addTitle.value = ''
     addContent.value = ''
-    toast.success('Nota guardada')
+    toast.success(t('notes.saved'))
   } catch {
-    toast.error('No se pudo guardar la nota')
+    toast.error(t('notes.saveFailed'))
   } finally {
     isSaving.value = false
   }
@@ -78,25 +80,25 @@ async function saveEdit(id: string) {
       body: { title: editTitle.value.trim(), content: editContent.value.trim() || undefined },
     })
     editingId.value = null
-    toast.success('Nota actualizada')
+    toast.success(t('notes.updated'))
   } catch {
-    toast.error('No se pudo actualizar la nota')
+    toast.error(t('notes.updateFailed'))
   }
 }
 
 function confirmDelete(id: string, title: string) {
   confirm.require({
-    message: `¿Eliminar la nota "${title}"?`,
-    header: 'Eliminar nota',
+    message: t('notes.deleteConfirm', { title }),
+    header: t('notes.deleteTitle'),
     icon: 'pi pi-exclamation-triangle',
-    rejectProps: { label: 'Cancelar', severity: 'secondary', outlined: true },
-    acceptProps: { label: 'Eliminar', severity: 'danger' },
+    rejectProps: { label: t('notes.cancelLabel'), severity: 'secondary', outlined: true },
+    acceptProps: { label: t('notes.deleteLabel'), severity: 'danger' },
     accept: async () => {
       try {
         await remove.mutateAsync(id)
-        toast.success('Nota eliminada')
+        toast.success(t('notes.deleted'))
       } catch {
-        toast.error('No se pudo eliminar la nota')
+        toast.error(t('notes.deleteFailed'))
       }
     },
   })
@@ -112,7 +114,7 @@ function confirmDelete(id: string, title: string) {
     >
       <span class="flex items-center gap-2 text-sm font-semibold text-[var(--text)] uppercase tracking-wide">
         <StickyNote class="w-4 h-4" />
-        Notas internas
+        {{ $t('notes.title') }}
         <span v-if="notes.length" class="text-xs font-normal text-[var(--text-muted)]">({{ notes.length }})</span>
       </span>
       <ChevronDown v-if="!isOpen" class="w-4 h-4 text-[var(--text-muted)]" />
@@ -153,25 +155,25 @@ function confirmDelete(id: string, title: string) {
 
           <!-- Edit mode -->
           <template v-else>
-            <InputText v-model="editTitle" class="w-full mb-2 text-sm" placeholder="Título" size="small" />
-            <Textarea v-model="editContent" class="w-full text-xs" :rows="2" placeholder="Contenido (opcional)" />
+            <InputText v-model="editTitle" class="w-full mb-2 text-sm" :placeholder="$t('notes.placeholderTitle')" size="small" />
+            <Textarea v-model="editContent" class="w-full text-xs" :rows="2" :placeholder="$t('notes.placeholderContent')" />
             <div class="flex gap-2 mt-2 justify-end">
-              <Button label="Cancelar" severity="secondary" text size="small" @click="cancelEdit" />
-              <Button label="Guardar" size="small" @click="saveEdit(note.id)" />
+              <Button :label="$t('notes.cancelLabel')" severity="secondary" text size="small" @click="cancelEdit" />
+              <Button :label="$t('notes.save')" size="small" @click="saveEdit(note.id)" />
             </div>
           </template>
         </div>
       </div>
 
-      <p v-else class="text-sm text-[var(--text-muted)] py-2">Sin notas aún.</p>
+      <p v-else class="text-sm text-[var(--text-muted)] py-2">{{ $t('notes.empty') }}</p>
 
       <!-- Add note form -->
       <div class="border-t border-[var(--border)] pt-3 space-y-2">
-        <InputText v-model="addTitle" class="w-full text-sm" placeholder="Título de la nota *" size="small" />
-        <Textarea v-model="addContent" class="w-full text-xs" :rows="2" placeholder="Contenido (opcional)" />
+        <InputText v-model="addTitle" class="w-full text-sm" :placeholder="$t('notes.addTitle')" size="small" />
+        <Textarea v-model="addContent" class="w-full text-xs" :rows="2" :placeholder="$t('notes.placeholderContent')" />
         <div class="flex justify-end">
           <Button
-            label="Guardar nota"
+            :label="$t('notes.saveNote')"
             icon="pi pi-plus"
             size="small"
             :loading="isSaving"

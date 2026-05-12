@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { useI18n } from 'vue-i18n'
 import { ShieldAlertIcon, ShieldCheckIcon, ShieldIcon } from 'lucide-vue-next'
 
 const props = defineProps<{
@@ -12,6 +13,7 @@ const props = defineProps<{
 }>()
 
 // Tick every second to keep the countdown live
+const { t } = useI18n()
 const now = ref(Date.now())
 let ticker: ReturnType<typeof setInterval> | null = null
 
@@ -37,12 +39,12 @@ const remainingText = computed(() => {
     const overMs = Math.abs(remainMs.value)
     const h = Math.floor(overMs / 3_600_000)
     const m = Math.floor((overMs % 3_600_000) / 60_000)
-    return h > 0 ? `Vencido hace ${h}h ${m}m` : `Vencido hace ${m}m`
+    return h > 0 ? t('slaCountdown.overdueSince', { h, m }) : t('slaCountdown.overdueSinceMinutes', { m })
   }
   const h = Math.floor(remainMs.value / 3_600_000)
   const m = Math.floor((remainMs.value % 3_600_000) / 60_000)
-  if (h > 0) return `Vence en ${h}h ${m}m`
-  return `Vence en ${m}m`
+  if (h > 0) return t('slaCountdown.dueIn', { h, m })
+  return t('slaCountdown.dueInMinutes', { m })
 })
 
 /** Tailwind color classes for the progress bar */

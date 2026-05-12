@@ -317,7 +317,7 @@ const downloadingPdf = ref<string | null>(null)
 async function downloadInvoicePdf(inv: Invoice) {
   downloadingPdf.value = inv.id
   try { await financeService.downloadInvoicePdf(inv.id, inv.number) }
-  catch { toast.error('Error al generar PDF') }
+  catch { toast.error(t('financePage.pdfError')) }
   finally { downloadingPdf.value = null }
 }
 
@@ -504,7 +504,7 @@ const purchSourceOptions = computed(() => [
   { label: t('finance.sourcePosImport'), value: 'POS_IMPORT' },
 ])
 const purchSourceFilterOptions = computed(() => [
-  { label: 'Todas las fuentes', value: '' },
+  { label: t('financePage.allSources'), value: '' },
   ...purchSourceOptions.value,
 ])
 
@@ -605,7 +605,7 @@ let expenseDownloading = ref(false)
 async function downloadExpensePdf() {
   expenseDownloading.value = true
   try { await financeService.downloadExpenseReportPdf(summaryFrom.value, summaryTo.value) }
-  catch { toast.error('Error al generar PDF') }
+  catch { toast.error(t('financePage.pdfError')) }
   finally { expenseDownloading.value = false }
 }
 
@@ -772,7 +772,7 @@ function confirmDeleteExpense(e: Expense) {
                 <template #body="{ data: row }: { data: Invoice }">
                   <div class="flex gap-1 items-center flex-wrap">
                     <Button v-if="row.status === 'DRAFT'" size="small" icon="pi pi-pencil" severity="secondary" text rounded @click="openEditDialog(row)" v-tooltip="'Editar'" />
-                    <Button v-if="row.status === 'DRAFT'" size="small" label="Enviar" severity="info" text @click="sendInvMut.mutate(row.id)" />
+                    <Button v-if="row.status === 'DRAFT'" size="small" :label="$t('financePage.send')" severity="info" text @click="sendInvMut.mutate(row.id)" />
                     <Button v-if="row.status === 'SENT' || row.status === 'OVERDUE'" size="small" :label="t('finance.markPaid')" severity="success" text @click="payInvMut.mutate(row.id)" />
                     <Button v-if="row.status === 'SENT' || row.status === 'OVERDUE' || row.status === 'CANCELLED'" size="small" :label="t('finance.void')" severity="warn" text @click="voidInvMut.mutate(row.id)" />
                     <Button size="small" icon="pi pi-file-pdf" severity="secondary" text rounded :loading="downloadingPdf === row.id" @click="downloadInvoicePdf(row)" v-tooltip="t('finance.downloadPdf')" />
@@ -810,7 +810,7 @@ function confirmDeleteExpense(e: Expense) {
               <Column field="source" :header="t('finance.source')" style="width:100px">
                 <template #body="{ data: row }: { data: Payment }">
                   <Tag v-if="row.source === 'POS_IMPORT'" value="POS" severity="info" class="text-xs" />
-                  <span v-else class="text-xs text-[var(--text-muted)]">Manual</span>
+                  <span v-else class="text-xs text-[var(--text-muted)]">{{ $t('financePage.manual') }}</span>
                 </template>
               </Column>
               <Column field="reference" :header="t('finance.reference')">
@@ -850,20 +850,20 @@ function confirmDeleteExpense(e: Expense) {
                 <h3 class="font-semibold text-[var(--text)]">{{ t('finance.expenseSummary') }}</h3>
                 <div class="flex items-center gap-2">
                   <DatePicker v-model="summaryDateRange" selectionMode="range" :placeholder="t('finance.summaryPeriodPlaceholder')" showIcon class="w-64" dateFormat="dd/mm/yy" />
-                  <Button label="Enviar reporte" icon="pi pi-envelope" outlined size="small" @click="showReportDialog = true" />
+                  <Button :label="$t('financePage.sendReport')" icon="pi pi-envelope" outlined size="small" @click="showReportDialog = true" />
                   <Button :label="t('finance.exportPdf')" icon="pi pi-file-pdf" outlined size="small" :loading="expenseDownloading" @click="downloadExpensePdf" />
                 </div>
               </div>
               <div v-if="summaryLoading" class="text-center py-4 text-[var(--text-muted)] text-sm">
-                <i class="pi pi-spin pi-spinner mr-2" />Calculando...
+                <i class="pi pi-spin pi-spinner mr-2" />{{ $t('financePage.calculating') }}
               </div>
               <div v-else-if="expenseSummary" class="space-y-2">
-                <p class="text-sm text-[var(--text-muted)]">Total del período: <strong class="text-red-600 dark:text-red-400">{{ fmt(expenseSummary.grandTotal) }}</strong></p>
+                <p class="text-sm text-[var(--text-muted)]">{{ $t('financePage.periodTotal') }} <strong class="text-red-600 dark:text-red-400">{{ fmt(expenseSummary.grandTotal) }}</strong></p>
                 <div class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 gap-2">
                   <div v-for="cat in expenseSummary.byCategory" :key="cat.category" class="bg-[var(--bg)] border border-[var(--border)] rounded-lg p-3">
                     <p class="text-xs text-[var(--text-muted)] uppercase tracking-wide">{{ cat.category }}</p>
                     <p class="font-semibold text-[var(--text)]">{{ fmt(cat.total) }}</p>
-                    <p class="text-xs text-[var(--text-muted)]">{{ cat.percentage.toFixed(1) }}% · {{ cat.count }} gastos</p>
+                    <p class="text-xs text-[var(--text-muted)]">{{ cat.percentage.toFixed(1) }}% · {{ $t('financePage.countExpenses', { count: cat.count }) }}</p>
                     <div class="mt-1.5 h-1.5 rounded-full bg-gray-200 dark:bg-gray-700 overflow-hidden">
                       <div class="h-full bg-red-500 rounded-full" :style="{ width: cat.percentage + '%' }" />
                     </div>
@@ -933,7 +933,7 @@ function confirmDeleteExpense(e: Expense) {
               <Column field="source" :header="t('finance.source')" style="width:90px">
                 <template #body="{ data: row }: { data: PurchaseRecord }">
                   <Tag v-if="row.source === 'POS_IMPORT'" value="POS" severity="info" class="text-xs" />
-                  <span v-else class="text-xs text-[var(--text-muted)]">Manual</span>
+                  <span v-else class="text-xs text-[var(--text-muted)]">{{ $t('financePage.manual') }}</span>
                 </template>
               </Column>
               <Column field="quantity" :header="t('finance.purchaseQuantity')" style="width:80px">
@@ -976,7 +976,7 @@ function confirmDeleteExpense(e: Expense) {
           <Select v-model="invCurrency" :options="[{label:'MXN',value:'MXN'},{label:'USD',value:'USD'}]" option-label="label" option-value="value" class="w-full" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">IVA %</label>
+          <label class="text-sm font-medium">{{ $t('financePage.vatLabel') }}</label>
           <InputNumber v-model="invTaxRate" :min="0" :max="100" :fraction-digits="2" class="w-full" />
         </div>
       </div>
@@ -1007,9 +1007,9 @@ function confirmDeleteExpense(e: Expense) {
           </div>
         </div>
         <div class="mt-3 border-t border-[var(--border)] pt-3 text-right space-y-1">
-          <p class="text-sm text-[var(--text-muted)]">Subtotal: <strong>{{ fmt(invSubtotal, invCurrency) }}</strong></p>
-          <p class="text-sm text-[var(--text-muted)]">IVA ({{ invTaxRate }}%): <strong>{{ fmt(invTaxAmount, invCurrency) }}</strong></p>
-          <p class="text-base font-bold text-[var(--text)]">Total: {{ fmt(invTotal, invCurrency) }}</p>
+          <p class="text-sm text-[var(--text-muted)]">{{ $t('financePage.subtotal') }} <strong>{{ fmt(invSubtotal, invCurrency) }}</strong></p>
+          <p class="text-sm text-[var(--text-muted)]">{{ $t('financePage.vatLine', { rate: invTaxRate }) }} <strong>{{ fmt(invTaxAmount, invCurrency) }}</strong></p>
+          <p class="text-base font-bold text-[var(--text)]">{{ $t('financePage.total') }} {{ fmt(invTotal, invCurrency) }}</p>
         </div>
       </div>
 
@@ -1045,7 +1045,7 @@ function confirmDeleteExpense(e: Expense) {
   </Dialog>
 
   <!-- ── EDIT INVOICE DIALOG ──────────────────────────────────────── -->
-  <Dialog v-model:visible="showEditInvoiceDialog" header="Editar factura" modal class="w-full max-w-2xl">
+  <Dialog v-model:visible="showEditInvoiceDialog" :header="$t('financePage.editInvoice')" modal class="w-full max-w-2xl">
     <div class="flex flex-col gap-4 pt-2">
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium">{{ t('finance.client') }}</label>
@@ -1057,7 +1057,7 @@ function confirmDeleteExpense(e: Expense) {
           <Select v-model="invCurrency" :options="[{label:'MXN',value:'MXN'},{label:'USD',value:'USD'}]" option-label="label" option-value="value" class="w-full" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">IVA %</label>
+          <label class="text-sm font-medium">{{ $t('financePage.vatLabel') }}</label>
           <InputNumber v-model="invTaxRate" :min="0" :max="100" :fraction-digits="2" class="w-full" />
         </div>
       </div>
@@ -1086,9 +1086,9 @@ function confirmDeleteExpense(e: Expense) {
           </div>
         </div>
         <div class="mt-3 border-t border-[var(--border)] pt-3 text-right space-y-1">
-          <p class="text-sm text-[var(--text-muted)]">Subtotal: <strong>{{ fmt(invSubtotal, invCurrency) }}</strong></p>
-          <p class="text-sm text-[var(--text-muted)]">IVA ({{ invTaxRate }}%): <strong>{{ fmt(invTaxAmount, invCurrency) }}</strong></p>
-          <p class="text-base font-bold text-[var(--text)]">Total: {{ fmt(invTotal, invCurrency) }}</p>
+          <p class="text-sm text-[var(--text-muted)]">{{ $t('financePage.subtotal') }} <strong>{{ fmt(invSubtotal, invCurrency) }}</strong></p>
+          <p class="text-sm text-[var(--text-muted)]">{{ $t('financePage.vatLine', { rate: invTaxRate }) }} <strong>{{ fmt(invTaxAmount, invCurrency) }}</strong></p>
+          <p class="text-base font-bold text-[var(--text)]">{{ $t('financePage.total') }} {{ fmt(invTotal, invCurrency) }}</p>
         </div>
       </div>
       <!-- Recurring section -->
@@ -1116,7 +1116,7 @@ function confirmDeleteExpense(e: Expense) {
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button :label="t('common.cancel')" severity="secondary" outlined @click="showEditInvoiceDialog = false" />
-        <Button label="Guardar cambios" :loading="updateInvoiceMut.isPending.value" @click="updateInvoiceMut.mutate()" />
+        <Button :label="$t('financePage.saveChanges')" :loading="updateInvoiceMut.isPending.value" @click="updateInvoiceMut.mutate()" />
       </div>
     </template>
   </Dialog>
@@ -1191,7 +1191,7 @@ function confirmDeleteExpense(e: Expense) {
   </Dialog>
 
   <!-- ── FINANCE REPORT EMAIL DIALOG ─────────────────────────────── -->
-  <Dialog v-model:visible="showReportDialog" header="Enviar reporte de gastos" modal class="w-full max-w-sm">
+  <Dialog v-model:visible="showReportDialog" :header="$t('financePage.sendReportTitle')" modal class="w-full max-w-sm">
     <div class="flex flex-col gap-3 pt-2">
       <p class="text-sm text-[var(--text-muted)]">{{ t('finance.reportEmailDesc') }}</p>
       <div class="flex flex-col gap-1">
@@ -1201,8 +1201,8 @@ function confirmDeleteExpense(e: Expense) {
     </div>
     <template #footer>
       <div class="flex justify-end gap-2">
-        <Button label="Cancelar" severity="secondary" outlined @click="showReportDialog = false" />
-        <Button label="Enviar" icon="pi pi-send" :loading="sendReportMut.isPending.value" :disabled="!reportEmail" @click="sendReportMut.mutate()" />
+        <Button :label="$t('financePage.cancel')" severity="secondary" outlined @click="showReportDialog = false" />
+        <Button :label="$t('financePage.send')" icon="pi pi-send" :loading="sendReportMut.isPending.value" :disabled="!reportEmail" @click="sendReportMut.mutate()" />
       </div>
     </template>
   </Dialog>
@@ -1346,7 +1346,7 @@ function confirmDeleteExpense(e: Expense) {
   </Dialog>
 
   <!-- ── EDIT PURCHASE DIALOG ──────────────────────────────────────── -->
-  <Dialog v-model:visible="showEditPurchaseDialog" header="Editar compra" modal class="w-full max-w-lg">
+  <Dialog v-model:visible="showEditPurchaseDialog" :header="$t('financePage.editPurchase')" modal class="w-full max-w-lg">
     <div class="flex flex-col gap-3 pt-2">
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium">{{ t('finance.description') }} *</label>
@@ -1401,7 +1401,7 @@ function confirmDeleteExpense(e: Expense) {
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button :label="t('common.cancel')" severity="secondary" outlined @click="showEditPurchaseDialog = false" />
-        <Button label="Guardar cambios" :loading="updatePurchaseMut.isPending.value" @click="updatePurchaseMut.mutate()" />
+        <Button :label="$t('financePage.saveChanges')" :loading="updatePurchaseMut.isPending.value" @click="updatePurchaseMut.mutate()" />
       </div>
     </template>
   </Dialog>

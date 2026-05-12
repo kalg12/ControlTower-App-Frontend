@@ -4,6 +4,7 @@ import { useQueryClient } from '@tanstack/vue-query'
 import { useTimerStore } from '@/stores/timer'
 import { useTimeTrackingMutations, useActiveTimer } from '@/queries/time-tracking'
 import { useToast } from '@/composables/useToast'
+import { useI18n } from 'vue-i18n'
 import type { TimeEntityType } from '@/types/time-tracking'
 import { PlayIcon, StopCircleIcon, TimerIcon } from 'lucide-vue-next'
 import { qk } from '@/queries/keys'
@@ -14,6 +15,7 @@ const props = defineProps<{
 }>()
 
 const toast       = useToast()
+const { t }       = useI18n()
 const timer       = useTimerStore()
 const queryClient = useQueryClient()
 const { startTimer, stopTimer } = useTimeTrackingMutations()
@@ -34,7 +36,7 @@ async function handleStart() {
     const entry = await startTimer.mutateAsync({ entityType: props.entityType, entityId: props.entityId })
     timer.syncFromServer(entry)
   } catch {
-    toast.error('No se pudo iniciar el cronómetro')
+    toast.error(t('timeTracking.timerStartFailed'))
   }
 }
 
@@ -47,7 +49,7 @@ async function handleStop() {
       entityId: props.entityId,
     })
     timer.syncFromServer(null)
-    toast.success(`Tiempo registrado: ${stopped.minutes} min`)
+    toast.success(t('timeTracking.timerStopped', { minutes: stopped.minutes }))
   } catch (err: any) {
     const status = err?.response?.status
     if (status === 400 || status === 404) {
@@ -55,9 +57,9 @@ async function handleStop() {
       // Re-sync so the UI reflects reality.
       queryClient.invalidateQueries({ queryKey: qk.activeTimer() })
       timer.syncFromServer(null)
-      toast.warning('El cronómetro ya fue detenido')
+      toast.warning(t('timeTracking.timerAlreadyStopped'))
     } else {
-      toast.error('No se pudo detener el cronómetro')
+      toast.error(t('timeTracking.timerStopFailed'))
     }
   }
 }

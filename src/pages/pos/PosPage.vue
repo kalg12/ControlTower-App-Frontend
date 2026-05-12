@@ -228,9 +228,9 @@ const guideApiKey = ref<string | null>(null);
 const guideIsNew = ref(false);
 const guideIsRegen = ref(false);
 const guideDialogHeader = computed(() => {
-  if (guideIsNew.value) return "¡POS registrado! Configura tu sistema";
-  if (guideIsRegen.value) return "Clave API regenerada";
-  return "Guía de conexión";
+  if (guideIsNew.value) return t('posPage.guideRegistered');
+  if (guideIsRegen.value) return t('posPage.guideRegenerated');
+  return t('posPage.guideDefault');
 });
 
 function openSetupGuide(
@@ -318,15 +318,15 @@ const toggleMut = useMutation({
       ? await integrationsService.deactivate(ep.id)
       : await integrationsService.activate(ep.id),
   onSuccess: () => qc.invalidateQueries({ queryKey: ["pos-endpoints"] }),
-  onError: () => toast.error("Error al cambiar estado"),
+    onError: () => toast.error(t('posPage.statusError')),
 });
 
 function confirmToggle(ep: Integration) {
   confirm.require({
     message: ep.active
-      ? `¿Pausar monitoreo de "${ep.name ?? ep.pullUrl}"?`
-      : `¿Reactivar "${ep.name ?? ep.pullUrl}"?`,
-    header: ep.active ? "Pausar POS" : "Reactivar POS",
+      ? t('posPage.pauseConfirm', { name: ep.name ?? ep.pullUrl })
+      : t('posPage.reactivateConfirm', { name: ep.name ?? ep.pullUrl }),
+    header: ep.active ? t('posPage.pauseTitle') : t('posPage.reactivateTitle'),
     icon: ep.active ? "pi pi-pause" : "pi pi-play",
     accept: () => toggleMut.mutate(ep),
   });
@@ -338,9 +338,9 @@ const deleteMut = useMutation({
   mutationFn: (id: string) => integrationsService.delete(id),
   onSuccess: () => {
     qc.invalidateQueries({ queryKey: ["pos-endpoints"] });
-    toast.success("POS eliminado");
+    toast.success(t('posPage.deleted'));
   },
-  onError: () => toast.error("Error al eliminar"),
+    onError: () => toast.error(t('posPage.deleteError')),
 });
 
 function confirmDelete(ep: Integration) {
@@ -437,13 +437,12 @@ async function resolveIncident(inc: HealthIncident) {
     <!-- Header -->
     <div class="flex items-start justify-between flex-wrap gap-3">
       <div>
-        <h1 class="text-xl font-bold text-[var(--text)]">Puntos de Venta</h1>
+        <h1 class="text-xl font-bold text-[var(--text)]">{{ $t('posPage.title') }}</h1>
         <p class="text-sm text-[var(--text-muted)]">
-          Registra, monitorea y obtén la guía de conexión para cada POS de tus
-          clientes.
+          {{ $t('posPage.subtitle') }}
         </p>
       </div>
-      <Button label="Registrar POS" icon="pi pi-plus" @click="openRegister" />
+      <Button :label="$t('posPage.register')" icon="pi pi-plus" @click="openRegister" />
     </div>
 
     <!-- Summary cards -->
@@ -454,7 +453,7 @@ async function resolveIncident(inc: HealthIncident) {
         <p
           class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1"
         >
-          Total
+          {{ $t('posPage.total') }}
         </p>
         <p class="text-2xl font-bold text-[var(--text)]">{{ totalCount }}</p>
       </div>
@@ -462,7 +461,7 @@ async function resolveIncident(inc: HealthIncident) {
         class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-center"
       >
         <p class="text-xs text-green-600 uppercase tracking-wide mb-1">
-          Activos
+          {{ $t('posPage.active') }}
         </p>
         <p class="text-2xl font-bold text-green-600">{{ activeCount }}</p>
       </div>
@@ -470,7 +469,7 @@ async function resolveIncident(inc: HealthIncident) {
         class="rounded-xl border border-[var(--border)] bg-[var(--surface)] p-4 text-center"
       >
         <p class="text-xs text-amber-600 uppercase tracking-wide mb-1">
-          Con incidente
+          {{ $t('posPage.withIncident') }}
         </p>
         <p class="text-2xl font-bold text-amber-600">{{ incidentCount }}</p>
       </div>
@@ -480,7 +479,7 @@ async function resolveIncident(inc: HealthIncident) {
         <p
           class="text-xs text-[var(--text-muted)] uppercase tracking-wide mb-1"
         >
-          Sin datos
+          {{ $t('posPage.noData') }}
         </p>
         <p class="text-2xl font-bold text-[var(--text-muted)]">
           {{ noDataCount }}
@@ -491,8 +490,8 @@ async function resolveIncident(inc: HealthIncident) {
     <!-- Tabs -->
     <Tabs v-model:value="activeTab">
       <TabList>
-        <Tab value="endpoints">Mis POS</Tab>
-        <Tab value="incidents">Incidentes</Tab>
+        <Tab value="endpoints">{{ $t('posPage.myPos') }}</Tab>
+        <Tab value="incidents">{{ $t('posPage.incidents') }}</Tab>
       </TabList>
       <TabPanels class="mt-3">
         <!-- ── Mis POS ──────────────────────────────────────────── -->
@@ -501,9 +500,9 @@ async function resolveIncident(inc: HealthIncident) {
             <template #empty>
               <div class="text-center py-10 text-[var(--text-muted)]">
                 <i class="pi pi-shop text-3xl mb-2 block opacity-30" />
-                <p class="text-sm">Aún no hay POS registrados.</p>
+                <p class="text-sm">{{ $t('posPage.noEndpoints') }}</p>
                 <Button
-                  label="Registrar primer POS"
+                  :label="$t('posPage.register')"
                   icon="pi pi-plus"
                   class="mt-3"
                   size="small"
@@ -512,7 +511,7 @@ async function resolveIncident(inc: HealthIncident) {
               </div>
             </template>
 
-            <Column header="POS / Cliente" style="min-width: 200px">
+            <Column :header="$t('posPage.posClient')" style="min-width: 200px">
               <template #body="{ data: ep }: { data: Integration }">
                 <div class="font-medium text-sm text-[var(--text)]">
                   {{ ep.name ?? "—" }}
@@ -523,7 +522,7 @@ async function resolveIncident(inc: HealthIncident) {
               </template>
             </Column>
 
-            <Column header="URL de salud" style="min-width: 220px">
+            <Column :header="$t('posPage.healthUrl')" style="min-width: 220px">
               <template #body="{ data: ep }: { data: Integration }">
                 <div v-if="ep.pullUrl" class="flex items-center gap-1">
                   <span
@@ -546,18 +545,18 @@ async function resolveIncident(inc: HealthIncident) {
                   </button>
                 </div>
                 <span v-else class="text-xs text-[var(--text-muted)] italic"
-                  >Sin URL</span
+                  >{{ $t('posPage.noUrl') }}</span
                 >
               </template>
             </Column>
 
-            <Column header="Estado" style="width: 120px">
+            <Column :header="$t('posPage.status')" style="width: 120px">
               <template #body="{ data: ep }: { data: Integration }">
                 <Tag :severity="statusSeverity(ep)" :value="statusLabel(ep)" />
               </template>
             </Column>
 
-            <Column header="Último contacto" style="width: 140px">
+            <Column :header="$t('posPage.lastContact')" style="width: 140px">
               <template #body="{ data: ep }: { data: Integration }">
                 <span class="text-xs text-[var(--text-muted)]">{{
                   lastContact(ep)
@@ -565,7 +564,7 @@ async function resolveIncident(inc: HealthIncident) {
               </template>
             </Column>
 
-            <Column header="Frecuencia" style="width: 110px">
+            <Column :header="$t('posPage.frequencyColumn')" style="width: 110px">
               <template #body="{ data: ep }: { data: Integration }">
                 <span class="text-xs text-[var(--text-muted)]">{{
                   intervalLabel(ep.heartbeatIntervalSeconds)
@@ -573,7 +572,7 @@ async function resolveIncident(inc: HealthIncident) {
               </template>
             </Column>
 
-            <Column header="Acciones" style="width: 180px">
+            <Column :header="$t('posPage.actions')" style="width: 180px">
               <template #body="{ data: ep }: { data: Integration }">
                 <div class="flex items-center gap-1">
                   <Button
@@ -583,7 +582,7 @@ async function resolveIncident(inc: HealthIncident) {
                     size="small"
                     severity="info"
                     :loading="checkingId === ep.id"
-                    v-tooltip.top="'Verificar ahora'"
+                    v-tooltip.top="$t('posPage.checkNow')"
                     @click="checkNow(ep)"
                   />
                   <Button
@@ -592,7 +591,7 @@ async function resolveIncident(inc: HealthIncident) {
                     rounded
                     size="small"
                     severity="secondary"
-                    v-tooltip.top="'Guía de conexión'"
+                    v-tooltip.top="$t('posPage.connectionGuide')"
                     @click="openSetupGuide(ep, false)"
                   />
                   <Button
@@ -601,7 +600,7 @@ async function resolveIncident(inc: HealthIncident) {
                     rounded
                     size="small"
                     severity="secondary"
-                    v-tooltip.top="'Editar'"
+                    v-tooltip.top="$t('posPage.edit')"
                     @click="openEdit(ep)"
                   />
                   <Button
@@ -610,7 +609,7 @@ async function resolveIncident(inc: HealthIncident) {
                     rounded
                     size="small"
                     :severity="ep.active ? 'warn' : 'success'"
-                    v-tooltip.top="ep.active ? 'Pausar' : 'Reactivar'"
+                    v-tooltip.top="ep.active ? $t('posPage.pause') : $t('posPage.reactivate')"
                     @click="confirmToggle(ep)"
                   />
                   <Button
@@ -619,7 +618,7 @@ async function resolveIncident(inc: HealthIncident) {
                     rounded
                     size="small"
                     severity="danger"
-                    v-tooltip.top="'Eliminar'"
+                    v-tooltip.top="$t('posPage.delete')"
                     @click="confirmDelete(ep)"
                   />
                 </div>
@@ -633,11 +632,11 @@ async function resolveIncident(inc: HealthIncident) {
           <DataTable :value="incidents" :loading="loadingIncidents" stripedRows>
             <template #empty>
               <div class="text-center py-10 text-[var(--text-muted)] text-sm">
-                Sin incidentes registrados.
+                {{ $t('posPage.noIncidents') }}
               </div>
             </template>
-            <Column field="branchName" header="Sucursal" />
-            <Column field="severity" header="Severidad" style="width: 110px">
+            <Column field="branchName" :header="$t('posPage.branch')" />
+            <Column field="severity" :header="$t('posPage.severity')" style="width: 110px">
               <template #body="{ data: inc }: { data: HealthIncident }">
                 <Tag
                   :severity="incidentSeverity(inc.severity)"
@@ -645,17 +644,17 @@ async function resolveIncident(inc: HealthIncident) {
                 />
               </template>
             </Column>
-            <Column field="description" header="Descripción" />
-            <Column header="Inicio" style="width: 150px">
+            <Column field="description" :header="$t('posPage.description')" />
+            <Column :header="$t('posPage.started')" style="width: 150px">
               <template #body="{ data: inc }: { data: HealthIncident }">
                 {{ formatDate(inc.openedAt) }}
               </template>
             </Column>
-            <Column header="Estado" style="width: 110px">
+            <Column :header="$t('posPage.status')" style="width: 110px">
               <template #body="{ data: inc }: { data: HealthIncident }">
                 <Tag
                   :severity="inc.open ? 'danger' : 'success'"
-                  :value="inc.open ? 'Abierto' : 'Resuelto'"
+                  :value="inc.open ? $t('posPage.open') : $t('posPage.resolved')"
                 />
               </template>
             </Column>
@@ -663,7 +662,7 @@ async function resolveIncident(inc: HealthIncident) {
               <template #body="{ data: inc }: { data: HealthIncident }">
                 <Button
                   v-if="inc.open && inc.id"
-                  label="Resolver"
+                  :label="$t('posPage.resolve')"
                   size="small"
                   severity="secondary"
                   outlined
@@ -681,7 +680,7 @@ async function resolveIncident(inc: HealthIncident) {
   <!-- ── Register Dialog ────────────────────────────────────────────── -->
   <Dialog
     v-model:visible="showRegister"
-    header="Registrar punto de venta"
+    :header="$t('posPage.registerDialogTitle')"
     modal
     :style="{ width: '480px' }"
   >
@@ -689,13 +688,12 @@ async function resolveIncident(inc: HealthIncident) {
       <div
         class="rounded-lg bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 px-4 py-3 text-xs text-blue-700 dark:text-blue-300"
       >
-        Se generará una clave API automáticamente. Podrás verla una sola vez al
-        terminar el registro.
+        {{ $t('posPage.apiKeyAutoGenerate') }}
       </div>
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]"
-          >Cliente <span class="text-red-500">*</span></label
+          >{{ $t('posPage.clientRequired') }} <span class="text-red-500">*</span></label
         >
         <Select
           v-model="regClientId"
@@ -711,7 +709,7 @@ async function resolveIncident(inc: HealthIncident) {
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]"
-          >Sucursal <span class="text-red-500">*</span></label
+          >{{ $t('posPage.branchRequired') }} <span class="text-red-500">*</span></label
         >
         <Select
           v-model="regBranchId"
@@ -727,7 +725,7 @@ async function resolveIncident(inc: HealthIncident) {
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]"
-          >Nombre del POS (opcional)</label
+          >{{ $t('posPage.posName') }}</label
         >
         <InputText
           v-model="regName"
@@ -738,7 +736,7 @@ async function resolveIncident(inc: HealthIncident) {
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]"
-          >URL del endpoint /health del POS
+          >{{ $t('posPage.urlRequired') }}
           <span class="text-red-500">*</span></label
         >
         <InputText
@@ -750,17 +748,16 @@ async function resolveIncident(inc: HealthIncident) {
           v-if="regUrlPreview && regUrlPreview !== regUrl.trim()"
           class="text-xs text-blue-600 dark:text-blue-400"
         >
-          → Se guardará como: <code class="font-mono">{{ regUrlPreview }}</code>
+          → {{ $t('posPage.urlPreviewPrefix') }} <code class="font-mono">{{ regUrlPreview }}</code>
         </p>
         <p class="text-xs text-[var(--text-muted)]">
-          Puedes poner la URL base; si no termina en
-          <code class="font-mono">/health</code> se añade automáticamente.
+          {{ $t('posPage.urlHint') }}
         </p>
       </div>
 
       <div class="flex flex-col gap-1">
         <label class="text-sm font-medium text-[var(--text)]"
-          >Verificar cada (segundos)</label
+          >{{ $t('posPage.frequency') }}</label
         >
         <InputNumber
           v-model="regInterval"
@@ -769,7 +766,7 @@ async function resolveIncident(inc: HealthIncident) {
           class="w-full"
         />
         <p class="text-xs text-[var(--text-muted)]">
-          Mínimo 30 s · recomendado 300 s (5 min) · máximo 86,400 s (1 día)
+          {{ $t('posPage.frequencyHint') }}
         </p>
       </div>
     </div>
@@ -777,14 +774,14 @@ async function resolveIncident(inc: HealthIncident) {
     <template #footer>
       <div class="flex justify-end gap-2">
         <Button
-          label="Cancelar"
+          :label="$t('posPage.cancel')"
           severity="secondary"
           outlined
           :disabled="regLoading"
           @click="showRegister = false"
         />
         <Button
-          label="Registrar POS"
+          :label="$t('posPage.registerBtn')"
           icon="pi pi-check"
           :loading="regLoading"
           @click="submitRegister"
