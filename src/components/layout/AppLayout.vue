@@ -80,7 +80,7 @@ onUnmounted(() => document.removeEventListener('keydown', handleGlobalKeydown))
       <main class="min-h-0 flex-1 overflow-y-auto bg-[var(--bg-subtle)]">
         <div class="mx-auto w-full max-w-7xl p-4 sm:p-6 lg:p-8">
           <RouterView v-slot="{ Component }">
-            <Transition name="page" mode="out-in">
+            <Transition name="page">
               <component :is="Component" :key="route.path" />
             </Transition>
           </RouterView>
