@@ -19,7 +19,7 @@ import TabList from "primevue/tablist";
 import Tab from "primevue/tab";
 import TabPanels from "primevue/tabpanels";
 import TabPanel from "primevue/tabpanel";
-import { AlertTriangle, AlertCircle, MessageSquare } from "lucide-vue-next";
+import { Search, SlidersHorizontal, RefreshCw, AlertTriangle, AlertCircle, MessageSquare } from "lucide-vue-next";
 import AppDialog from "@/components/ui/AppDialog.vue";
 import FormField from "@/components/ui/FormField.vue";
 import SkeletonTable from "@/components/ui/SkeletonTable.vue";
@@ -498,7 +498,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
 </script>
 
 <template>
-  <div class="space-y-6">
+  <div class="tickets-page space-y-6">
     <!-- Page header -->
     <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
       <div class="flex items-center gap-2">
@@ -530,7 +530,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         <Tab value="active">{{ t("tickets.activeTab") }}</Tab>
         <Tab value="trash">
           {{ t("tickets.trashTab") }}
-          <Badge v-if="trashTotal > 0" variant="default" class="ml-1.5">{{ trashTotal }}</Badge>
+          <Badge v-if="trashTotal > 0" variant="default" pill class="ml-1.5">{{ trashTotal }}</Badge>
         </Tab>
       </TabList>
 
@@ -539,24 +539,24 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
         <TabPanel value="active" class="px-0!">
           <div class="space-y-4">
             <!-- Filters -->
-            <div class="flex flex-col sm:flex-row gap-3">
-              <span class="p-input-icon-left flex-1">
-                <i class="pi pi-search" />
+            <div class="toolbar-row">
+              <div class="search-wrapper">
+                <Search class="search-icon" />
                 <InputText
                   v-model="globalFilter"
                   :placeholder="t('tickets.searchPlaceholder')"
-                  class="w-full"
+                  class="search-input"
                   @input="onSearch"
                 />
-              </span>
-              <div class="flex gap-2 flex-wrap">
+              </div>
+              <div class="filter-group">
                 <Select
                   v-model="statusFilter"
                   :options="statusOptionsFilter"
                   option-label="label"
                   option-value="value"
                   :placeholder="t('tickets.allStatus')"
-                  class="w-44"
+                  class="filter-select"
                   @change="applyFilters"
                 />
                 <Select
@@ -565,7 +565,7 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   option-label="label"
                   option-value="value"
                   :placeholder="t('tickets.allPriority')"
-                  class="w-40"
+                  class="filter-select"
                   @change="applyFilters"
                 />
                 <Select
@@ -574,22 +574,23 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
                   option-label="label"
                   option-value="value"
                   :placeholder="t('tickets.allSources')"
-                  class="w-40"
+                  class="filter-select"
                   @change="applyFilters"
                 />
-                <Button
-                  icon="pi pi-filter-slash"
-                  severity="secondary"
-                  outlined
-                  :v-tooltip.top="t('common.clearFilters')"
+                <button
+                  class="toolbar-icon-btn"
+                  v-tooltip.top="t('common.clearFilters')"
                   @click="() => { statusFilter = null; priorityFilter = null; sourceFilter = null; globalFilter = ''; applyFilters() }"
-                />
-                <Button
-                  icon="pi pi-refresh"
-                  severity="secondary"
-                  outlined
+                >
+                  <SlidersHorizontal class="w-4 h-4" />
+                </button>
+                <button
+                  class="toolbar-icon-btn"
+                  v-tooltip.top="t('common.refresh')"
                   @click="refetch()"
-                />
+                >
+                  <RefreshCw class="w-4 h-4" />
+                </button>
               </div>
             </div>
 
@@ -1063,3 +1064,169 @@ const onEditSubmit = editForm.handleSubmit(async (values) => {
     </template>
   </AppDialog>
 </template>
+
+<style scoped>
+.toolbar-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.search-wrapper {
+  position: relative;
+  flex: 1 1 240px;
+  min-width: 180px;
+}
+
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 1rem;
+  height: 1rem;
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+.search-wrapper :deep(.search-input) {
+  width: 100%;
+  height: 44px;
+  padding-left: 2.5rem;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 0.875rem;
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.search-wrapper :deep(.search-input:focus) {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.filter-group {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.filter-select {
+  min-width: 140px;
+  height: 44px;
+}
+
+.filter-select :deep(.p-select-label) {
+  font-size: 0.875rem;
+}
+
+.toolbar-icon-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text-muted);
+  cursor: pointer;
+  transition: border-color var(--transition-fast), color var(--transition-fast), background var(--transition-fast);
+}
+
+.toolbar-icon-btn:hover {
+  border-color: var(--primary);
+  color: var(--primary);
+  background: color-mix(in srgb, var(--primary) 8%, transparent);
+}
+
+.toolbar-icon-btn:active {
+  background: color-mix(in srgb, var(--primary) 14%, transparent);
+}
+</style>
+
+<style>
+.tickets-page .p-tablist {
+  border-bottom: 1px solid var(--border);
+}
+
+.tickets-page .p-tablist-tab-list {
+  gap: 0;
+}
+
+.tickets-page .p-tab {
+  padding: 0.75rem 1.25rem;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: var(--text-muted);
+  border-bottom: 2px solid transparent;
+  transition: color var(--transition-fast), border-color var(--transition-fast);
+  cursor: pointer;
+}
+
+.tickets-page .p-tab:hover {
+  color: var(--text);
+}
+
+.tickets-page .p-tab.p-tab-active {
+  color: var(--primary);
+  border-bottom-color: var(--primary);
+}
+
+.tickets-page .p-tab:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: -2px;
+  border-radius: var(--radius);
+}
+
+/* Select dropdown (teleported) overrides */
+.tickets-page .p-select {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
+}
+
+.tickets-page .p-select:not(.p-disabled):hover {
+  border-color: var(--primary);
+}
+
+.tickets-page .p-select.p-focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.tickets-page .p-select-overlay {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+}
+
+.tickets-page .p-select-overlay .p-select-option {
+  padding: 0.625rem 0.75rem;
+  font-size: 0.875rem;
+  color: var(--text);
+  transition: background var(--transition-fast);
+}
+
+.tickets-page .p-select-overlay .p-select-option:hover {
+  background: var(--surface-raised);
+}
+
+.tickets-page .p-select-overlay .p-select-option.p-select-option-selected {
+  background: color-mix(in srgb, var(--primary) 12%, transparent);
+  color: var(--primary);
+}
+
+/* DataTable styling */
+.tickets-page .p-datatable-table-container {
+  border-radius: var(--radius-lg);
+  border: 1px solid var(--border);
+  overflow: hidden;
+}
+</style>
