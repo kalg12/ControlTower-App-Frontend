@@ -27,6 +27,9 @@ api.interceptors.request.use(config => {
 let isRefreshing = false
 let refreshPromise: Promise<string> | null = null
 
+/** Prevents duplicate toasts + redirects when many 401s fire in parallel. */
+let sessionExpired = false
+
 let proactiveInterval: ReturnType<typeof setInterval> | null = null
 
 function notifyWsReconnect() {
@@ -37,6 +40,9 @@ function notifyWsReconnect() {
 
 // Clears all auth state and redirects to login with a user-visible message
 async function doLogout() {
+  if (sessionExpired) return
+  sessionExpired = true
+
   isRefreshing = false
   refreshPromise = null
 
