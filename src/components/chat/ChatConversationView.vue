@@ -34,6 +34,7 @@ function hideQuickRepliesDelayed() {
 const messages = ref<ChatMessage[]>([])
 const remoteTyping = ref(false)
 let remoteTypingTimer: ReturnType<typeof setTimeout> | null = null
+const pendingMessages = ref<string[]>([])
 
 // ── Load initial messages ────────────────────────────────────────────────────
 
@@ -76,6 +77,14 @@ onMounted(() => {
     reconnectDelay: 5000,
     onConnect: () => {
       stompConnected.value = true
+      // Flush any messages queued before the connection was ready
+      while (pendingMessages.value.length) {
+        const text = pendingMessages.value.shift()!
+        client.publish({
+          destination: '/app/chat.agent.message',
+          body: JSON.stringify({ content: text, conversationId: props.conversation.id }),
+        })
+      }
       client.subscribe(`/topic/chat.${props.conversation.id}`, (frame) => {
         const payload: ChatMessagePayload = JSON.parse(frame.body)
         if (payload.type === 'MESSAGE' || payload.type === 'SYSTEM') {
@@ -122,17 +131,22 @@ onUnmounted(() => {
 
 function sendMessage() {
   const text = inputText.value.trim()
-  if (!text || !stompConnected.value) return
+  if (!text) return
   if (text.startsWith('/')) {
     const reply = quickReplies.value?.find((r: ChatQuickReply) => text === r.shortcut)
     if (reply) { inputText.value = reply.content; return }
+  }
+  inputText.value = ''
+  showQuickReplies.value = false
+  if (!stompConnected.value) {
+    // Queue the message — will be flushed once STOMP connects
+    pendingMessages.value.push(text)
+    return
   }
   stompClient.value?.publish({
     destination: '/app/chat.agent.message',
     body: JSON.stringify({ content: text, conversationId: props.conversation.id }),
   })
-  inputText.value = ''
-  showQuickReplies.value = false
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -285,6 +299,11 @@ function applyQuickReply(r: ChatQuickReply) {
       </div>
     </div>
 
+    <!-- Connection status banner (hidden once STOMP is established) -->
+    <div v-if="!stompConnected" class="px-4 py-1 bg-amber-50 border-b border-amber-200 text-xs text-amber-700 flex items-center gap-1.5 flex-shrink-0">
+      <i class="pi pi-spin pi-spinner text-[10px]" /> Reconectando al chat...
+    </div>
+
     <!-- Visitor info strip -->
     <div v-if="conversation.visitorEmail" class="px-4 py-1.5 bg-[var(--bg-subtle)] border-b border-[var(--border)] text-xs text-[var(--text-muted)] flex items-center gap-3">
       <span><i class="pi pi-envelope mr-1" />{{ conversation.visitorEmail }}</span>
@@ -387,11 +406,11 @@ function applyQuickReply(r: ChatQuickReply) {
       />
       <button
         class="w-9 h-9 rounded-full bg-[var(--primary)] text-white flex items-center justify-center hover:opacity-90 transition-opacity flex-shrink-0 disabled:opacity-40"
-        :disabled="!inputText.trim() || !stompConnected"
-        :title="!stompConnected ? 'Conectando…' : 'Enviar (Enter)'"
+        :disabled="!inputText.trim()"
+        title="Enviar (Enter)"
         @click="sendMessage"
       >
-        <i :class="stompConnected ? 'pi pi-send' : 'pi pi-spin pi-spinner'" class="text-sm" />
+        <i class="pi pi-send text-sm" />
       </button>
     </div>
   </div>

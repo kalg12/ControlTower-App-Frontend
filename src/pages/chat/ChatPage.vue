@@ -219,18 +219,11 @@ async function togglePresence() {
 const stompClient = ref<StompClient | null>(null);
 
 onMounted(async () => {
-  // localStorage survives page refresh; sync intent back to the DB in case
-  // the server restarted or the DB state was cleared.
-  if (localStorage.getItem(PRESENCE_KEY) === "true") {
-    isOnline.value = true;
-    chatService.setPresence(true).catch(() => {});
-  } else {
-    // First visit or agent explicitly went offline: authoritative DB read.
-    try {
-      isOnline.value = await chatService.getMyPresence();
-      localStorage.setItem(PRESENCE_KEY, String(isOnline.value));
-    } catch {}
-  }
+  // Always go online when entering the chat page. The agent can click
+  // "Go Offline" to opt out. This avoids agents being invisible on first entry.
+  isOnline.value = true;
+  localStorage.setItem(PRESENCE_KEY, "true");
+  chatService.setPresence(true).catch(() => {});
 
   if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
   const apiBase = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
