@@ -160,10 +160,12 @@ function formatDate(d?: string | null) {
         style="width: 140px"
       >
         <template #body="{ data }">
-          <span
-            class="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400"
-            >{{ data.number }}</span
+          <button
+            class="font-mono text-sm font-semibold text-blue-600 dark:text-blue-400 hover:text-blue-800 dark:hover:text-blue-300 hover:underline cursor-pointer transition-colors"
+            @click="router.push(`/proposals/${data.id}`)"
           >
+            {{ data.number }}
+          </button>
         </template>
       </Column>
       <Column field="clientName" :header="t('proposals.client')" />
