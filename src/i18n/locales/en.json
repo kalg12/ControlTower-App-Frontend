@@ -73,7 +73,8 @@
   "buttons": {
     "cancel": "Cancel",
     "addLine": "Add line",
-    "saveProposal": "Save proposal"
+    "saveProposal": "Save proposal",
+    "downloadPdf": "Download PDF"
   },
   "nav": {
     "main": "Main",

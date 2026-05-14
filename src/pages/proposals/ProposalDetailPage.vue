@@ -292,7 +292,7 @@ function formatCurrency(amount: number, currency: string) {
         </div>
 
         <!-- Right: PDF Viewer -->
-        <div v-if="showPdf" class="xl:w-[560px] shrink-0">
+        <div v-show="showPdf" class="xl:w-[560px] shrink-0">
           <div class="card-section">
             <div class="flex items-center justify-between mb-3">
               <h2 class="card-section-title !mb-0">{{ t("fields.preview") }}</h2>
