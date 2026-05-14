@@ -17,8 +17,18 @@ const api: AxiosInstance = axios.create({
   headers: { 'Content-Type': 'application/json' }
 })
 
+function lsGet(key: string): string | null {
+  try { return localStorage.getItem(key) } catch { return null }
+}
+function lsSet(key: string, value: string) {
+  try { localStorage.setItem(key, value) } catch { /* restricted context */ }
+}
+function lsRemove(key: string) {
+  try { localStorage.removeItem(key) } catch { /* restricted context */ }
+}
+
 api.interceptors.request.use(config => {
-  const token = localStorage.getItem('accessToken')
+  const token = lsGet('accessToken')
   if (token) config.headers.Authorization = `Bearer ${token}`
   return config
 })
@@ -29,6 +39,9 @@ let refreshPromise: Promise<string> | null = null
 
 /** Prevents duplicate toasts + redirects when many 401s fire in parallel. */
 let sessionExpired = false
+
+/** Throttle network error toasts (timeout, server error) to 1 per 5s. */
+let networkErrorAt = 0
 
 let proactiveInterval: ReturnType<typeof setInterval> | null = null
 
@@ -46,9 +59,9 @@ async function doLogout() {
   isRefreshing = false
   refreshPromise = null
 
-  localStorage.removeItem('accessToken')
-  localStorage.removeItem('refreshToken')
-  localStorage.removeItem('user')
+  lsRemove('accessToken')
+  lsRemove('refreshToken')
+  lsRemove('user')
 
   try {
     const { useAuthStore } = await import('@/stores/auth')
@@ -69,7 +82,7 @@ async function doLogout() {
 async function refreshAccessToken(staleError: AxiosError): Promise<string> {
   if (refreshPromise) return refreshPromise
 
-  const storedRefreshToken = localStorage.getItem('refreshToken')
+  const storedRefreshToken = lsGet('refreshToken')
   if (!storedRefreshToken) {
     await doLogout()
     throw staleError
@@ -79,8 +92,8 @@ async function refreshAccessToken(staleError: AxiosError): Promise<string> {
   refreshPromise = (async () => {
     const { authService } = await import('@/services/auth.service')
     const tokens = await authService.refreshToken(storedRefreshToken)
-    localStorage.setItem('accessToken', tokens.accessToken)
-    localStorage.setItem('refreshToken', tokens.refreshToken)
+    lsSet('accessToken', tokens.accessToken)
+    lsSet('refreshToken', tokens.refreshToken)
     import('@/stores/auth').then(({ useAuthStore }) => {
       useAuthStore().accessToken = tokens.accessToken
     })
@@ -119,8 +132,8 @@ export function startProactiveTokenRefresh() {
   const tickMs = 60_000
 
   proactiveInterval = setInterval(() => {
-    const access = localStorage.getItem('accessToken')
-    const rt = localStorage.getItem('refreshToken')
+    const access = lsGet('accessToken')
+    const rt = lsGet('refreshToken')
     if (!access || !rt) return
     const exp = getJwtExpMs(access)
     if (!exp) return
@@ -171,9 +184,11 @@ api.interceptors.response.use(
     if (status === 403) {
       // Always show forbidden toast — both reads and mutations need feedback
       toast.warning(tt('errors.forbidden'))
-    } else if (status === 500 || status === 503) {
+    } else if ((status === 500 || status === 503) && Date.now() > networkErrorAt) {
+      networkErrorAt = Date.now() + 5000
       toast.error(tt('errors.server'))
-    } else if (error.code === 'ECONNABORTED') {
+    } else if (error.code === 'ECONNABORTED' && Date.now() > networkErrorAt) {
+      networkErrorAt = Date.now() + 5000
       toast.error(tt('errors.timeout'))
     }
 
