@@ -35,18 +35,32 @@ const messages = ref<ChatMessage[]>([])
 const remoteTyping = ref(false)
 let remoteTypingTimer: ReturnType<typeof setTimeout> | null = null
 const pendingMessages = ref<string[]>([])
-const _sentContents = new Set<string>()
 
 const { data: convData } = useQuery({
   queryKey: qk.chatConversation(props.conversation.id),
   queryFn: () => chatService.getConversation(props.conversation.id),
+  // Poll every 8 s as a STOMP fallback — merge ensures no duplicates
+  refetchInterval: 8000,
 })
 
 watch(convData, (data) => {
-  if (data?.messages) {
+  if (!data?.messages) return
+  if (messages.value.length === 0) {
+    // Initial load — set directly
     messages.value = data.messages
     nextTick(scrollBottom)
+    return
   }
+  // Subsequent refetches — merge to avoid overwriting STOMP-delivered messages
+  const existingIds = new Set(messages.value.map(m => m.id))
+  let added = false
+  for (const msg of data.messages) {
+    if (!existingIds.has(msg.id)) {
+      messages.value.push(msg)
+      added = true
+    }
+  }
+  if (added) nextTick(scrollBottom)
 }, { immediate: true })
 
 const { data: quickReplies } = useQuery({
@@ -82,20 +96,17 @@ onMounted(() => {
       client.subscribe(`/topic/chat.${props.conversation.id}`, (frame) => {
         const payload: ChatMessagePayload = JSON.parse(frame.body)
         if (payload.type === 'MESSAGE' || payload.type === 'SYSTEM') {
-          // Deduplicate against optimistically-added agent messages
-          const content = payload.content ?? ''
-          if (payload.senderType === 'AGENT' && _sentContents.has(content)) {
-            _sentContents.delete(content)
-            return
-          }
+          const msgId = payload.id ?? crypto.randomUUID()
+          // Skip if already in the list (could arrive from both STOMP and HTTP poll)
+          if (payload.id && messages.value.some(m => m.id === payload.id)) return
           messages.value.push({
-            id: payload.id ?? crypto.randomUUID(),
+            id: msgId,
             conversationId: payload.conversationId,
             senderType: payload.senderType ?? 'SYSTEM',
             senderId: payload.senderId,
             senderName: payload.senderName,
             senderAvatarUrl: payload.senderAvatarUrl,
-            content,
+            content: payload.content ?? '',
             attachmentUrl: payload.attachmentUrl,
             isRead: payload.isRead ?? false,
             createdAt: payload.createdAt,
@@ -136,22 +147,6 @@ function sendMessage() {
   }
   inputText.value = ''
   showQuickReplies.value = false
-
-  // Show message immediately — dedup the STOMP echo when it arrives
-  _sentContents.add(text)
-  messages.value.push({
-    id: crypto.randomUUID(),
-    conversationId: props.conversation.id,
-    senderType: 'AGENT',
-    senderId: auth.user?.id,
-    senderName: auth.user?.fullName ?? 'Agente',
-    senderAvatarUrl: auth.user?.avatarUrl,
-    content: text,
-    attachmentUrl: undefined,
-    isRead: true,
-    createdAt: new Date().toISOString(),
-  })
-  nextTick(scrollBottom)
 
   if (!stompConnected.value) {
     pendingMessages.value.push(text)
