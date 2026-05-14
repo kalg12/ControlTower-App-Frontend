@@ -52,6 +52,11 @@ export const chatService = {
     await api.delete(`/chat/conversations/${id}`)
   },
 
+  async sendMessage(id: string, content: string): Promise<ChatMessage> {
+    const res = await api.post<ChatMessage>(`/chat/conversations/${id}/messages`, { content })
+    return res.data
+  },
+
   async markRead(id: string): Promise<void> {
     await api.get(`/chat/conversations/${id}/messages`, { params: { page: 0, size: 1 } })
   },

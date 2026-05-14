@@ -34,7 +34,6 @@ function hideQuickRepliesDelayed() {
 const messages = ref<ChatMessage[]>([])
 const remoteTyping = ref(false)
 let remoteTypingTimer: ReturnType<typeof setTimeout> | null = null
-const pendingMessages = ref<string[]>([])
 
 const { data: convData } = useQuery({
   queryKey: qk.chatConversation(props.conversation.id),
@@ -86,13 +85,7 @@ onMounted(() => {
     reconnectDelay: 5000,
     onConnect: () => {
       stompConnected.value = true
-      while (pendingMessages.value.length) {
-        const text = pendingMessages.value.shift()!
-        client.publish({
-          destination: '/app/chat.agent.message',
-          body: JSON.stringify({ content: text, conversationId: props.conversation.id }),
-        })
-      }
+      // Subscribe first so broadcasts from flushed pending messages aren't missed
       client.subscribe(`/topic/chat.${props.conversation.id}`, (frame) => {
         const payload: ChatMessagePayload = JSON.parse(frame.body)
         if (payload.type === 'MESSAGE' || payload.type === 'SYSTEM') {
@@ -149,7 +142,13 @@ function sendMessage() {
   showQuickReplies.value = false
 
   if (!stompConnected.value) {
-    pendingMessages.value.push(text)
+    // REST fallback: send immediately via HTTP and show response in thread
+    chatService.sendMessage(props.conversation.id, text).then(msg => {
+      if (!messages.value.some(m => m.id === msg.id)) {
+        messages.value.push(msg)
+        nextTick(scrollBottom)
+      }
+    }).catch(() => {})
     return
   }
   stompClient.value?.publish({

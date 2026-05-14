@@ -256,7 +256,12 @@ function sendMessage() {
   setTimeout(() => _sentContents.delete(text), 15000);
 
   if (!stompConnected.value) {
-    pendingMessage = text; // will be flushed on STOMP connect
+    // REST fallback: deliver immediately via HTTP even without STOMP
+    publicChatService.sendMessage(conversationId, visitorToken, text).then(msg => {
+      _sentContents.delete(text); // real message arrived — remove optimistic dedup
+      const idx = messages.value.findIndex(m => m.senderType === 'VISITOR' && m.content === text && m.id !== msg.id)
+      if (idx !== -1) messages.value[idx] = msg; // swap optimistic with real
+    }).catch(() => {});
     return;
   }
   stompClient.value?.publish({

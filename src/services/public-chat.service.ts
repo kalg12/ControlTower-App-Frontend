@@ -28,6 +28,15 @@ export const publicChatService = {
     return res.data.data
   },
 
+  async sendMessage(conversationId: string, visitorToken: string, content: string): Promise<ChatMessage> {
+    const res = await publicApi.post<{ data: ChatMessage }>(
+      `/public/chat/conversations/${conversationId}/messages`,
+      { content },
+      { params: { visitorToken } }
+    )
+    return res.data.data
+  },
+
   async rateConversation(conversationId: string, visitorToken: string, rating: number, comment?: string): Promise<void> {
     await publicApi.post(`/public/chat/conversations/${conversationId}/rate`, {
       visitorToken,
