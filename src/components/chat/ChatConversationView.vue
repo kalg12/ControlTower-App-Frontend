@@ -36,8 +36,6 @@ const remoteTyping = ref(false)
 let remoteTypingTimer: ReturnType<typeof setTimeout> | null = null
 const pendingMessages = ref<string[]>([])
 
-// ── Load initial messages ────────────────────────────────────────────────────
-
 const { data: convData } = useQuery({
   queryKey: qk.chatConversation(props.conversation.id),
   queryFn: () => chatService.getConversation(props.conversation.id),
@@ -55,8 +53,6 @@ const { data: quickReplies } = useQuery({
   queryFn: () => chatService.getQuickReplies(),
 })
 
-// ── STOMP subscription ───────────────────────────────────────────────────────
-
 const stompClient = ref<StompClient | null>(null)
 const stompConnected = ref(false)
 
@@ -65,19 +61,16 @@ onMounted(() => {
   const base = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? '').replace(/\/$/, '')
   const wsUrl = base ? `${base}/ws` : `${window.location.origin}/ws`
 
-  // Use `let` so beforeConnect can reference the client instance to refresh the JWT
   let client: StompClient
   client = new StompClient({
     webSocketFactory: () => new SockJS(wsUrl),
     connectHeaders: { Authorization: `Bearer ${auth.accessToken}` },
     beforeConnect: () => {
-      // Refresh the JWT header on every connect/reconnect attempt
       if (auth.accessToken) client.connectHeaders = { Authorization: `Bearer ${auth.accessToken}` }
     },
     reconnectDelay: 5000,
     onConnect: () => {
       stompConnected.value = true
-      // Flush any messages queued before the connection was ready
       while (pendingMessages.value.length) {
         const text = pendingMessages.value.shift()!
         client.publish({
@@ -127,8 +120,6 @@ onUnmounted(() => {
   if (remoteTypingTimer) clearTimeout(remoteTypingTimer)
 })
 
-// ── Send message ─────────────────────────────────────────────────────────────
-
 function sendMessage() {
   const text = inputText.value.trim()
   if (!text) return
@@ -139,7 +130,6 @@ function sendMessage() {
   inputText.value = ''
   showQuickReplies.value = false
   if (!stompConnected.value) {
-    // Queue the message — will be flushed once STOMP connects
     pendingMessages.value.push(text)
     return
   }
@@ -170,8 +160,6 @@ function sendTypingSignal() {
   typingTimeout.value = setTimeout(() => { isTyping.value = false }, 2000)
 }
 
-// ── File upload ──────────────────────────────────────────────────────────────
-
 const fileInputEl = ref<HTMLInputElement | null>(null)
 
 function openFilePicker() {
@@ -194,8 +182,6 @@ async function onFileSelected(e: Event) {
   if (fileInputEl.value) fileInputEl.value.value = ''
 }
 
-// ── Close / Archive / Unarchive / Delete ─────────────────────────────────────
-
 const closeMut = useMutation({
   mutationFn: () => chatService.close(props.conversation.id),
   onSuccess: () => emit('closed'),
@@ -217,8 +203,6 @@ const deleteMut = useMutation({
 })
 
 const showDeleteConfirm = ref(false)
-
-// ── Helpers ──────────────────────────────────────────────────────────────────
 
 function scrollBottom() {
   if (messagesEl.value) messagesEl.value.scrollTop = messagesEl.value.scrollHeight
@@ -248,156 +232,132 @@ function applyQuickReply(r: ChatQuickReply) {
   inputText.value = r.content
   showQuickReplies.value = false
 }
+
+function isGrouped(i: number) {
+  return i > 0 && messages.value[i - 1].senderType === messages.value[i].senderType && messages.value[i].senderType !== 'SYSTEM'
+}
 </script>
 
 <template>
-  <div class="flex flex-col h-full">
+  <div class="chat-conversation">
     <!-- Header -->
-    <div class="flex items-center justify-between px-4 py-3 bg-[var(--primary)] text-white flex-shrink-0">
-      <div class="flex items-center gap-3">
-        <button class="opacity-70 hover:opacity-100" @click="emit('close')">
+    <div class="chat-header">
+      <div class="flex items-center gap-3 min-w-0">
+        <button class="chat-header-back" @click="emit('close')">
           <i class="pi pi-arrow-left" />
         </button>
-        <div class="w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0"
-             :style="{ background: avatarColor(conversation.visitorName) }">
+        <div class="chat-avatar-sm" :style="{ background: avatarColor(conversation.visitorName) }">
           {{ initials(conversation.visitorName) }}
         </div>
-        <div>
-          <div class="font-semibold text-sm leading-none">{{ conversation.visitorName }}</div>
-          <div class="text-[10px] opacity-80 mt-0.5">
-            {{ conversation.status === 'ACTIVE' ? t('chatModule.status.active') : conversation.status === 'WAITING' ? t('chatModule.status.waiting') : t(`chatModule.status.${conversation.status.toLowerCase()}`) }}
-          </div>
+        <div class="min-w-0">
+          <div class="chat-header-name">{{ conversation.visitorName }}</div>
+          <div class="chat-header-status">{{ conversation.status === 'ACTIVE' ? t('chatModule.status.active') : conversation.status === 'WAITING' ? t('chatModule.status.waiting') : t(`chatModule.status.${conversation.status.toLowerCase()}`) }}</div>
         </div>
       </div>
-      <div class="flex items-center gap-2 flex-wrap">
-        <button v-if="conversation.status === 'ACTIVE'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" @click="emit('transfer')">
-          {{ t('chatModule.actions.transfer') }}
-        </button>
-        <button v-if="conversation.status === 'ACTIVE'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" @click="closeMut.mutate()">
-          {{ t('chatModule.actions.close') }}
-        </button>
-        <button v-if="conversation.status === 'CLOSED'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" :class="archiveMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="archiveMut.mutate()">
-          {{ t('chatModule.actions.archive') }}
-        </button>
-        <button v-if="conversation.status === 'ARCHIVED'" class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" :class="unarchiveMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="unarchiveMut.mutate()">
-          {{ t('chatModule.actions.unarchive') }}
-        </button>
-        <!-- Delete with two-step confirm -->
+      <div class="flex items-center gap-1.5">
+        <button v-if="conversation.status === 'ACTIVE'" class="chat-header-btn" @click="emit('transfer')">{{ t('chatModule.actions.transfer') }}</button>
+        <button v-if="conversation.status === 'ACTIVE'" class="chat-header-btn" @click="closeMut.mutate()">{{ t('chatModule.actions.close') }}</button>
+        <button v-if="conversation.status === 'CLOSED'" class="chat-header-btn" :class="archiveMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="archiveMut.mutate()">{{ t('chatModule.actions.archive') }}</button>
+        <button v-if="conversation.status === 'ARCHIVED'" class="chat-header-btn" :class="unarchiveMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="unarchiveMut.mutate()">{{ t('chatModule.actions.unarchive') }}</button>
         <template v-if="conversation.status === 'CLOSED' || conversation.status === 'ARCHIVED'">
           <template v-if="showDeleteConfirm">
-            <button class="text-xs px-2 py-1 rounded bg-red-500 text-white hover:bg-red-600" :class="deleteMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="deleteMut.mutate()">
-              {{ t('chatModule.actions.confirmDelete') }}
-            </button>
-            <button class="text-xs opacity-70 hover:opacity-100 px-2 py-1 rounded border border-white/30 hover:bg-white/10" @click="showDeleteConfirm = false">
-              {{ t('common.cancel') }}
-            </button>
+            <button class="chat-header-btn-danger" :class="deleteMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="deleteMut.mutate()">{{ t('chatModule.actions.confirmDelete') }}</button>
+            <button class="chat-header-btn" @click="showDeleteConfirm = false">{{ t('common.cancel') }}</button>
           </template>
-          <button v-else class="text-xs opacity-80 hover:opacity-100 px-2 py-1 rounded border border-red-400/60 text-red-200 hover:bg-red-500/20" @click="showDeleteConfirm = true">
-            {{ t('chatModule.actions.delete') }}
-          </button>
+          <button v-else class="chat-header-btn-danger-outline" @click="showDeleteConfirm = true">{{ t('chatModule.actions.delete') }}</button>
         </template>
       </div>
     </div>
 
-    <!-- Connection status banner (hidden once STOMP is established) -->
-    <div v-if="!stompConnected" class="px-4 py-1 bg-amber-50 border-b border-amber-200 text-xs text-amber-700 flex items-center gap-1.5 flex-shrink-0">
+    <div v-if="!stompConnected" class="chat-reconnecting">
       <i class="pi pi-spin pi-spinner text-[10px]" /> Reconectando al chat...
     </div>
 
-    <!-- Visitor info strip -->
-    <div v-if="conversation.visitorEmail" class="px-4 py-1.5 bg-[var(--bg-subtle)] border-b border-[var(--border)] text-xs text-[var(--text-muted)] flex items-center gap-3">
+    <div v-if="conversation.visitorEmail" class="chat-info-strip">
       <span><i class="pi pi-envelope mr-1" />{{ conversation.visitorEmail }}</span>
       <span><i class="pi pi-tag mr-1" />{{ conversation.source }}</span>
     </div>
 
-    <!-- Messages -->
-    <div ref="messagesEl" class="flex-1 overflow-y-auto px-4 py-3 space-y-2">
+    <div ref="messagesEl" class="chat-messages">
       <div
-        v-for="msg in messages"
+        v-for="(msg, i) in messages"
         :key="msg.id"
+        class="chat-message-row"
         :class="{
-          'flex justify-end': msg.senderType === 'AGENT',
-          'flex justify-start': msg.senderType === 'VISITOR',
-          'flex justify-center': msg.senderType === 'SYSTEM',
+          'is-agent': msg.senderType === 'AGENT',
+          'is-visitor': msg.senderType === 'VISITOR',
+          'is-system': msg.senderType === 'SYSTEM',
+          'is-grouped': i > 0 && messages[i - 1].senderType === msg.senderType && msg.senderType !== 'SYSTEM'
         }"
       >
-        <!-- System message -->
-        <div v-if="msg.senderType === 'SYSTEM'" class="text-[10px] text-[var(--text-muted)] bg-[var(--bg-subtle)] px-3 py-1 rounded-full">
-          {{ msg.content }}
+        <div v-if="msg.senderType === 'SYSTEM'" class="chat-system">
+          <span>{{ msg.content }}</span>
         </div>
 
-        <!-- Visitor message -->
-        <div v-else-if="msg.senderType === 'VISITOR'" class="flex items-end gap-2 max-w-[75%]">
-          <div class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-               :style="{ background: avatarColor(conversation.visitorName) }">
+        <template v-else-if="msg.senderType === 'VISITOR'">
+          <div v-if="!isGrouped(i)" class="chat-avatar" :style="{ background: avatarColor(conversation.visitorName) }">
             {{ initials(conversation.visitorName) }}
           </div>
-          <div>
-            <div class="bg-white border border-[var(--border)] rounded-2xl rounded-bl-sm px-3 py-2 text-sm">
+          <div v-else class="chat-avatar-spacer" />
+          <div class="chat-bubble-group">
+            <div class="chat-bubble chat-bubble-in">
               <template v-if="msg.content.startsWith('📎')">
                 <i class="pi pi-paperclip mr-1 text-xs" />
-                <a :href="msg.attachmentUrl ?? '#'" target="_blank" class="underline text-blue-600 hover:text-blue-800">{{ msg.content.replace('📎 ', '') }}</a>
+                <a :href="msg.attachmentUrl ?? '#'" target="_blank" class="underline text-[var(--primary)] hover:text-[var(--primary-hover)]">{{ msg.content.replace('📎 ', '') }}</a>
               </template>
               <template v-else>{{ msg.content }}</template>
             </div>
-            <div class="text-[10px] text-[var(--text-muted)] mt-0.5 ml-1">{{ formatTime(msg.createdAt) }}</div>
+            <div v-if="!isGrouped(i) || i === messages.length - 1 || messages[i + 1].senderType !== msg.senderType" class="chat-time">{{ formatTime(msg.createdAt) }}</div>
           </div>
-        </div>
+        </template>
 
-        <!-- Agent message -->
-        <div v-else class="flex items-end gap-2 max-w-[75%] flex-row-reverse">
-          <div v-if="msg.senderAvatarUrl" class="w-7 h-7 rounded-full overflow-hidden flex-shrink-0">
-            <img :src="msg.senderAvatarUrl" class="w-full h-full object-cover" />
-          </div>
-          <div v-else class="w-7 h-7 rounded-full flex items-center justify-center text-[10px] font-bold text-white flex-shrink-0"
-               :style="{ background: avatarColor(msg.senderName ?? 'Agent') }">
-            {{ initials(msg.senderName) }}
-          </div>
-          <div>
-            <div class="bg-[var(--primary)] text-white rounded-2xl rounded-br-sm px-3 py-2 text-sm">
+        <template v-else>
+          <div class="chat-bubble-group">
+            <div class="chat-bubble chat-bubble-out">
               <template v-if="msg.content.startsWith('📎')">
                 <i class="pi pi-paperclip mr-1 text-xs" />
                 <a :href="msg.attachmentUrl ?? '#'" target="_blank" class="underline text-white/90 hover:text-white">{{ msg.content.replace('📎 ', '') }}</a>
               </template>
               <template v-else>{{ msg.content }}</template>
             </div>
-            <div class="text-[10px] text-[var(--text-muted)] mt-0.5 mr-1 text-right">{{ formatTime(msg.createdAt) }}</div>
+            <div v-if="!isGrouped(i) || i === messages.length - 1 || messages[i + 1].senderType !== msg.senderType" class="chat-time chat-time-right">{{ formatTime(msg.createdAt) }}</div>
           </div>
-        </div>
+          <div v-if="msg.senderAvatarUrl" class="chat-avatar">
+            <img :src="msg.senderAvatarUrl" class="w-full h-full object-cover" />
+          </div>
+          <div v-else class="chat-avatar" :style="{ background: avatarColor(msg.senderName ?? 'Agent') }">
+            {{ initials(msg.senderName) }}
+          </div>
+        </template>
       </div>
 
-      <!-- Remote typing -->
-      <div v-if="remoteTyping" class="flex items-center gap-2">
-        <div class="bg-white border border-[var(--border)] rounded-2xl px-3 py-2 flex gap-1">
-          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:0ms" />
-          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:150ms" />
-          <span class="w-1.5 h-1.5 bg-gray-400 rounded-full animate-bounce" style="animation-delay:300ms" />
+      <div v-if="remoteTyping" class="chat-message-row is-visitor">
+        <div class="chat-avatar" :style="{ background: avatarColor(conversation.visitorName) }">
+          {{ initials(conversation.visitorName) }}
+        </div>
+        <div class="chat-typing">
+          <span class="chat-typing-dot" style="animation-delay:0ms" />
+          <span class="chat-typing-dot" style="animation-delay:150ms" />
+          <span class="chat-typing-dot" style="animation-delay:300ms" />
         </div>
       </div>
     </div>
 
-    <!-- Quick replies popup -->
-    <div v-if="showQuickReplies && filteredQuickReplies().length" class="border-t border-[var(--border)] bg-[var(--bg-subtle)] max-h-36 overflow-y-auto">
-      <div
-        v-for="r in filteredQuickReplies()"
-        :key="r.id"
-        class="px-4 py-2 hover:bg-[var(--bg)] cursor-pointer flex items-center gap-2"
-        @click="applyQuickReply(r)"
-      >
-        <span class="text-xs font-mono text-[var(--primary)] flex-shrink-0">{{ r.shortcut }}</span>
-        <span class="text-xs text-[var(--text-muted)] truncate">{{ r.content }}</span>
+    <div v-if="showQuickReplies && filteredQuickReplies().length" class="chat-quick-replies">
+      <div v-for="r in filteredQuickReplies()" :key="r.id" class="chat-quick-reply-item" @click="applyQuickReply(r)">
+        <span class="chat-quick-reply-shortcut">{{ r.shortcut }}</span>
+        <span class="chat-quick-reply-content">{{ r.content }}</span>
       </div>
     </div>
 
-    <!-- Input -->
-    <div class="border-t border-[var(--border)] px-3 py-2 flex items-center gap-2 flex-shrink-0 bg-[var(--bg)]">
+    <div class="chat-input-bar">
       <input ref="fileInputEl" type="file" class="hidden" @change="onFileSelected" />
-      <button class="text-[var(--text-muted)] hover:text-[var(--primary)] p-1 transition-colors" :title="t('chatModule.attachFile')" @click="openFilePicker">
+      <button class="chat-input-btn" :title="t('chatModule.attachFile')" @click="openFilePicker">
         <i class="pi pi-paperclip" />
       </button>
       <textarea
         v-model="inputText"
-        class="flex-1 resize-none text-sm bg-[var(--bg-subtle)] rounded-xl px-3 py-2 outline-none border border-[var(--border)] focus:border-[var(--primary)] transition-colors"
+        class="chat-input"
         rows="1"
         :placeholder="t('chatModule.messagePlaceholder')"
         @keydown="onKeyDown"
@@ -405,7 +365,7 @@ function applyQuickReply(r: ChatQuickReply) {
         @blur="hideQuickRepliesDelayed()"
       />
       <button
-        class="w-9 h-9 rounded-full bg-[var(--primary)] text-white flex items-center justify-center hover:opacity-90 transition-opacity flex-shrink-0 disabled:opacity-40"
+        class="chat-send-btn"
         :disabled="!inputText.trim()"
         title="Enviar (Enter)"
         @click="sendMessage"
@@ -415,3 +375,340 @@ function applyQuickReply(r: ChatQuickReply) {
     </div>
   </div>
 </template>
+
+<style scoped>
+/* ── Container ──────────────────────────────────────────── */
+.chat-conversation {
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  background: var(--bg);
+}
+
+/* ── Header ─────────────────────────────────────────────── */
+.chat-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.625rem 1rem;
+  background: linear-gradient(135deg, var(--primary), color-mix(in srgb, var(--primary) 80%, #000));
+  color: #fff;
+  flex-shrink: 0;
+  gap: 0.5rem;
+}
+
+.chat-header-back {
+  opacity: 0.7;
+  transition: opacity 150ms;
+}
+.chat-header-back:hover { opacity: 1; }
+
+.chat-avatar-sm {
+  width: 2rem;
+  height: 2rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.625rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+}
+
+.chat-header-name {
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.2;
+}
+
+.chat-header-status {
+  font-size: 0.6875rem;
+  opacity: 0.7;
+  margin-top: 0.125rem;
+}
+
+.chat-header-btn {
+  font-size: 0.6875rem;
+  opacity: 0.8;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  transition: background 150ms, opacity 150ms;
+  white-space: nowrap;
+}
+.chat-header-btn:hover { background: rgba(255, 255, 255, 0.1); opacity: 1; }
+
+.chat-header-btn-danger {
+  font-size: 0.6875rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  background: #ef4444;
+  color: #fff;
+  transition: opacity 150ms;
+}
+.chat-header-btn-danger:hover { opacity: 0.9; }
+
+.chat-header-btn-danger-outline {
+  font-size: 0.6875rem;
+  opacity: 0.8;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.375rem;
+  border: 1px solid rgba(239, 68, 68, 0.4);
+  color: rgba(255, 255, 255, 0.8);
+  transition: background 150ms, opacity 150ms;
+  white-space: nowrap;
+}
+.chat-header-btn-danger-outline:hover { background: rgba(239, 68, 68, 0.2); opacity: 1; }
+
+/* ── Connection banner ──────────────────────────────────── */
+.chat-reconnecting {
+  padding: 0.375rem 1rem;
+  background: #fef3c7;
+  border-bottom: 1px solid #fde68a;
+  font-size: 0.75rem;
+  color: #92400e;
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  flex-shrink: 0;
+}
+
+/* ── Info strip ─────────────────────────────────────────── */
+.chat-info-strip {
+  padding: 0.375rem 1rem;
+  background: var(--bg-subtle);
+  border-bottom: 1px solid var(--border);
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex-shrink: 0;
+}
+
+/* ── Messages ───────────────────────────────────────────── */
+.chat-messages {
+  flex: 1;
+  overflow-y: auto;
+  padding: 1rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.chat-message-row {
+  display: flex;
+  align-items: flex-end;
+  gap: 0.5rem;
+  max-width: 78%;
+  animation: fadeIn 0.2s ease;
+}
+.chat-message-row.is-agent {
+  align-self: flex-end;
+  flex-direction: row-reverse;
+}
+.chat-message-row.is-visitor {
+  align-self: flex-start;
+}
+.chat-message-row.is-system {
+  align-self: center;
+  max-width: 100%;
+}
+
+.chat-message-row.is-grouped {
+  margin-top: 0;
+}
+
+.chat-avatar {
+  width: 1.625rem;
+  height: 1.625rem;
+  border-radius: 9999px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.5625rem;
+  font-weight: 700;
+  color: #fff;
+  flex-shrink: 0;
+  overflow: hidden;
+}
+
+.chat-avatar-spacer {
+  width: 1.625rem;
+  flex-shrink: 0;
+}
+
+.chat-bubble-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.chat-bubble {
+  padding: 0.5rem 0.875rem;
+  font-size: 0.875rem;
+  line-height: 1.45;
+  word-break: break-word;
+}
+
+.chat-bubble-in {
+  background: var(--surface-raised);
+  color: var(--text);
+  border: 1px solid var(--border);
+  border-radius: 1rem 1rem 1rem 0.25rem;
+}
+
+.chat-bubble-out {
+  background: linear-gradient(135deg, #6366f1, #7c3aed);
+  color: #fff;
+  border-radius: 1rem 1rem 0.25rem 1rem;
+  box-shadow: 0 1px 3px rgba(99, 102, 241, 0.3);
+}
+
+.chat-time {
+  font-size: 0.625rem;
+  color: var(--text-muted);
+  margin-top: 0.125rem;
+  margin-left: 0.25rem;
+  padding-bottom: 0.25rem;
+}
+
+.chat-time-right {
+  text-align: right;
+  margin-right: 0.25rem;
+}
+
+/* ── System message ─────────────────────────────────────── */
+.chat-system {
+  font-size: 0.6875rem;
+  color: var(--text-muted);
+  background: var(--bg-subtle);
+  padding: 0.25rem 0.75rem;
+  border-radius: 9999px;
+  border: 1px solid var(--border);
+}
+
+/* ── Typing indicator ───────────────────────────────────── */
+.chat-typing {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  background: var(--surface-raised);
+  border: 1px solid var(--border);
+  border-radius: 1rem 1rem 1rem 0.25rem;
+  padding: 0.625rem 0.875rem;
+}
+
+.chat-typing-dot {
+  width: 0.375rem;
+  height: 0.375rem;
+  border-radius: 9999px;
+  background: var(--text-muted);
+  animation: bounce 1.2s infinite;
+}
+
+/* ── Quick replies ──────────────────────────────────────── */
+.chat-quick-replies {
+  border-top: 1px solid var(--border);
+  background: var(--bg-subtle);
+  max-height: 9rem;
+  overflow-y: auto;
+}
+
+.chat-quick-reply-item {
+  padding: 0.5rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  cursor: pointer;
+  transition: background 150ms;
+}
+.chat-quick-reply-item:hover { background: var(--bg); }
+
+.chat-quick-reply-shortcut {
+  font-size: 0.75rem;
+  font-family: ui-monospace, monospace;
+  color: var(--primary);
+  flex-shrink: 0;
+}
+
+.chat-quick-reply-content {
+  font-size: 0.75rem;
+  color: var(--text-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* ── Input bar ───────────────────────────────────────────── */
+.chat-input-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.625rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  flex-shrink: 0;
+}
+
+.chat-input-btn {
+  color: var(--text-muted);
+  padding: 0.375rem;
+  border-radius: 0.375rem;
+  transition: color 150ms, background 150ms;
+}
+.chat-input-btn:hover { color: var(--primary); background: var(--surface-raised); }
+
+.chat-input {
+  flex: 1;
+  resize: none;
+  font-size: 0.875rem;
+  background: var(--bg-subtle);
+  border-radius: 0.75rem;
+  padding: 0.5rem 0.75rem;
+  outline: none;
+  border: 1px solid var(--border);
+  transition: border-color 150ms, box-shadow 150ms;
+  color: var(--text);
+  font-family: inherit;
+  line-height: 1.4;
+}
+.chat-input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 15%, transparent);
+}
+
+.chat-send-btn {
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: opacity 150ms;
+  flex-shrink: 0;
+}
+.chat-send-btn:hover { opacity: 0.9; }
+.chat-send-btn:disabled { opacity: 0.4; cursor: default; }
+
+/* ── Animations ──────────────────────────────────────────── */
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(4px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes bounce {
+  0%, 60%, 100% { transform: translateY(0); }
+  30% { transform: translateY(-4px); }
+}
+
+/* ── Scrollbar ───────────────────────────────────────────── */
+.chat-messages::-webkit-scrollbar { width: 4px; }
+.chat-messages::-webkit-scrollbar-track { background: transparent; }
+.chat-messages::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
+.chat-messages::-webkit-scrollbar-thumb:hover { background: var(--text-muted); }
+</style>
