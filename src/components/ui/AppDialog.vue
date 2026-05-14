@@ -29,7 +29,7 @@ const sizeClasses: Record<string, string> = {
 <template>
   <Dialog
     v-model:visible="visible"
-    :closable="!loading"
+    :closable="false"
     modal
     :draggable="false"
     :class="sizeClasses[size]"
