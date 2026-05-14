@@ -59,7 +59,8 @@
     "total": "Total",
     "internalNotes": "Internal notes",
     "terms": "Terms and conditions",
-    "notes": "Notes"
+    "notes": "Notes",
+    "preview": "Preview"
   },
   "placeholders": {
     "selectClient": "Select client",
@@ -1084,38 +1085,7 @@
     "sentAt": "Sent",
     "response": "Response",
     "emailOpened": "Email opened",
-    "openedOn": "Opened on {date}",
-    "fields": {
-      "client": "Client",
-      "title": "Title",
-      "description": "Description",
-      "currency": "Currency",
-      "validUntil": "Valid until",
-      "iva": "VAT (%)",
-      "itemDescription": "Description",
-      "quantity": "Quantity",
-      "unitPrice": "Unit price",
-      "subtotal": "Subtotal",
-      "total": "Total",
-      "internalNotes": "Internal notes",
-      "terms": "Terms and conditions",
-      "notes": "Notes"
-    },
-    "placeholders": {
-      "selectClient": "Select client",
-      "proposalTitle": "Service proposal...",
-      "proposalDescription": "General description of the proposal...",
-      "itemDescription": "Service description",
-      "internalNotes": "Internal notes (not visible to client)...",
-      "terms": "Applicable terms and conditions...",
-      "zero": "0"
-    },
-    "buttons": {
-      "cancel": "Cancel",
-      "addLine": "Add line",
-      "saveProposal": "Save proposal",
-      "downloadPdf": "Download PDF"
-    }
+    "openedOn": "Opened on {date}"
   },
   "persons": {
     "title": "Persons",

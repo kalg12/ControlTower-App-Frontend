@@ -46,7 +46,8 @@
     "total": "Total",
     "internalNotes": "Notas internas",
     "terms": "Términos y condiciones",
-    "notes": "Notas"
+    "notes": "Notas",
+    "preview": "Vista previa"
   },
   "placeholders": {
     "selectClient": "Seleccionar cliente",
