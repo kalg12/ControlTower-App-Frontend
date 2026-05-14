@@ -35,6 +35,7 @@ const messages = ref<ChatMessage[]>([])
 const remoteTyping = ref(false)
 let remoteTypingTimer: ReturnType<typeof setTimeout> | null = null
 const pendingMessages = ref<string[]>([])
+const _sentContents = new Set<string>()
 
 const { data: convData } = useQuery({
   queryKey: qk.chatConversation(props.conversation.id),
@@ -81,6 +82,12 @@ onMounted(() => {
       client.subscribe(`/topic/chat.${props.conversation.id}`, (frame) => {
         const payload: ChatMessagePayload = JSON.parse(frame.body)
         if (payload.type === 'MESSAGE' || payload.type === 'SYSTEM') {
+          // Deduplicate against optimistically-added agent messages
+          const content = payload.content ?? ''
+          if (payload.senderType === 'AGENT' && _sentContents.has(content)) {
+            _sentContents.delete(content)
+            return
+          }
           messages.value.push({
             id: payload.id ?? crypto.randomUUID(),
             conversationId: payload.conversationId,
@@ -88,7 +95,7 @@ onMounted(() => {
             senderId: payload.senderId,
             senderName: payload.senderName,
             senderAvatarUrl: payload.senderAvatarUrl,
-            content: payload.content ?? '',
+            content,
             attachmentUrl: payload.attachmentUrl,
             isRead: payload.isRead ?? false,
             createdAt: payload.createdAt,
@@ -129,6 +136,23 @@ function sendMessage() {
   }
   inputText.value = ''
   showQuickReplies.value = false
+
+  // Show message immediately — dedup the STOMP echo when it arrives
+  _sentContents.add(text)
+  messages.value.push({
+    id: crypto.randomUUID(),
+    conversationId: props.conversation.id,
+    senderType: 'AGENT',
+    senderId: auth.user?.id,
+    senderName: auth.user?.fullName ?? 'Agente',
+    senderAvatarUrl: auth.user?.avatarUrl,
+    content: text,
+    attachmentUrl: undefined,
+    isRead: true,
+    createdAt: new Date().toISOString(),
+  })
+  nextTick(scrollBottom)
+
   if (!stompConnected.value) {
     pendingMessages.value.push(text)
     return
@@ -219,8 +243,15 @@ function avatarColor(name: string) {
   return colors[Math.abs(h)]
 }
 
-function formatTime(ts: string) {
-  return new Date(ts).toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+function formatTime(ts: unknown): string {
+  if (!ts) return ''
+  // Handle rare case where Jackson serializes Instant as {epochSecond, nano}
+  if (typeof ts === 'object' && ts !== null && 'epochSecond' in ts) {
+    return new Date((ts as { epochSecond: number }).epochSecond * 1000)
+      .toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
+  }
+  const d = new Date(ts as string)
+  return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
 function filteredQuickReplies() {

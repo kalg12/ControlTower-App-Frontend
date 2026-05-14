@@ -314,11 +314,14 @@ function avatarColor(name: string) {
   return colors[Math.abs(h)];
 }
 
-function formatTime(ts: string) {
-  return new Date(ts).toLocaleTimeString("es-MX", {
-    hour: "2-digit",
-    minute: "2-digit",
-  });
+function formatTime(ts: unknown): string {
+  if (!ts) return "";
+  if (typeof ts === "object" && ts !== null && "epochSecond" in ts) {
+    return new Date((ts as { epochSecond: number }).epochSecond * 1000)
+      .toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
+  }
+  const d = new Date(ts as string);
+  return isNaN(d.getTime()) ? "" : d.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" });
 }
 </script>
 
