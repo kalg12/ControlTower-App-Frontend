@@ -146,20 +146,23 @@ function sendMessage() {
   inputText.value = ''
   showQuickReplies.value = false
 
-  if (!stompConnected.value) {
-    // REST fallback: send immediately via HTTP and show response in thread
-    chatService.sendMessage(props.conversation.id, text).then(msg => {
+  // Always send via REST: guarantees DB persistence + server-side STOMP broadcast.
+  // If REST fails, fall back to STOMP publish as last resort.
+  chatService.sendMessage(props.conversation.id, text)
+    .then(msg => {
       if (!messages.value.some(m => m.id === msg.id)) {
         messages.value.push(msg)
         nextTick(scrollBottom)
       }
-    }).catch(() => {})
-    return
-  }
-  stompClient.value?.publish({
-    destination: '/app/chat.agent.message',
-    body: JSON.stringify({ content: text, conversationId: props.conversation.id }),
-  })
+    })
+    .catch(() => {
+      if (stompConnected.value) {
+        stompClient.value?.publish({
+          destination: '/app/chat.agent.message',
+          body: JSON.stringify({ content: text, conversationId: props.conversation.id }),
+        })
+      }
+    })
 }
 
 function onKeyDown(e: KeyboardEvent) {

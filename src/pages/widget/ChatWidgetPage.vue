@@ -293,9 +293,10 @@ function sendMessage() {
   if (!text) return;
   inputText.value = "";
 
-  // Optimistic: show visitor's own message immediately without waiting for the STOMP echo
+  // Optimistic display with a stable temp ID so the REST swap is exact.
+  const optimisticId = crypto.randomUUID();
   messages.value.push({
-    id: crypto.randomUUID(),
+    id: optimisticId,
     conversationId,
     senderType: "VISITOR" as const,
     senderName: visitorName.value,
@@ -304,22 +305,30 @@ function sendMessage() {
     createdAt: new Date().toISOString(),
   });
   nextTick(scrollBottom);
-  _sentContents.add(text);
-  setTimeout(() => _sentContents.delete(text), 15000);
 
-  if (!stompConnected.value) {
-    // REST fallback: deliver immediately via HTTP even without STOMP
-    publicChatService.sendMessage(conversationId, visitorToken, text).then(msg => {
-      _sentContents.delete(text); // real message arrived — remove optimistic dedup
-      const idx = messages.value.findIndex(m => m.senderType === 'VISITOR' && m.content === text && m.id !== msg.id)
-      if (idx !== -1) messages.value[idx] = msg; // swap optimistic with real
-    }).catch(() => {});
-    return;
-  }
-  stompClient.value?.publish({
-    destination: "/app/chat.visitor.message",
-    body: JSON.stringify({ content: text, conversationId }),
-  });
+  // Always send via REST: guarantees DB persistence + server-side STOMP broadcast.
+  // STOMP is only used as a last-resort fallback if REST fails.
+  publicChatService.sendMessage(conversationId, visitorToken, text)
+    .then(msg => {
+      // Swap optimistic (random UUID) with real server message (server UUID).
+      // Poll dedup and STOMP echo dedup both work correctly after this.
+      const idx = messages.value.findIndex(m => m.id === optimisticId);
+      if (idx !== -1) {
+        messages.value.splice(idx, 1, msg);
+      } else if (!messages.value.some(m => m.id === msg.id)) {
+        messages.value.push(msg);
+      }
+    })
+    .catch(() => {
+      // REST failed — keep optimistic and try STOMP as last resort
+      if (stompConnected.value) {
+        _sentContents.add(text);
+        stompClient.value?.publish({
+          destination: "/app/chat.visitor.message",
+          body: JSON.stringify({ content: text, conversationId }),
+        });
+      }
+    });
 }
 
 function onKeyDown(e: KeyboardEvent) {
