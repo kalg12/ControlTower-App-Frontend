@@ -50,6 +50,7 @@ let visitorToken = sessionStorage.getItem("ct:visitorToken") ?? "";
 const stompClient = ref<StompClient | null>(null);
 const stompConnected = ref(false);
 let pendingMessage: string | null = null;
+let pollInterval: ReturnType<typeof setInterval> | null = null;
 
 // Tracks content of messages added optimistically so the STOMP echo is deduped
 const _sentContents = new Set<string>();
@@ -61,10 +62,14 @@ onMounted(async () => {
     screen.value = "chat";
     await loadMessages();
     connectStomp();
+    startPolling();
   }
 });
 
-onUnmounted(() => stompClient.value?.deactivate());
+onUnmounted(() => {
+  stompClient.value?.deactivate()
+  stopPolling()
+})
 
 // ── Start chat ────────────────────────────────────────────────────────────────
 
@@ -87,6 +92,7 @@ async function startChat() {
     window.parent?.postMessage({ type: "CT_CONVERSATION_STARTED" }, "*");
     screen.value = "chat";
     connectStomp();
+    startPolling();
   } catch (e) {
     error.value = "No se pudo iniciar el chat. Intenta de nuevo.";
   } finally {
@@ -109,9 +115,51 @@ async function loadMessages() {
 
 // ── STOMP ─────────────────────────────────────────────────────────────────────
 
+function startPolling() {
+  stopPolling()
+  pollInterval = setInterval(async () => {
+    if (screen.value !== "chat" || !conversationId || !visitorToken) return
+    try {
+      const [msgData, convInfo] = await Promise.all([
+        publicChatService.getMessages(conversationId, visitorToken),
+        publicChatService.getConversation(conversationId, visitorToken),
+      ])
+      // Merge new messages (avoid re-adding optimistic/STOMP ones already in list)
+      const existingIds = new Set(messages.value.map(m => m.id))
+      let added = false
+      for (const msg of (msgData.content ?? [])) {
+        if (!existingIds.has(msg.id)) {
+          messages.value.push(msg)
+          added = true
+        }
+      }
+      if (added) nextTick(scrollBottom)
+      // Sync conversation status (e.g., agent claimed/closed)
+      if (convInfo.status) convStatus.value = convInfo.status
+      if (convInfo.agentName) agentName.value = convInfo.agentName
+      if (convInfo.agentAvatarUrl) agentAvatarUrl.value = convInfo.agentAvatarUrl
+      if (convInfo.status === "CLOSED" && screen.value === "chat") {
+        sessionStorage.removeItem("ct:conversationId")
+        sessionStorage.removeItem("ct:visitorToken")
+        window.parent?.postMessage({ type: "CT_CHAT_CLOSED" }, "*")
+        screen.value = "rating"
+      }
+    } catch {}
+  }, 6000)
+}
+
+function stopPolling() {
+  if (pollInterval) { clearInterval(pollInterval); pollInterval = null }
+}
+
 function connectStomp() {
-  const base = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? "").replace(/\/$/, "");
-  const wsUrl = base ? `${base}/ws` : `${window.location.origin}/ws`;
+  const wsUrl =
+    (import.meta.env.VITE_WS_URL as string | undefined) ||
+    (() => {
+      const base = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? '')
+        .replace(/\/api\/v1$/, '').replace(/\/$/, '')
+      return base ? `${base}/ws` : `${window.location.origin}/ws`
+    })()
   const client = new StompClient({
     webSocketFactory: () => new SockJS(wsUrl),
     connectHeaders: { "X-Visitor-Token": visitorToken },
@@ -123,13 +171,17 @@ function connectStomp() {
         const payload: ChatMessagePayload = JSON.parse(frame.body);
 
         if (payload.type === "MESSAGE" || payload.type === "SYSTEM") {
-          // Deduplicate: visitor's own messages are added optimistically in sendMessage()
-          if (
-            payload.senderType === "VISITOR" &&
-            payload.content &&
-            _sentContents.has(payload.content)
-          ) {
+          // Skip if already present by server-assigned ID
+          if (payload.id && messages.value.some(m => m.id === payload.id)) {
+            // nothing
+          } else if (payload.senderType === "VISITOR" && payload.content && _sentContents.has(payload.content)) {
+            // Visitor's own STOMP echo: swap the optimistic message's random UUID with
+            // the real server UUID so that the poll can correctly deduplicate it later.
             _sentContents.delete(payload.content);
+            const idx = messages.value.findIndex(m => m.senderType === "VISITOR" && m.content === payload.content);
+            if (idx !== -1 && payload.id) {
+              messages.value.splice(idx, 1, { ...messages.value[idx], id: payload.id, createdAt: payload.createdAt });
+            }
           } else {
             messages.value.push({
               id: payload.id ?? crypto.randomUUID(),

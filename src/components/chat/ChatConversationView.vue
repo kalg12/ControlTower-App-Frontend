@@ -72,8 +72,13 @@ const stompConnected = ref(false)
 
 onMounted(() => {
   if (!auth.accessToken) return
-  const base = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? '').replace(/\/$/, '')
-  const wsUrl = base ? `${base}/ws` : `${window.location.origin}/ws`
+  const wsUrl =
+    (import.meta.env.VITE_WS_URL as string | undefined) ||
+    (() => {
+      const base = (import.meta.env.VITE_API_BASE_URL as string | undefined ?? '')
+        .replace(/\/api\/v1$/, '').replace(/\/$/, '')
+      return base ? `${base}/ws` : `${window.location.origin}/ws`
+    })()
 
   let client: StompClient
   client = new StompClient({
