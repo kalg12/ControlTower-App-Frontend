@@ -94,4 +94,13 @@ export const chatService = {
     const res = await api.get<ChatRating | null>(`/chat/conversations/${id}/rating`)
     return res.data
   },
+
+  async uploadAttachment(conversationId: string, file: File): Promise<ChatMessage> {
+    const form = new FormData()
+    form.append('file', file)
+    const res = await api.post<{ data: ChatMessage }>(`/chat/conversations/${conversationId}/attachments`, form, {
+      headers: { 'Content-Type': 'multipart/form-data' },
+    })
+    return res.data.data
+  },
 }

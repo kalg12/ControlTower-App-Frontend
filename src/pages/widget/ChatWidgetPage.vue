@@ -54,6 +54,8 @@ let pollInterval: ReturnType<typeof setInterval> | null = null;
 
 // Tracks content of messages added optimistically so the STOMP echo is deduped
 const _sentContents = new Set<string>();
+// Tracks optimistic IDs currently in-flight (REST not yet returned) to prevent poll duplicates
+const _pendingOptimisticIds = new Set<string>();
 
 // ── Resume session ────────────────────────────────────────────────────────────
 
@@ -124,14 +126,23 @@ function startPolling() {
         publicChatService.getMessages(conversationId, visitorToken),
         publicChatService.getConversation(conversationId, visitorToken),
       ])
-      // Merge new messages (avoid re-adding optimistic/STOMP ones already in list)
+      // Merge new messages — two-phase to avoid duplicates from the optimistic+poll race:
+      // If a server message matches a pending optimistic (same content+senderType), swap it
+      // in-place so the REST .then() handler finds nothing to do.
       const existingIds = new Set(messages.value.map(m => m.id))
       let added = false
       for (const msg of (msgData.content ?? [])) {
-        if (!existingIds.has(msg.id)) {
+        if (existingIds.has(msg.id)) continue
+        const optimisticIdx = messages.value.findIndex(
+          m => _pendingOptimisticIds.has(m.id) && m.content === msg.content && m.senderType === msg.senderType
+        )
+        if (optimisticIdx !== -1) {
+          _pendingOptimisticIds.delete(messages.value[optimisticIdx].id)
+          messages.value.splice(optimisticIdx, 1, msg)
+        } else {
           messages.value.push(msg)
-          added = true
         }
+        added = true
       }
       if (added) nextTick(scrollBottom)
       // Sync conversation status (e.g., agent claimed/closed)
@@ -295,6 +306,7 @@ function sendMessage() {
 
   // Optimistic display with a stable temp ID so the REST swap is exact.
   const optimisticId = crypto.randomUUID();
+  _pendingOptimisticIds.add(optimisticId);
   messages.value.push({
     id: optimisticId,
     conversationId,
@@ -310,8 +322,8 @@ function sendMessage() {
   // STOMP is only used as a last-resort fallback if REST fails.
   publicChatService.sendMessage(conversationId, visitorToken, text)
     .then(msg => {
-      // Swap optimistic (random UUID) with real server message (server UUID).
-      // Poll dedup and STOMP echo dedup both work correctly after this.
+      _pendingOptimisticIds.delete(optimisticId);
+      // Swap optimistic with real only if poll hasn't already done it.
       const idx = messages.value.findIndex(m => m.id === optimisticId);
       if (idx !== -1) {
         messages.value.splice(idx, 1, msg);
@@ -320,6 +332,7 @@ function sendMessage() {
       }
     })
     .catch(() => {
+      _pendingOptimisticIds.delete(optimisticId);
       // REST failed — keep optimistic and try STOMP as last resort
       if (stompConnected.value) {
         _sentContents.add(text);

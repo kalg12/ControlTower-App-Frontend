@@ -6,6 +6,7 @@ import { Client as StompClient } from '@stomp/stompjs'
 import SockJS from 'sockjs-client'
 import { useAuthStore } from '@/stores/auth'
 import { chatService } from '@/services/chat.service'
+import { useToast } from '@/composables/useToast'
 import { qk } from '@/queries/keys'
 import type { ChatConversation, ChatMessage, ChatMessagePayload, ChatQuickReply } from '@/types/chat'
 
@@ -22,9 +23,11 @@ const emit = defineEmits<{
 }>()
 
 const auth = useAuthStore()
+const toast = useToast()
 const messagesEl = ref<HTMLElement | null>(null)
 const inputText = ref('')
 const isTyping = ref(false)
+const isUploading = ref(false)
 const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const showQuickReplies = ref(false)
 
@@ -192,20 +195,43 @@ function openFilePicker() {
   fileInputEl.value?.click()
 }
 
+const ALLOWED_TYPES = [
+  'image/jpeg', 'image/png', 'image/gif', 'image/webp',
+  'application/pdf',
+  'application/msword',
+  'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  'text/plain',
+]
+const MAX_SIZE_BYTES = 10 * 1024 * 1024 // 10 MB
+
 async function onFileSelected(e: Event) {
   const file = (e.target as HTMLInputElement).files?.[0]
-  if (!file) return
-  const form = new FormData()
-  form.append('file', file)
-  try {
-    const { default: api } = await import('@/services/api')
-    await api.post(`/chat/conversations/${props.conversation.id}/attachments`, form, {
-      headers: { 'Content-Type': 'multipart/form-data' },
-    })
-  } catch (err) {
-    console.error('[Chat] upload error', err)
-  }
   if (fileInputEl.value) fileInputEl.value.value = ''
+  if (!file) return
+
+  if (!ALLOWED_TYPES.includes(file.type)) {
+    toast.error(t('chatModule.fileTypeNotAllowed'))
+    return
+  }
+  if (file.size > MAX_SIZE_BYTES) {
+    toast.error(t('chatModule.fileTooLarge'))
+    return
+  }
+
+  isUploading.value = true
+  try {
+    const msg = await chatService.uploadAttachment(props.conversation.id, file)
+    // STOMP will broadcast the message; add it directly only if not yet present
+    if (!messages.value.some(m => m.id === msg.id)) {
+      messages.value.push(msg)
+      nextTick(scrollBottom)
+    }
+    toast.success(t('chatModule.uploadSuccess'))
+  } catch {
+    toast.error(t('chatModule.uploadError'))
+  } finally {
+    isUploading.value = false
+  }
 }
 
 const closeMut = useMutation({
@@ -384,9 +410,9 @@ function isGrouped(i: number) {
     </div>
 
     <div class="chat-input-bar">
-      <input ref="fileInputEl" type="file" class="hidden" @change="onFileSelected" />
-      <button class="chat-input-btn" :title="t('chatModule.attachFile')" @click="openFilePicker">
-        <i class="pi pi-paperclip" />
+      <input ref="fileInputEl" type="file" :accept="ALLOWED_TYPES.join(',')" class="hidden" @change="onFileSelected" />
+      <button class="chat-input-btn" :title="t('chatModule.attachFile')" :disabled="isUploading" @click="openFilePicker">
+        <i :class="isUploading ? 'pi pi-spin pi-spinner' : 'pi pi-paperclip'" />
       </button>
       <textarea
         v-model="inputText"

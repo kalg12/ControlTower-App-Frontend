@@ -164,6 +164,10 @@
       "days": "d"
     },
     "attachFile": "Adjuntar archivo",
+    "uploadSuccess": "Archivo enviado",
+    "uploadError": "Error al enviar el archivo",
+    "fileTooLarge": "Archivo demasiado grande (máx. 10 MB)",
+    "fileTypeNotAllowed": "Tipo de archivo no permitido",
     "messagePlaceholder": "Escribe un mensaje... (Enter para enviar)",
     "transferDialog": {
       "title": "Transferir conversación",

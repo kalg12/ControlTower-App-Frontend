@@ -176,6 +176,10 @@
       "days": "d"
     },
     "attachFile": "Attach file",
+    "uploadSuccess": "File sent",
+    "uploadError": "Failed to send file",
+    "fileTooLarge": "File too large (max 10 MB)",
+    "fileTypeNotAllowed": "File type not allowed",
     "messagePlaceholder": "Type a message... (Enter to send)",
     "transferDialog": {
       "title": "Transfer conversation",
