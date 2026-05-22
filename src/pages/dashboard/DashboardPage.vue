@@ -475,7 +475,7 @@ const summaryCards = computed<StatCard[]>(() => [
             <div v-for="(u, i) in timeAnalytics.topUsers.slice(0, 5)" :key="u.userId"
                  class="flex items-center gap-3 text-sm">
               <span class="w-6 h-6 rounded-full bg-[var(--surface-raised)] flex items-center justify-center text-xs font-bold text-[var(--text-muted)] ring-1 ring-[var(--border)]">{{ i + 1 }}</span>
-              <span class="flex-1 text-[var(--text)] font-medium text-sm truncate">{{ u.userId }}</span>
+              <span class="flex-1 text-[var(--text)] font-medium text-sm truncate">{{ u.fullName }}</span>
               <span class="font-semibold text-[var(--text)] tabular-nums">{{ formatMinutes(Number(u.totalMinutes)) }}</span>
             </div>
           </div>

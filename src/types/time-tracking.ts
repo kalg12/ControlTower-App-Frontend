@@ -54,7 +54,7 @@ export interface TimeAnalytics {
   slaComplianceRate: number
   totalEntries: number
   totalLoggedMinutes: number
-  topUsers: Array<{ userId: string; totalMinutes: number }>
+  topUsers: Array<{ userId: string; fullName: string; totalMinutes: number }>
 }
 
 /** Formats minutes as "Xh Ym" (e.g. "1h 30m" or "45m"). */
