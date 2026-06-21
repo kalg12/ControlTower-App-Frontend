@@ -29,7 +29,9 @@ export interface AiAssistRequest {
 
 export const aiService = {
   async assist(request: AiAssistRequest): Promise<string> {
-    const res = await api.post<{ data: { result: string } }>('/ai/assist', request)
-    return res.data?.data?.result ?? ''
+    // timeout de 60s porque las llamadas a OpenAI pueden tardar 20-30s
+    const res = await api.post<{ result: string }>('/ai/assist', request, { timeout: 60_000 })
+    // el interceptor de api.ts ya desenvuelve el ApiResponse envelope → res.data es el campo "data" directamente
+    return res.data?.result ?? ''
   }
 }
