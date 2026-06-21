@@ -940,7 +940,7 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
             severity="secondary"
             outlined
             :loading="aiPromptLoading"
-            @click="generateAiPrompt"
+            @click="() => generateAiPrompt()"
           >
             <template #icon>
               <Sparkles class="w-4 h-4 mr-1.5" />
