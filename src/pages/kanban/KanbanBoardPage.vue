@@ -105,9 +105,10 @@ const aiPromptResult = ref('')
 const showAiPromptDialog = ref(false)
 const aiPromptCopied = ref(false)
 
-async function generateAiPrompt() {
+async function generateAiPrompt(regenerate = false) {
   if (!selectedCard.value || !board.value) return
   aiPromptLoading.value = true
+  if (regenerate && !showAiPromptDialog.value) showAiPromptDialog.value = true
   try {
     const result = await aiService.assist({
       task: 'GENERATE_CARD_PROMPT',
@@ -133,6 +134,24 @@ async function copyAiPrompt() {
   await navigator.clipboard.writeText(aiPromptResult.value)
   aiPromptCopied.value = true
   setTimeout(() => { aiPromptCopied.value = false }, 2000)
+}
+
+function renderAiMarkdown(text: string): string {
+  return text
+    // Headers
+    .replace(/^### (.+)$/gm, '<h3 class="ai-h3">$1</h3>')
+    .replace(/^## (.+)$/gm, '<h2 class="ai-h2">$1</h2>')
+    .replace(/^# (.+)$/gm, '<h1 class="ai-h1">$1</h1>')
+    // Bold
+    .replace(/\*\*([^*]+)\*\*/g, '<strong class="ai-bold">$1</strong>')
+    // Numbered list items
+    .replace(/^(\d+)\.\s(.+)$/gm, '<div class="ai-num"><span class="ai-num-n">$1.</span><span>$2</span></div>')
+    // Bullet list items
+    .replace(/^[-*]\s(.+)$/gm, '<div class="ai-bullet"><span class="ai-bullet-dot">•</span><span>$1</span></div>')
+    // Empty lines → spacer
+    .replace(/\n{2,}/g, '<div class="ai-gap"></div>')
+    // Single newlines → br
+    .replace(/\n/g, '<br>')
 }
 
 const showBoardEdit = ref(false)
@@ -935,20 +954,108 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
     </Dialog>
 
     <!-- AI Prompt Result Dialog -->
-    <Dialog v-model:visible="showAiPromptDialog" header="Prompt generado con IA" modal class="w-full max-w-2xl">
-      <div class="flex flex-col gap-4 pt-2">
-        <div class="bg-[var(--surface-ground)] border border-[var(--border)] rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap text-[var(--text-color)]">
-          {{ aiPromptResult }}
+    <Dialog v-model:visible="showAiPromptDialog" modal class="w-full max-w-2xl" :pt="{ header: { class: 'pb-3' } }">
+      <template #header>
+        <div class="flex items-center gap-2">
+          <Sparkles class="w-4 h-4 text-[var(--primary)]" />
+          <span class="font-semibold text-base">Prompt generado con IA</span>
         </div>
-        <div class="flex justify-end">
-          <Button @click="copyAiPrompt" :severity="aiPromptCopied ? 'success' : 'primary'">
-            <template #default>
-              <component :is="aiPromptCopied ? Check : Copy" class="w-4 h-4 mr-1.5" />
-              {{ aiPromptCopied ? '¡Copiado!' : 'Copiar al portapapeles' }}
-            </template>
-          </Button>
+      </template>
+
+      <!-- Scrollable markdown area -->
+      <div
+        class="overflow-y-auto rounded-xl border border-[var(--border)] bg-[var(--surface-ground)] p-5 text-sm leading-7 text-[var(--text-color)]"
+        style="max-height: 55vh; min-height: 180px;"
+      >
+        <div v-if="aiPromptLoading" class="flex items-center justify-center py-12 gap-3 text-[var(--text-muted)]">
+          <span class="pi pi-spin pi-spinner" />
+          Generando nuevas ideas…
         </div>
+        <div v-else class="prose-ai" v-html="renderAiMarkdown(aiPromptResult)" />
+      </div>
+
+      <!-- Action bar -->
+      <div class="flex items-center gap-3 pt-4">
+        <Button
+          severity="secondary"
+          outlined
+          :loading="aiPromptLoading"
+          :disabled="aiPromptLoading"
+          class="flex-1"
+          @click="generateAiPrompt(true)"
+        >
+          <template #icon><Sparkles class="w-4 h-4 mr-1.5" /></template>
+          Más ideas
+        </Button>
+        <Button
+          :severity="aiPromptCopied ? 'success' : 'primary'"
+          :disabled="aiPromptLoading"
+          class="flex-1"
+          @click="copyAiPrompt"
+        >
+          <template #icon>
+            <component :is="aiPromptCopied ? Check : Copy" class="w-4 h-4 mr-1.5" />
+          </template>
+          {{ aiPromptCopied ? '¡Copiado!' : 'Copiar al portapapeles' }}
+        </Button>
       </div>
     </Dialog>
   </div>
 </template>
+
+<style scoped>
+/* ── AI Markdown renderer styles ─────────────────────────────────── */
+.prose-ai :deep(.ai-h1) {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: var(--primary);
+  margin-top: 1.25rem;
+  margin-bottom: 0.5rem;
+}
+.prose-ai :deep(.ai-h2) {
+  font-size: 1rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-top: 1rem;
+  margin-bottom: 0.4rem;
+  padding-bottom: 0.2rem;
+  border-bottom: 1px solid var(--border);
+}
+.prose-ai :deep(.ai-h3) {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-color);
+  margin-top: 0.75rem;
+  margin-bottom: 0.25rem;
+}
+.prose-ai :deep(.ai-bold) {
+  font-weight: 600;
+  color: var(--text-color);
+}
+.prose-ai :deep(.ai-num) {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding-left: 0.25rem;
+}
+.prose-ai :deep(.ai-num-n) {
+  color: var(--primary);
+  font-weight: 700;
+  min-width: 1.25rem;
+  flex-shrink: 0;
+}
+.prose-ai :deep(.ai-bullet) {
+  display: flex;
+  gap: 0.5rem;
+  margin-top: 0.35rem;
+  padding-left: 0.25rem;
+}
+.prose-ai :deep(.ai-bullet-dot) {
+  color: var(--primary);
+  font-weight: 700;
+  flex-shrink: 0;
+}
+.prose-ai :deep(.ai-gap) {
+  height: 0.75rem;
+}
+</style>
