@@ -17,7 +17,9 @@ import { useToast } from '@/composables/useToast'
 import { qk } from '@/queries/keys'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { MessageSquare, TimerIcon, ShieldCheckIcon, ShieldAlertIcon, Star, Send, AlertTriangle } from 'lucide-vue-next'
+import { MessageSquare, TimerIcon, ShieldCheckIcon, ShieldAlertIcon, Star, Send, AlertTriangle, Sparkles, Copy, Check } from 'lucide-vue-next'
+import { aiService } from '@/services/ai.service'
+import type { QuickReplyType } from '@/services/ai.service'
 import SourceBadge from '@/components/tickets/SourceBadge.vue'
 import PosContextPanel from '@/components/tickets/PosContextPanel.vue'
 import TicketChatPanel from '@/components/tickets/TicketChatPanel.vue'
@@ -190,6 +192,8 @@ const latestCsat = computed(() => csatList.value?.[0] ?? null)
 
 const commentText = ref('')
 const isSubmittingComment = ref(false)
+const aiImproving = ref(false)
+const quickReplyLoading = ref<QuickReplyType | null>(null)
 
 async function submitComment() {
   if (!commentText.value.trim()) return
@@ -206,6 +210,52 @@ async function submitComment() {
     isSubmittingComment.value = false
   }
 }
+
+async function improveWithAi() {
+  if (!commentText.value.trim()) return
+  aiImproving.value = true
+  try {
+    const improved = await aiService.assist({
+      task: 'IMPROVE_TICKET_REPLY',
+      context: {
+        ticketSubject: ticket.value?.title,
+        ticketDescription: ticket.value?.description,
+        draftReply: commentText.value.trim(),
+      }
+    })
+    commentText.value = improved
+  } catch {
+    toast.error('No se pudo mejorar la respuesta. Inténtalo de nuevo.')
+  } finally {
+    aiImproving.value = false
+  }
+}
+
+async function handleQuickReply(type: QuickReplyType) {
+  quickReplyLoading.value = type
+  try {
+    const result = await aiService.assist({
+      task: 'QUICK_REPLY',
+      context: {
+        ticketSubject: ticket.value?.title,
+        quickReplyType: type,
+      }
+    })
+    commentText.value = result
+  } catch {
+    toast.error('No se pudo generar la respuesta rápida.')
+  } finally {
+    quickReplyLoading.value = null
+  }
+}
+
+const QUICK_REPLIES: { type: QuickReplyType; label: string }[] = [
+  { type: 'STARTED_REVIEW', label: 'Iniciando revisión' },
+  { type: 'WAITING_CLIENT', label: 'Esperando cliente' },
+  { type: 'NEED_INFO', label: 'Necesito info' },
+  { type: 'SCHEDULE_CALL', label: 'Agendar llamada' },
+  { type: 'CLOSE_TICKET', label: 'Cerrar ticket' },
+]
 
 function statusSeverity(status: TicketStatus): 'info' | 'warn' | 'success' | 'danger' | 'secondary' {
   const map: Record<TicketStatus, 'info' | 'warn' | 'success' | 'danger' | 'secondary'> = {
@@ -421,9 +471,36 @@ function fromNow(dateStr: string) {
             </div>
           </div>
           <p v-else class="text-sm text-[var(--text-muted)]">{{ t('ticketDetail.noComments') }}</p>
-          <div class="border-t border-[var(--border)] pt-4 flex flex-col gap-2">
+          <div class="border-t border-[var(--border)] pt-4 flex flex-col gap-3">
+            <!-- Quick reply AI chips -->
+            <div class="flex flex-wrap gap-2">
+              <button
+                v-for="qr in QUICK_REPLIES"
+                :key="qr.type"
+                :disabled="!!quickReplyLoading || aiImproving"
+                class="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-medium border border-[var(--primary)]/30 bg-[var(--primary)]/5 text-[var(--primary)] hover:bg-[var(--primary)]/10 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
+                @click="handleQuickReply(qr.type)"
+              >
+                <span v-if="quickReplyLoading === qr.type" class="pi pi-spin pi-spinner" style="font-size: 10px;" />
+                <Sparkles v-else class="w-3 h-3" />
+                {{ qr.label }}
+              </button>
+            </div>
             <Textarea v-model="commentText" :placeholder="t('ticketDetail.commentPlaceholder')" :rows="3" class="w-full" :disabled="isSubmittingComment" />
-            <div class="flex justify-end">
+            <div class="flex items-center justify-between gap-2">
+              <Button
+                v-if="commentText.trim()"
+                severity="secondary"
+                outlined
+                size="small"
+                :loading="aiImproving"
+                :disabled="isSubmittingComment"
+                @click="improveWithAi"
+              >
+                <template #icon><Sparkles class="w-3.5 h-3.5 mr-1.5" /></template>
+                Mejorar con IA
+              </Button>
+              <span v-else />
               <Button :label="t('ticketDetail.send')" icon="pi pi-send" :loading="isSubmittingComment" :disabled="!commentText.trim()" @click="submitComment" />
             </div>
           </div>

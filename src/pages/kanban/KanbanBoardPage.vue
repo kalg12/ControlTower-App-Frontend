@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, computed, watch } from 'vue'
+import { aiService } from '@/services/ai.service'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useQuery } from '@tanstack/vue-query'
@@ -17,10 +18,11 @@ import { useConfirm } from 'primevue/useconfirm'
 import { useToast } from '@/composables/useToast'
 import { useBoard, useKanbanMutations } from '@/queries/kanban'
 import { kanbanService } from '@/services/kanban.service'
+import { clientsService } from '@/services/clients.service'
 import { useAuthStore } from '@/stores/auth'
 import { usersService } from '@/services/users.service'
 import type { BoardVisibility, KanbanCard, KanbanColumn, CardPriority } from '@/types/kanban'
-import { AlertTriangle, TimerIcon } from 'lucide-vue-next'
+import { AlertTriangle, TimerIcon, Building2, Sparkles, Copy, Check } from 'lucide-vue-next'
 import dayjs from 'dayjs'
 import TimerWidget from '@/components/time/TimerWidget.vue'
 import TimeEntriesList from '@/components/time/TimeEntriesList.vue'
@@ -85,6 +87,7 @@ const cardDue = ref<string | null>(null)
 const cardPriority = ref<CardPriority>('MEDIUM')
 const cardAssignees = ref<string[]>([])
 const cardEstimatedMinutes = ref<string | null>(null)
+const cardClientId = ref<string | null>(null)
 const savingCard = ref(false)
 
 const selectedCard = ref<KanbanCard | null>(null)
@@ -95,7 +98,42 @@ const detailDue = ref('')
 const detailPriority = ref<CardPriority>('MEDIUM')
 const detailAssignees = ref<string[]>([])
 const detailEstimatedMinutes = ref<string | null>(null)
+const detailClientId = ref<string | null>(null)
 const savingCardDetail = ref(false)
+const aiPromptLoading = ref(false)
+const aiPromptResult = ref('')
+const showAiPromptDialog = ref(false)
+const aiPromptCopied = ref(false)
+
+async function generateAiPrompt() {
+  if (!selectedCard.value || !board.value) return
+  aiPromptLoading.value = true
+  try {
+    const result = await aiService.assist({
+      task: 'GENERATE_CARD_PROMPT',
+      context: {
+        cardTitle: selectedCard.value.title,
+        cardDescription: selectedCard.value.description ?? undefined,
+        cardChecklist: (selectedCard.value.checklist ?? []).map((i) => i.text),
+        cardPriority: selectedCard.value.priority,
+        boardName: board.value.name,
+        clientName: clientName(selectedCard.value.clientId) ?? undefined,
+      }
+    })
+    aiPromptResult.value = result
+    showAiPromptDialog.value = true
+  } catch {
+    toast.error('No se pudo generar el prompt. Inténtalo de nuevo.')
+  } finally {
+    aiPromptLoading.value = false
+  }
+}
+
+async function copyAiPrompt() {
+  await navigator.clipboard.writeText(aiPromptResult.value)
+  aiPromptCopied.value = true
+  setTimeout(() => { aiPromptCopied.value = false }, 2000)
+}
 
 const showBoardEdit = ref(false)
 const boardEditName = ref('')
@@ -135,6 +173,21 @@ const assigneeSelectOptions = computed(() =>
   }))
 )
 
+const { data: clientOptions } = useQuery({
+  queryKey: ['clients', 'kanban-picker'],
+  queryFn: () => clientsService.list({ size: 200 }),
+  staleTime: 2 * 60_000
+})
+
+const clientSelectOptions = computed(() =>
+  (clientOptions.value?.content ?? []).map((c) => ({ label: c.name, value: c.id }))
+)
+
+function clientName(id: string | null | undefined): string | null {
+  if (!id) return null
+  return clientSelectOptions.value.find((c) => c.value === id)?.label ?? null
+}
+
 function openAddColumn() {
   colName.value = ''
   showColDialog.value = true
@@ -168,6 +221,7 @@ function openAddCard(columnId: string) {
   cardPriority.value = 'MEDIUM'
   cardAssignees.value = []
   cardEstimatedMinutes.value = null
+  cardClientId.value = null
   showCardDialog.value = true
 }
 
@@ -188,7 +242,8 @@ async function submitCard() {
         priority: cardPriority.value,
         assigneeIds: cardAssignees.value.length > 0 ? cardAssignees.value : undefined,
         position: pos,
-        estimatedMinutes: cardEstimatedMinutes.value ? Number(cardEstimatedMinutes.value) : undefined
+        estimatedMinutes: cardEstimatedMinutes.value ? Number(cardEstimatedMinutes.value) : undefined,
+        clientId: cardClientId.value || null
       },
       boardId: board.value.id
     })
@@ -263,6 +318,7 @@ function openCard(c: KanbanCard) {
   detailPriority.value = c.priority
   detailAssignees.value = c.assigneeIds ?? []
   detailEstimatedMinutes.value = c.estimatedMinutes != null ? String(c.estimatedMinutes) : null
+  detailClientId.value = c.clientId ?? null
   showCardDetail.value = true
 }
 
@@ -313,7 +369,8 @@ async function submitCardDetail() {
         dueDate: detailDue.value.trim() ? detailDue.value : null,
         priority: detailPriority.value,
         assigneeIds: detailAssignees.value,
-        estimatedMinutes: detailEstimatedMinutes.value ? Number(detailEstimatedMinutes.value) : null
+        estimatedMinutes: detailEstimatedMinutes.value ? Number(detailEstimatedMinutes.value) : null,
+        clientId: detailClientId.value
       }
     })
     selectedCard.value = updated
@@ -423,6 +480,19 @@ function priorityLabel(p: string): string {
 function formatDue(d: string | null | undefined): string {
   if (!d) return ''
   return dayjs(d).format('YYYY-MM-DD')
+}
+
+function dueLabelFriendly(d: string | null | undefined): string {
+  if (!d) return ''
+  const date = dayjs(d)
+  const today = dayjs()
+  const diffDays = date.startOf('day').diff(today.startOf('day'), 'day')
+  if (diffDays < -1) return `Hace ${Math.abs(diffDays)}d`
+  if (diffDays === -1) return 'Ayer'
+  if (diffDays === 0) return 'Hoy'
+  if (diffDays === 1) return 'Mañana'
+  if (diffDays < 7) return `En ${diffDays}d`
+  return date.format('D MMM')
 }
 
 function isCardOverdue(dueDate: string | null | undefined, columnKind: string | null | undefined, attendedAt?: string): boolean {
@@ -588,10 +658,25 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
                 @click.stop="attendCard(card.id)"
               >{{ t('kanbanBoard.markAttended') }}</button>
               <p v-if="card.description" class="text-xs text-[var(--text-muted)] line-clamp-2 mt-1">{{ card.description }}</p>
+
+              <!-- Client chip -->
+              <div v-if="clientName(card.clientId)" class="flex items-center gap-1 mt-1.5">
+                <Building2 class="w-3 h-3 text-[var(--primary)] shrink-0" />
+                <span class="text-[10px] font-medium text-[var(--primary)] truncate max-w-[160px]">{{ clientName(card.clientId) }}</span>
+              </div>
+
               <div class="flex items-center justify-between gap-1 mt-2">
                 <div class="flex flex-wrap gap-1">
                   <Tag v-if="card.priority" severity="warn" class="text-[10px]">{{ priorityLabel(card.priority) }}</Tag>
-                  <Tag v-if="card.dueDate && col.columnKind !== 'DONE' && col.columnKind !== 'HISTORY'" severity="info" class="text-[10px]">{{ formatDue(card.dueDate) }}</Tag>
+                  <!-- Due date: friendly label for upcoming/overdue, full date otherwise -->
+                  <template v-if="card.dueDate && col.columnKind !== 'DONE' && col.columnKind !== 'HISTORY'">
+                    <Tag
+                      :severity="isCardOverdue(card.dueDate, col.columnKind, card.attendedAt) ? 'danger' : isCardDueSoon(card.dueDate, col.columnKind, card.attendedAt) ? 'warn' : 'info'"
+                      class="text-[10px]"
+                    >
+                      📅 {{ dueLabelFriendly(card.dueDate) }}
+                    </Tag>
+                  </template>
                   <Tag v-if="card.estimatedMinutes" severity="secondary" class="text-[10px]">
                     ⏱ {{ card.estimatedMinutes >= 60 ? `${Math.floor(card.estimatedMinutes / 60)}h` : `${card.estimatedMinutes}m` }}
                   </Tag>
@@ -603,7 +688,7 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
                     :key="uid"
                     :style="{ zIndex: 3 - Number(idx) }"
                     class="w-5 h-5 rounded-full bg-[var(--primary)] border border-[var(--surface)] flex items-center justify-center text-[8px] font-bold text-white"
-                    :title="uid"
+                    :title="assigneeSelectOptions.find(o => o.value === uid)?.label ?? uid"
                   >
                     {{ assigneeSelectOptions.find(o => o.value === uid)?.label?.[0]?.toUpperCase() ?? '?' }}
                   </div>
@@ -663,6 +748,19 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
             :max-selected-labels="3"
           />
         </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Cliente</label>
+          <Select
+            v-model="cardClientId"
+            :options="[{ label: 'Sin cliente', value: null }, ...clientSelectOptions]"
+            option-label="label"
+            option-value="value"
+            placeholder="Sin cliente (opcional)"
+            class="w-full"
+            filter
+            show-clear
+          />
+        </div>
 <div class="flex flex-col gap-1">
            <label class="text-sm font-medium">{{ t('kanbanBoard.estimatedTime') }}</label>
            <InputText v-model="cardEstimatedMinutes" type="number" min="1" :placeholder="t('kanbanBoard.estimatedTimePlaceholder')" class="w-full" />
@@ -711,6 +809,11 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
       @hide="selectedCard = null"
     >
       <div v-if="selectedCard" class="flex flex-col gap-4 pt-2">
+        <!-- Client banner (read-only view) -->
+        <div v-if="clientName(selectedCard.clientId)" class="flex items-center gap-2 rounded-lg bg-[var(--primary)]/5 border border-[var(--primary)]/20 px-3 py-2">
+          <Building2 class="w-4 h-4 text-[var(--primary)] shrink-0" />
+          <span class="text-sm font-medium text-[var(--primary)]">{{ clientName(selectedCard.clientId) }}</span>
+        </div>
         <div class="flex flex-col gap-1">
           <label class="text-sm font-medium">{{ t('kanban.cardTitle') }}</label>
           <InputText v-model="detailTitle" class="w-full" :readonly="!canWriteKanban" />
@@ -747,6 +850,20 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
             class="w-full"
             filter
             :max-selected-labels="3"
+            :disabled="!canWriteKanban"
+          />
+        </div>
+        <div class="flex flex-col gap-1">
+          <label class="text-sm font-medium">Cliente</label>
+          <Select
+            v-model="detailClientId"
+            :options="[{ label: 'Sin cliente', value: null }, ...clientSelectOptions]"
+            option-label="label"
+            option-value="value"
+            placeholder="Sin cliente (opcional)"
+            class="w-full"
+            filter
+            show-clear
             :disabled="!canWriteKanban"
           />
         </div>
@@ -797,8 +914,39 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
           <TimeEntriesList entity-type="CARD" :entity-id="selectedCard.id" />
         </div>
 
-        <div v-if="canWriteKanban" class="flex justify-end gap-2 pt-2">
-          <Button :label="t('common.delete')" severity="danger" outlined @click="confirmRemoveCard" />
+        <!-- AI Prompt Button -->
+        <div class="border-t border-[var(--border)] pt-4 flex flex-wrap items-center justify-between gap-2">
+          <Button
+            label="Generar prompt con IA"
+            severity="secondary"
+            outlined
+            :loading="aiPromptLoading"
+            @click="generateAiPrompt"
+          >
+            <template #icon>
+              <Sparkles class="w-4 h-4 mr-1.5" />
+            </template>
+          </Button>
+          <div v-if="canWriteKanban">
+            <Button :label="t('common.delete')" severity="danger" outlined @click="confirmRemoveCard" />
+          </div>
+        </div>
+      </div>
+    </Dialog>
+
+    <!-- AI Prompt Result Dialog -->
+    <Dialog v-model:visible="showAiPromptDialog" header="Prompt generado con IA" modal class="w-full max-w-2xl">
+      <div class="flex flex-col gap-4 pt-2">
+        <div class="bg-[var(--surface-ground)] border border-[var(--border)] rounded-xl p-4 text-sm leading-relaxed whitespace-pre-wrap text-[var(--text-color)]">
+          {{ aiPromptResult }}
+        </div>
+        <div class="flex justify-end">
+          <Button @click="copyAiPrompt" :severity="aiPromptCopied ? 'success' : 'primary'">
+            <template #default>
+              <component :is="aiPromptCopied ? Check : Copy" class="w-4 h-4 mr-1.5" />
+              {{ aiPromptCopied ? '¡Copiado!' : 'Copiar al portapapeles' }}
+            </template>
+          </Button>
         </div>
       </div>
     </Dialog>

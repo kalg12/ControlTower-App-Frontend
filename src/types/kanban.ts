@@ -27,6 +27,7 @@ export interface KanbanCard {
   attendedBy?: string
   attendedAt?: string
   wasOverdue?: boolean
+  clientId?: string | null
   createdAt?: string
   updatedAt?: string
 }
@@ -74,6 +75,7 @@ export interface CardRequest {
   priority?: CardPriority
   position?: number
   estimatedMinutes?: number | null
+  clientId?: string | null
 }
 
 export interface MoveCardRequest {
@@ -90,6 +92,7 @@ export interface CardUpdateRequest {
   dueDate?: string | null
   priority: CardPriority
   estimatedMinutes?: number | null
+  clientId?: string | null
 }
 
 export type BoardListResponse = PaginatedResponse<KanbanBoard>
