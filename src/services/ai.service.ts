@@ -1,6 +1,6 @@
 import api from '@/services/api'
 
-export type AiTask = 'GENERATE_CARD_PROMPT' | 'IMPROVE_TICKET_REPLY' | 'QUICK_REPLY'
+export type AiTask = 'GENERATE_CARD_PROMPT' | 'IMPROVE_TICKET_REPLY' | 'QUICK_REPLY' | 'GENERATE_KB_CONTENT'
 
 export type QuickReplyType =
   | 'STARTED_REVIEW'
@@ -10,16 +10,26 @@ export type QuickReplyType =
   | 'SCHEDULE_CALL'
 
 export interface AiContext {
+  // Kanban
   cardTitle?: string
   cardDescription?: string
   cardChecklist?: string[]
   cardPriority?: string
   boardName?: string
   clientName?: string
+  devNotes?: string[]
+  // Ticket
   ticketSubject?: string
   ticketDescription?: string
+  ticketStatus?: string
+  ticketPriority?: string
+  ticketSource?: string
   draftReply?: string
+  previousReplies?: string[]
+  requesterEmail?: string
   quickReplyType?: QuickReplyType
+  // Knowledge base
+  kbArticles?: string[]
 }
 
 export interface AiAssistRequest {

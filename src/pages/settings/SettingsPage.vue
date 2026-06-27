@@ -16,11 +16,11 @@ import ToggleSwitch from 'primevue/toggleswitch'
 import Tag from 'primevue/tag'
 import { notificationsService } from '@/services/notifications.service'
 import { calendarSettingsService } from '@/services/calendar-settings.service'
+import MailboxManager from '@/components/ui/MailboxManager.vue'
 import { useAuthStore } from '@/stores/auth'
 import { useThemeStore } from '@/stores/theme'
 import { useToast } from '@/composables/useToast'
 import { useSlaConfig, useTimeTrackingMutations } from '@/queries/time-tracking'
-import api from '@/services/api'
 
 const { t } = useI18n()
 const toast = useToast()
@@ -59,32 +59,6 @@ async function saveAvatar() {
   }
 }
 
-// ── Email sender settings ─────────────────────────────────────────────
-const emailFrom = ref('')
-const savingEmail = ref(false)
-
-const { data: tenantSettings } = useQuery({
-  queryKey: ['tenant-settings'],
-  queryFn: () => api.get('/settings/tenant').then(r => r.data.data as Record<string, string>),
-  staleTime: 30000,
-})
-
-watch(tenantSettings, cfg => {
-  if (cfg?.['mail.from']) emailFrom.value = cfg['mail.from']
-}, { immediate: true })
-
-async function saveEmailSettings() {
-  savingEmail.value = true
-  try {
-    await api.put('/settings/tenant', { 'mail.from': emailFrom.value.trim() })
-    await queryClient.invalidateQueries({ queryKey: ['tenant-settings'] })
-    toast.success(t('settingsPage.emailSaved'))
-  } catch {
-    toast.error(t('settingsPage.emailSaveError'))
-  } finally {
-    savingEmail.value = false
-  }
-}
 
 const { data: preferences } = useQuery({
   queryKey: ['notification-preferences'],
@@ -382,28 +356,9 @@ async function syncGoogleNow() {
           </Card>
         </TabPanel>
 
-        <!-- Email Sender Tab -->
+        <!-- Email Mailboxes Tab -->
         <TabPanel value="email">
-          <Card>
-            <h3 class="text-sm font-semibold text-[var(--text)] mb-1">{{ $t('settingsPage.emailSender') }}</h3>
-            <p class="text-xs text-[var(--text-muted)] mb-4">
-              {{ $t('settingsPage.emailSenderDesc') }}
-            </p>
-            <div class="flex gap-2 max-w-sm">
-              <InputText
-                v-model="emailFrom"
-                :placeholder="$t('settingsPage.emailSenderPlaceholder')"
-                class="flex-1 text-sm"
-              />
-              <Button
-                :label="$t('settingsPage.emailSave')"
-                icon="pi pi-check"
-                :loading="savingEmail"
-                :disabled="!emailFrom.trim()"
-                @click="saveEmailSettings"
-              />
-            </div>
-          </Card>
+          <MailboxManager />
         </TabPanel>
 
         <!-- Google Calendar Tab -->

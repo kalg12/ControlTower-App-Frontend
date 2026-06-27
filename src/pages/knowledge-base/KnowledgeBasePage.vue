@@ -7,11 +7,13 @@ import Button from 'primevue/button'
 import Tag from 'primevue/tag'
 import Dialog from 'primevue/dialog'
 import Select from 'primevue/select'
-import { BookOpen, Search, Plus, Eye } from 'lucide-vue-next'
+import { BookOpen, Search, Plus, Eye, Sparkles } from 'lucide-vue-next'
 import RichTextEditor from '@/components/ui/RichTextEditor.vue'
 import { useKbArticles, useKbMutations } from '@/queries/knowledge-base'
 import { useAuthStore } from '@/stores/auth'
 import type { KbArticleFilters, KbArticleRequest, KbStatus } from '@/types/knowledge-base'
+import { aiService } from '@/services/ai.service'
+import { useToast } from '@/composables/useToast'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
 
@@ -20,6 +22,7 @@ dayjs.extend(relativeTime)
 const { t } = useI18n()
 const router = useRouter()
 const auth = useAuthStore()
+const toast = useToast()
 
 const canWrite = computed(() => auth.hasPermission('kb:write'))
 
@@ -51,6 +54,29 @@ const form = ref<KbArticleRequest>({ title: '', content: '', category: '', tags:
 const tagsInput = ref('')
 
 const mutations = useKbMutations()
+const aiGenerating = ref(false)
+
+async function generateWithAi() {
+  if (!form.value.title.trim()) {
+    toast.error('Escribe el título del artículo primero')
+    return
+  }
+  aiGenerating.value = true
+  try {
+    const content = await aiService.assist({
+      task: 'GENERATE_KB_CONTENT',
+      context: {
+        ticketSubject: form.value.title,
+        ticketDescription: form.value.category ? `Categoría: ${form.value.category}` : undefined,
+      }
+    })
+    form.value.content = content
+  } catch {
+    toast.error('No se pudo generar el contenido. Inténtalo de nuevo.')
+  } finally {
+    aiGenerating.value = false
+  }
+}
 
 const statusOptions: { label: string; value: KbStatus }[] = [
   { label: 'Draft', value: 'DRAFT' },
@@ -230,7 +256,21 @@ function statusSeverity(s: KbStatus): 'success' | 'secondary' | 'warn' {
           <InputText v-model="tagsInput" size="small" class="w-full" :placeholder="t('kb.form.tagsPlaceholder')" />
         </div>
         <div>
-          <label class="text-sm font-medium text-[var(--text)] mb-1 block">{{ t('kb.form.content') }}</label>
+          <div class="flex items-center justify-between mb-1">
+            <label class="text-sm font-medium text-[var(--text)]">{{ t('kb.form.content') }}</label>
+            <Button
+              size="small"
+              severity="secondary"
+              outlined
+              :loading="aiGenerating"
+              :disabled="!form.title.trim()"
+              :title="t('kb.generateWithAi')"
+              @click="generateWithAi"
+            >
+              <Sparkles class="w-3.5 h-3.5 mr-1" />
+              {{ t('kb.generateWithAi') }}
+            </Button>
+          </div>
           <RichTextEditor :model-value="form.content ?? ''" @update:model-value="v => form.content = v" min-height="240px" />
         </div>
       </div>

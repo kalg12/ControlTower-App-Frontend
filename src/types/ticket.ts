@@ -38,6 +38,8 @@ export interface Ticket {
   slaDueAt?: string | null
   slaBreached?: boolean | null
   escalatedAt?: string | null
+  requesterEmail?: string | null
+  departmentId?: string | null
 }
 
 export interface CreateTicketRequest {

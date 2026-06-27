@@ -114,7 +114,7 @@ export const useAuthStore = defineStore('auth', () => {
     if (!user.value) return false
     if (user.value.superAdmin) return true
     const p = user.value.permissions
-    if (!p.length) return true
+    if (!p || !p.length) return false
     return p.includes(code)
   }
 

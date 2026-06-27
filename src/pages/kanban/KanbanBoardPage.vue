@@ -26,6 +26,9 @@ import { AlertTriangle, TimerIcon, Building2, Sparkles, Copy, Check } from 'luci
 import dayjs from 'dayjs'
 import TimerWidget from '@/components/time/TimerWidget.vue'
 import TimeEntriesList from '@/components/time/TimeEntriesList.vue'
+import NotesPanel from '@/components/notes/NotesPanel.vue'
+import ImageUploadButton from '@/components/ui/ImageUploadButton.vue'
+import type { CloudinaryUploadResult } from '@/services/cloudinary.service'
 
 const { t } = useI18n()
 const route = useRoute()
@@ -100,6 +103,10 @@ const detailAssignees = ref<string[]>([])
 const detailEstimatedMinutes = ref<string | null>(null)
 const detailClientId = ref<string | null>(null)
 const savingCardDetail = ref(false)
+
+function onCardImageUploaded(result: CloudinaryUploadResult) {
+  detailDesc.value = (detailDesc.value ? detailDesc.value + '\n' : '') + `![imagen](${result.url})`
+}
 const aiPromptLoading = ref(false)
 const aiPromptResult = ref('')
 const showAiPromptDialog = ref(false)
@@ -838,7 +845,10 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
           <InputText v-model="detailTitle" class="w-full" :readonly="!canWriteKanban" />
         </div>
         <div class="flex flex-col gap-1">
-          <label class="text-sm font-medium">{{ t('kanban.cardDescription') }}</label>
+          <div class="flex items-center justify-between">
+            <label class="text-sm font-medium">{{ t('kanban.cardDescription') }}</label>
+            <ImageUploadButton v-if="canWriteKanban" folder="kanban-cards" @uploaded="onCardImageUploaded" />
+          </div>
           <Textarea v-model="detailDesc" rows="3" class="w-full" :readonly="!canWriteKanban" />
         </div>
         <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
@@ -931,6 +941,11 @@ function dueBadgeLabel(dueDate: string | null | undefined, columnKind: string | 
          </h3>
           <TimerWidget entity-type="CARD" :entity-id="selectedCard.id" />
           <TimeEntriesList entity-type="CARD" :entity-id="selectedCard.id" />
+        </div>
+
+        <!-- Developer Notes -->
+        <div class="border-t border-amber-300 dark:border-amber-700 pt-4">
+          <NotesPanel v-if="selectedCard" linked-to="KANBAN_CARD" :linked-id="selectedCard.id" />
         </div>
 
         <!-- AI Prompt Button -->

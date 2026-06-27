@@ -15,7 +15,7 @@ import { StickyNote, ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-vue-n
 dayjs.extend(relativeTime)
 
 const props = defineProps<{
-  linkedTo: 'TICKET' | 'CLIENT'
+  linkedTo: 'TICKET' | 'CLIENT' | 'KANBAN_CARD'
   linkedId: string
 }>()
 

@@ -29,6 +29,8 @@ import TimeEntriesList from '@/components/time/TimeEntriesList.vue'
 import ClientContextCard from '@/components/clients/ClientContextCard.vue'
 import NotesPanel from '@/components/notes/NotesPanel.vue'
 import KbSearchWidget from '@/components/kb/KbSearchWidget.vue'
+import ImageUploadButton from '@/components/ui/ImageUploadButton.vue'
+import type { CloudinaryUploadResult } from '@/services/cloudinary.service'
 import { useUsers } from '@/queries/users'
 import type { TicketStatus, TicketPriority } from '@/types/ticket'
 import 'dayjs/locale/es'
@@ -58,6 +60,31 @@ const { data: comments, isLoading: isLoadingComments } = useQuery({
   staleTime: 15000,
   enabled: computed(() => !!id.value),
 })
+
+const { data: internalComments, isLoading: isLoadingInternal } = useQuery({
+  queryKey: computed(() => ['ticket-internal-comments', id.value]),
+  queryFn: () => ticketsService.getInternalComments(id.value),
+  staleTime: 15000,
+  enabled: computed(() => !!id.value),
+})
+
+const internalText = ref('')
+const isSubmittingInternal = ref(false)
+
+async function submitInternalComment() {
+  if (!internalText.value.trim()) return
+  isSubmittingInternal.value = true
+  try {
+    await ticketsService.addComment(id.value, internalText.value.trim(), true)
+    internalText.value = ''
+    await queryClient.invalidateQueries({ queryKey: ['ticket-internal-comments', id.value] })
+    toast.success(t('devComments.send'))
+  } catch {
+    toast.error(t('ticketDetail.commentFailed'))
+  } finally {
+    isSubmittingInternal.value = false
+  }
+}
 
 const statusOptions = computed(() => [
   { label: t('ticketDetail.statusOpen'), value: 'OPEN' as TicketStatus },
@@ -166,6 +193,11 @@ const mergeMutation = useMutation({
   onError: () => toast.error(t('ticketDetail.mergeFailed'))
 })
 
+// ── Image upload ──────────────────────────────────────────────────────
+function onImageUploaded(result: CloudinaryUploadResult) {
+  commentText.value += (commentText.value ? '\n' : '') + `![imagen](${result.url})`
+}
+
 // ── CSAT ──────────────────────────────────────────────────────────────
 const csatSending = ref(false)
 async function sendCsat() {
@@ -211,6 +243,22 @@ async function submitComment() {
   }
 }
 
+function buildTicketAiContext() {
+  const t = ticket.value
+  return {
+    ticketSubject: t?.title,
+    ticketDescription: t?.description ?? undefined,
+    ticketStatus: t?.status,
+    ticketPriority: t?.priority,
+    ticketSource: t?.source,
+    requesterEmail: t?.requesterEmail ?? undefined,
+    previousReplies: comments.value
+      ?.filter(c => c.senderType === 'OPERATOR')
+      .slice(-3)
+      .map(c => c.content),
+  }
+}
+
 async function improveWithAi() {
   if (!commentText.value.trim()) return
   aiImproving.value = true
@@ -218,8 +266,7 @@ async function improveWithAi() {
     const improved = await aiService.assist({
       task: 'IMPROVE_TICKET_REPLY',
       context: {
-        ticketSubject: ticket.value?.title,
-        ticketDescription: ticket.value?.description,
+        ...buildTicketAiContext(),
         draftReply: commentText.value.trim(),
       }
     })
@@ -237,7 +284,7 @@ async function handleQuickReply(type: QuickReplyType) {
     const result = await aiService.assist({
       task: 'QUICK_REPLY',
       context: {
-        ticketSubject: ticket.value?.title,
+        ...buildTicketAiContext(),
         quickReplyType: type,
       }
     })
@@ -501,8 +548,47 @@ function fromNow(dateStr: string) {
                 Mejorar con IA
               </Button>
               <span v-else />
-              <Button :label="t('ticketDetail.send')" icon="pi pi-send" :loading="isSubmittingComment" :disabled="!commentText.trim()" @click="submitComment" />
+              <div class="flex items-center gap-2">
+                <ImageUploadButton folder="tickets" @uploaded="onImageUploaded" />
+                <Button :label="t('ticketDetail.send')" icon="pi pi-send" :loading="isSubmittingComment" :disabled="!commentText.trim()" @click="submitComment" />
+              </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Developer internal comments -->
+      <div class="rounded-xl border border-amber-300 dark:border-amber-700 bg-amber-50 dark:bg-amber-950/20 p-6 flex flex-col gap-4">
+        <h2 class="text-sm font-semibold text-amber-700 dark:text-amber-400 uppercase tracking-wide flex items-center gap-2">
+          <i class="pi pi-lock text-amber-600" />
+          {{ t('devComments.title') }}
+          <span class="text-xs font-normal text-amber-500 bg-amber-100 dark:bg-amber-900/50 px-1.5 py-0.5 rounded">{{ t('devComments.badge') }}</span>
+        </h2>
+        <p class="text-xs text-amber-600 dark:text-amber-400">{{ t('devComments.subtitle') }}</p>
+        <div v-if="isLoadingInternal" class="space-y-2">
+          <div v-for="i in 2" :key="i" class="h-8 rounded bg-amber-100/50 animate-pulse" />
+        </div>
+        <div v-else-if="internalComments?.length" class="space-y-3 max-h-48 overflow-y-auto">
+          <div v-for="c in internalComments" :key="c.id" class="flex gap-3">
+            <div class="w-7 h-7 rounded-full bg-amber-200 dark:bg-amber-800 flex items-center justify-center flex-shrink-0">
+              <i class="pi pi-lock text-amber-700 dark:text-amber-300" style="font-size: 10px;" />
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2 mb-0.5">
+                <span class="text-xs font-medium text-amber-700 dark:text-amber-300">{{ c.authorName || t('ticketDetail.agent') }}</span>
+                <span class="text-xs text-amber-500">{{ fromNow(c.createdAt) }}</span>
+              </div>
+              <p class="text-sm text-[var(--text)] whitespace-pre-wrap break-words">{{ c.content }}</p>
+            </div>
+          </div>
+        </div>
+        <p v-else class="text-sm text-amber-500">{{ t('devComments.empty') }}</p>
+        <div class="border-t border-amber-200 dark:border-amber-800 pt-3 flex flex-col gap-2">
+          <Textarea v-model="internalText" :placeholder="t('devComments.placeholder')" :rows="2" class="w-full" />
+          <div class="flex justify-end">
+            <Button :label="t('devComments.send')" icon="pi pi-lock" severity="warning" size="small"
+                    :loading="isSubmittingInternal" :disabled="!internalText.trim()"
+                    @click="submitInternalComment" />
           </div>
         </div>
       </div>

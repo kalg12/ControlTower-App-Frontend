@@ -31,7 +31,10 @@ export const CATEGORY_MAP: Record<string, NotificationCategory> = {
   POS_CHAT: 'TICKETS',
   CARD_DUE_SOON: 'KANBAN',
   CARD_OVERDUE: 'KANBAN',
+  CARD_MOVED: 'KANBAN',
+  CARD_ASSIGNED: 'KANBAN',
   ESTIMATE_EXCEEDED: 'KANBAN',
+  REMOTE_LOG_ERROR: 'SYSTEM',
   INVOICE_DUE_SOON: 'FINANCE',
   INVOICE_OVERDUE: 'FINANCE',
   CLIENT_MOVED: 'CRM',
@@ -69,9 +72,14 @@ export function getEntityLink(notif: Notification): string | null {
   const branchId = meta.branchId as string | undefined
   const opportunityId = meta.opportunityId as string | undefined
 
+  const boardId = meta.boardId as string | undefined
+  const logId = meta.logId as string | undefined
+
   if (ticketId) return `/tickets/${ticketId}`
+  if (cardId && boardId) return `/kanban/${boardId}`
   if (cardId) return `/kanban`
   if (invoiceId) return `/finance`
+  if (logId) return `/logs`
   if (incidentId) return `/health?incident=${incidentId}`
   if (eventId) return `/calendar`
   if (reminderId) return `/calendar?tab=reminders&reminder=${reminderId}`
