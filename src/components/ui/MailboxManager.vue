@@ -50,6 +50,7 @@ const { data: mailboxes, isLoading } = useQuery({
   queryKey: ['mailboxes'],
   queryFn: () => mailboxService.list(),
   staleTime: 30_000,
+  retry: false,
 })
 
 function resetForm() {
@@ -219,7 +220,7 @@ const formTitle = computed(() => editingId.value ? t('mailbox.editMailbox') : t(
     </div>
 
     <!-- Mailbox Form Dialog -->
-    <Dialog v-model:visible="showForm" :header="formTitle" modal :style="{ width: '680px' }" :closable="!saving">
+    <Dialog v-model:visible="showForm" :header="formTitle" modal append-to="body" :style="{ width: '680px', maxWidth: '95vw' }" :closable="!saving">
       <div class="space-y-5 py-2">
         <!-- Name -->
         <div>
@@ -313,7 +314,7 @@ const formTitle = computed(() => editingId.value ? t('mailbox.editMailbox') : t(
     </Dialog>
 
     <!-- Test send dialog -->
-    <Dialog v-model:visible="testSendVisible" :header="t('mailbox.testSend')" modal :style="{ width: '400px' }">
+    <Dialog v-model:visible="testSendVisible" :header="t('mailbox.testSend')" modal append-to="body" :style="{ width: '400px', maxWidth: '95vw' }">
       <div class="py-2">
         <label class="text-xs text-[var(--text-muted)] mb-1 block">{{ t('mailbox.testSendTo') }}</label>
         <InputText v-model="testSendTo" type="email" placeholder="you@example.com" class="w-full" />
