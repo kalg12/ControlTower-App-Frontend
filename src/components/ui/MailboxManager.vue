@@ -139,6 +139,19 @@ function openTestSend(m: MailboxConfig) {
   testSendVisible.value = true
 }
 
+function mapSmtpError(backendMsg: string): string {
+  if (backendMsg.includes('SMTP_AUTH_FAILED'))       return t('mailbox.smtpErrors.authFailed')
+  if (backendMsg.includes('SMTP_CONNECTION_FAILED')) return t('mailbox.smtpErrors.connectionFailed')
+  if (backendMsg.includes('SMTP_TIMEOUT'))           return t('mailbox.smtpErrors.timeout')
+  if (backendMsg.includes('SMTP_TLS_FAILED'))        return t('mailbox.smtpErrors.tlsFailed')
+  if (backendMsg.includes('SMTP_RECIPIENT_REJECTED'))return t('mailbox.smtpErrors.recipientRejected')
+  if (backendMsg.includes('SMTP_SENDER_REJECTED'))   return t('mailbox.smtpErrors.senderRejected')
+  if (backendMsg.includes('SMTP_RATE_LIMITED'))      return t('mailbox.smtpErrors.rateLimited')
+  if (backendMsg.includes('SMTP_ACCOUNT_LOCKED'))    return t('mailbox.smtpErrors.accountLocked')
+  if (backendMsg.includes('SMTP_CONFIG_ERROR'))      return t('mailbox.smtpErrors.configError')
+  return t('mailbox.testSendFailed')
+}
+
 async function sendTestEmail() {
   if (!testSendTo.value) return
   sendingTest.value = true
@@ -146,8 +159,10 @@ async function sendTestEmail() {
     await mailboxService.testSend(testSendMailboxId.value, testSendTo.value)
     toast.success(t('mailbox.testSendSuccess'))
     testSendVisible.value = false
-  } catch {
-    toast.error(t('mailbox.testSendFailed'))
+  } catch (err: unknown) {
+    const data = (err as any)?.response?.data
+    const backendMsg: string = data?.message ?? ''
+    toast.error(mapSmtpError(backendMsg))
   } finally {
     sendingTest.value = false
   }

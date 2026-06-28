@@ -2410,6 +2410,17 @@
     "testSendTo": "Correo destino de prueba",
     "testSendSuccess": "Correo de prueba enviado",
     "testSendFailed": "Error al enviar correo de prueba",
+    "smtpErrors": {
+      "authFailed": "Autenticación SMTP fallida. Revisa usuario y contraseña SMTP.",
+      "connectionFailed": "No se pudo conectar al servidor SMTP. Revisa host, puerto y firewall.",
+      "timeout": "El servidor SMTP tardó demasiado en responder. Revisa el host o el puerto.",
+      "tlsFailed": "Error de conexión TLS/SSL. Verifica que el puerto y la seguridad coincidan (465=SSL, 587=STARTTLS).",
+      "recipientRejected": "El servidor rechazó el correo destino. Verifica la dirección.",
+      "senderRejected": "El servidor rechazó el remitente. Verifica que el From Email esté autorizado.",
+      "rateLimited": "El proveedor SMTP limitó el envío temporalmente. Intenta de nuevo en unos minutos.",
+      "accountLocked": "La cuenta SMTP está bloqueada o suspendida por el proveedor.",
+      "configError": "Buzón no encontrado o inactivo."
+    },
     "noMailboxes": "No hay buzones configurados",
     "noMailboxesHint": "Agrega un buzón IMAP/SMTP para comenzar a recibir tickets por correo.",
     "lastPolled": "Última revisión",
