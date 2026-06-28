@@ -4,7 +4,7 @@ import type { PaginatedResponse } from '@/types/api'
 
 export const logsService = {
   async list(filters?: LogsFilters): Promise<PaginatedResponse<RemoteLog>> {
-    const res = await api.get<{ data: PaginatedResponse<RemoteLog> }>('/monitoring/logs', { params: filters })
-    return res.data.data
+    const res = await api.get<PaginatedResponse<RemoteLog>>('/monitoring/logs', { params: filters })
+    return res.data
   }
 }
