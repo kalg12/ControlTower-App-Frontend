@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import { ref, watch, computed } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import Card from '@/components/ui/Card.vue'
@@ -24,10 +25,24 @@ import { useSlaConfig, useTimeTrackingMutations } from '@/queries/time-tracking'
 
 const { t } = useI18n()
 const toast = useToast()
+const route = useRoute()
+const router = useRouter()
 const authStore = useAuthStore()
 const themeStore = useThemeStore()
-const activeTab = ref('profile')
 const queryClient = useQueryClient()
+
+const VALID_TABS = ['profile', 'security', 'notifications', 'sla', 'email', 'google'] as const
+type SettingsTab = typeof VALID_TABS[number]
+
+function resolveTab(raw: unknown): SettingsTab {
+  return VALID_TABS.includes(raw as SettingsTab) ? (raw as SettingsTab) : 'profile'
+}
+
+const activeTab = ref<SettingsTab>(resolveTab(route.query.tab))
+
+watch(activeTab, (tab) => {
+  router.replace({ query: { ...route.query, tab } })
+})
 
 // ── Avatar upload ─────────────────────────────────────────────────────
 const fileInputRef = ref<HTMLInputElement | null>(null)

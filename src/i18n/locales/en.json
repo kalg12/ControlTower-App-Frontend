@@ -2379,7 +2379,9 @@
     "statusInactive": "Inactive",
     "deleteConfirm": "Deactivate mailbox \"{name}\"?",
     "deleteTitle": "Deactivate mailbox",
-    "deactivate": "Deactivate"
+    "deactivate": "Deactivate",
+    "unsavedChanges": "You have unsaved changes. Close without saving?",
+    "saveValidation": "Please fill in required fields: name, IMAP host, SMTP host and from email."
   },
   "devComments": {
     "title": "Developer internal notes",

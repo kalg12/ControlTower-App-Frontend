@@ -2429,7 +2429,9 @@
     "statusInactive": "Inactivo",
     "deleteConfirm": "¿Desactivar el buzón \"{name}\"?",
     "deleteTitle": "Desactivar buzón",
-    "deactivate": "Desactivar"
+    "deactivate": "Desactivar",
+    "unsavedChanges": "Tienes cambios sin guardar. ¿Cerrar sin guardar?",
+    "saveValidation": "Completa los campos obligatorios: nombre, IMAP host, SMTP host y correo remitente."
   },
   "devComments": {
     "title": "Notas internas del desarrollador",

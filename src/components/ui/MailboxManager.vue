@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, reactive, computed } from 'vue'
+import { ref, reactive, computed, watch } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
@@ -21,6 +21,7 @@ const qc = useQueryClient()
 const showForm = ref(false)
 const editingId = ref<string | null>(null)
 const saving = ref(false)
+const formDirty = ref(false)
 const testing = ref(false)
 const testSendVisible = ref(false)
 const testSendTo = ref('')
@@ -62,11 +63,14 @@ function resetForm() {
     fromEmail: '', fromName: '', pollIntervalSec: 120, departmentId: null,
   })
   editingId.value = null
+  formDirty.value = false
 }
 
 function openNew() {
   resetForm()
   showForm.value = true
+  // Mark dirty on any change after opening
+  const stop = watch(form, () => { formDirty.value = true; stop() }, { deep: true })
 }
 
 function openEdit(m: MailboxConfig) {
@@ -89,11 +93,24 @@ function openEdit(m: MailboxConfig) {
     pollIntervalSec: m.pollIntervalSec,
     departmentId: m.departmentId,
   })
+  formDirty.value = false
   showForm.value = true
+  const stop = watch(form, () => { formDirty.value = true; stop() }, { deep: true })
+}
+
+function requestCloseForm() {
+  if (formDirty.value && !saving.value) {
+    if (!confirm(t('mailbox.unsavedChanges'))) return
+  }
+  showForm.value = false
+  resetForm()
 }
 
 async function save() {
-  if (!form.name || !form.imapHost || !form.smtpHost || !form.fromEmail) return
+  if (!form.name || !form.imapHost || !form.smtpHost || !form.fromEmail) {
+    toast.error(t('mailbox.saveValidation'))
+    return
+  }
   saving.value = true
   try {
     if (editingId.value) {
@@ -235,7 +252,10 @@ const formTitle = computed(() => editingId.value ? t('mailbox.editMailbox') : t(
     </div>
 
     <!-- Mailbox Form Dialog -->
-    <Dialog v-model:visible="showForm" :header="formTitle" modal append-to="body" :style="{ width: '680px', maxWidth: '95vw' }" :closable="!saving">
+    <Dialog v-model:visible="showForm" :header="formTitle" modal append-to="body"
+            :style="{ width: '680px', maxWidth: '95vw' }"
+            :closable="!saving" :close-on-escape="false" :dismissable-mask="false"
+            @hide="resetForm">
       <div class="space-y-5 py-2">
         <!-- Name -->
         <div>
@@ -321,9 +341,8 @@ const formTitle = computed(() => editingId.value ? t('mailbox.editMailbox') : t(
       </div>
 
       <template #footer>
-        <Button :label="t('mailbox.cancel')" severity="secondary" outlined @click="showForm = false" />
+        <Button :label="t('mailbox.cancel')" severity="secondary" outlined @click="requestCloseForm" />
         <Button :label="t('mailbox.save')" icon="pi pi-check" :loading="saving"
-                :disabled="!form.name || !form.imapHost || !form.smtpHost || !form.fromEmail"
                 @click="save" />
       </template>
     </Dialog>
