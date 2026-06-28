@@ -2437,7 +2437,22 @@
     "deleteTitle": "Desactivar buzón",
     "deactivate": "Desactivar",
     "unsavedChanges": "Tienes cambios sin guardar. ¿Cerrar sin guardar?",
-    "saveValidation": "Completa los campos obligatorios: nombre, IMAP host, SMTP host y correo remitente."
+    "saveValidation": "Completa los campos obligatorios: nombre, IMAP host, SMTP host y correo remitente.",
+    "testSendHint": "Envía a un correo de Gmail u Hotmail para verificar la entrega.",
+    "deliverability": "Diagnóstico de entregabilidad",
+    "deliverabilityReport": "Reporte de entregabilidad",
+    "deliverabilityScore": "Puntuación de entregabilidad",
+    "diagError": "No se pudo obtener el diagnóstico",
+    "dkimSection": "DKIM (Firma digital de correo)",
+    "dkimHint": "DKIM es obligatorio para que tus correos lleguen a Gmail, Hotmail y Outlook. Sin él, son rechazados o van a spam.",
+    "dkimSelector": "Selector DKIM",
+    "dkimPrivateKey": "Clave privada (PKCS#8 PEM)",
+    "dkimPrivateKeyPlaceholder": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+    "dkimDnsInstructions": "Pasos para configurar DKIM:",
+    "dkimStep1": "Genera un par de claves RSA 2048 bits:",
+    "dkimStep2": "Extrae la clave pública:",
+    "dkimStep3": "Agrega este registro TXT en tu DNS (panel de hosting):",
+    "dkimStep4": "Pega la clave privada aquí y guarda."
   },
   "devComments": {
     "title": "Notas internas del desarrollador",

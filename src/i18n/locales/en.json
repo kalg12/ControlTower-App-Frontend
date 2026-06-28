@@ -2387,7 +2387,22 @@
     "deleteTitle": "Deactivate mailbox",
     "deactivate": "Deactivate",
     "unsavedChanges": "You have unsaved changes. Close without saving?",
-    "saveValidation": "Please fill in required fields: name, IMAP host, SMTP host and from email."
+    "saveValidation": "Please fill in required fields: name, IMAP host, SMTP host and from email.",
+    "testSendHint": "Send to a Gmail or Hotmail address to verify delivery.",
+    "deliverability": "Deliverability check",
+    "deliverabilityReport": "Deliverability report",
+    "deliverabilityScore": "Deliverability score",
+    "diagError": "Could not load the diagnostic report",
+    "dkimSection": "DKIM (Email digital signature)",
+    "dkimHint": "DKIM is required for your emails to reach Gmail, Hotmail and Outlook. Without it, they are rejected or go to spam.",
+    "dkimSelector": "DKIM Selector",
+    "dkimPrivateKey": "Private key (PKCS#8 PEM)",
+    "dkimPrivateKeyPlaceholder": "-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----",
+    "dkimDnsInstructions": "Steps to configure DKIM:",
+    "dkimStep1": "Generate a 2048-bit RSA key pair:",
+    "dkimStep2": "Extract the public key:",
+    "dkimStep3": "Add this TXT record to your DNS (hosting panel):",
+    "dkimStep4": "Paste the private key here and save."
   },
   "devComments": {
     "title": "Developer internal notes",

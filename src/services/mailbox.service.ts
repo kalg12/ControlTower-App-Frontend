@@ -1,5 +1,5 @@
 import api from '@/services/api'
-import type { MailboxConfig, MailboxRequest } from '@/types/mailbox'
+import type { MailboxConfig, MailboxRequest, DeliverabilityReport } from '@/types/mailbox'
 
 export const mailboxService = {
   async list(): Promise<MailboxConfig[]> {
@@ -31,7 +31,11 @@ export const mailboxService = {
       mailboxId,
       to,
       subject: 'Test desde Control Tower',
-      bodyHtml: '<p>Este es un correo de prueba desde Control Tower.</p>',
     })
+  },
+
+  async checkDeliverability(id: string): Promise<DeliverabilityReport> {
+    const res = await api.get<DeliverabilityReport>(`/email/mailboxes/${id}/deliverability`)
+    return res.data
   },
 }
