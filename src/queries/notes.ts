@@ -35,6 +35,11 @@ export function useNoteMutations() {
       mutationFn: (body: NoteRequest) => notesService.create(body),
       onSuccess: invalidate
     }),
+    reply: useMutation({
+      mutationFn: ({ parentId, body }: { parentId: string; body: NoteRequest }) =>
+        notesService.reply(parentId, body),
+      onSuccess: invalidate
+    }),
     update: useMutation({
       mutationFn: ({ id, body }: { id: string; body: NoteRequest }) => notesService.update(id, body),
       onSuccess: invalidate

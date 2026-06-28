@@ -2202,7 +2202,13 @@
     "placeholderContent": "Contenido (opcional)",
     "empty": "Sin notas aún.",
     "addTitle": "Título de la nota *",
-    "saveNote": "Guardar nota"
+    "saveNote": "Guardar nota",
+    "unknownAuthor": "Desconocido",
+    "reply": "Responder",
+    "sendReply": "Enviar respuesta",
+    "replyPlaceholder": "Escribe tu respuesta...",
+    "replySaved": "Respuesta enviada",
+    "replyFailed": "No se pudo enviar la respuesta"
   },
   "timeTracking": {
     "title": "Tiempo",

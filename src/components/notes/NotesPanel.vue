@@ -2,6 +2,7 @@
 import { ref, computed } from 'vue'
 import { useI18n } from 'vue-i18n'
 import { useNotesList, useNoteMutations } from '@/queries/notes'
+import type { Note } from '@/services/notes.service'
 import { useToast } from '@/composables/useToast'
 import { useConfirm } from 'primevue/useconfirm'
 import Button from 'primevue/button'
@@ -10,7 +11,7 @@ import Textarea from 'primevue/textarea'
 import Skeleton from 'primevue/skeleton'
 import dayjs from 'dayjs'
 import relativeTime from 'dayjs/plugin/relativeTime'
-import { StickyNote, ChevronDown, ChevronUp, Pencil, Trash2 } from 'lucide-vue-next'
+import { StickyNote, ChevronDown, ChevronUp, Pencil, Trash2, CornerDownRight } from 'lucide-vue-next'
 
 dayjs.extend(relativeTime)
 
@@ -22,7 +23,7 @@ const props = defineProps<{
 const toast = useToast()
 const confirm = useConfirm()
 const { t } = useI18n()
-const { create, update, remove } = useNoteMutations()
+const { create, reply, update, remove } = useNoteMutations()
 
 const isOpen = ref(true)
 
@@ -57,12 +58,43 @@ async function saveNote() {
   }
 }
 
+// ── Reply ─────────────────────────────────────────────────────────────
+const replyingToId = ref<string | null>(null)
+const replyContent = ref('')
+const isReplying = ref(false)
+
+function startReply(noteId: string) {
+  replyingToId.value = replyingToId.value === noteId ? null : noteId
+  replyContent.value = ''
+}
+
+async function submitReply(parentId: string, parentTitle: string) {
+  if (!replyContent.value.trim()) return
+  isReplying.value = true
+  try {
+    await reply.mutateAsync({
+      parentId,
+      body: {
+        title: parentTitle,
+        content: replyContent.value.trim(),
+      },
+    })
+    replyingToId.value = null
+    replyContent.value = ''
+    toast.success(t('notes.replySaved'))
+  } catch {
+    toast.error(t('notes.replyFailed'))
+  } finally {
+    isReplying.value = false
+  }
+}
+
 // ── Edit inline ───────────────────────────────────────────────────────
 const editingId = ref<string | null>(null)
 const editTitle = ref('')
 const editContent = ref('')
 
-function startEdit(note: { id: string; title: string; content?: string }) {
+function startEdit(note: Note) {
   editingId.value = note.id
   editTitle.value = note.title
   editContent.value = note.content ?? ''
@@ -103,6 +135,11 @@ function confirmDelete(id: string, title: string) {
     },
   })
 }
+
+function formatDatetime(iso?: string) {
+  if (!iso) return ''
+  return dayjs(iso).format('DD/MM/YY HH:mm')
+}
 </script>
 
 <template>
@@ -128,7 +165,7 @@ function confirmDelete(id: string, title: string) {
       </div>
 
       <!-- Notes list -->
-      <div v-else-if="notes.length" class="space-y-2 max-h-72 overflow-y-auto pr-1">
+      <div v-else-if="notes.length" class="space-y-2 max-h-96 overflow-y-auto pr-1">
         <div
           v-for="note in notes"
           :key="note.id"
@@ -140,15 +177,65 @@ function confirmDelete(id: string, title: string) {
               <div class="min-w-0 flex-1">
                 <p class="text-sm font-medium text-[var(--text)]">{{ note.title }}</p>
                 <p v-if="note.content" class="text-xs text-[var(--text-muted)] mt-0.5 whitespace-pre-wrap">{{ note.content }}</p>
-                <p class="text-xs text-[var(--text-muted)] mt-1 opacity-60">{{ dayjs(note.createdAt).fromNow() }}</p>
+                <!-- Author + datetime -->
+                <p class="text-xs text-[var(--text-muted)] mt-1.5 flex items-center gap-1.5 opacity-75">
+                  <span class="font-medium text-[var(--text-muted)]">{{ note.authorName ?? $t('notes.unknownAuthor') }}</span>
+                  <span>·</span>
+                  <span :title="note.createdAt">{{ formatDatetime(note.createdAt) }}</span>
+                </p>
               </div>
               <div class="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0">
+                <button
+                  class="p-1 rounded text-[var(--text-muted)] hover:text-[var(--brand)]"
+                  :title="$t('notes.reply')"
+                  @click="startReply(note.id)"
+                >
+                  <CornerDownRight class="w-3.5 h-3.5" />
+                </button>
                 <button class="p-1 rounded text-[var(--text-muted)] hover:text-[var(--text)]" @click="startEdit(note)">
                   <Pencil class="w-3.5 h-3.5" />
                 </button>
                 <button class="p-1 rounded text-[var(--text-muted)] hover:text-red-500" @click="confirmDelete(note.id, note.title)">
                   <Trash2 class="w-3.5 h-3.5" />
                 </button>
+              </div>
+            </div>
+
+            <!-- Embedded replies -->
+            <div v-if="note.replies && note.replies.length" class="mt-2 ml-4 border-l-2 border-[var(--border)] pl-3 space-y-2">
+              <div
+                v-for="r in note.replies"
+                :key="r.id"
+                class="text-xs text-[var(--text-muted)]"
+              >
+                <p class="text-[var(--text)] whitespace-pre-wrap">{{ r.content }}</p>
+                <p class="flex items-center gap-1.5 mt-0.5 opacity-75">
+                  <span class="font-medium">{{ r.authorName ?? $t('notes.unknownAuthor') }}</span>
+                  <span>·</span>
+                  <span>{{ formatDatetime(r.createdAt) }}</span>
+                </p>
+              </div>
+            </div>
+
+            <!-- Reply form -->
+            <div v-if="replyingToId === note.id" class="mt-2 ml-4 border-l-2 border-[var(--brand)] pl-3">
+              <Textarea
+                v-model="replyContent"
+                class="w-full text-xs"
+                :rows="2"
+                :placeholder="$t('notes.replyPlaceholder')"
+                auto-resize
+              />
+              <div class="flex gap-2 mt-1.5 justify-end">
+                <Button :label="$t('notes.cancelLabel')" severity="secondary" text size="small" @click="startReply(note.id)" />
+                <Button
+                  :label="$t('notes.sendReply')"
+                  size="small"
+                  icon="pi pi-send"
+                  :loading="isReplying"
+                  :disabled="!replyContent.trim()"
+                  @click="submitReply(note.id, note.title)"
+                />
               </div>
             </div>
           </template>

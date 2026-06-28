@@ -288,24 +288,8 @@ function onDragChange(evt: { added?: { element: KanbanCard; newIndex: number }; 
     const card = evt.added.element
     const newIndex = evt.added.newIndex
     moveCard.mutate(
-      { cardId: card.id, body: { targetColumnId: columnId, position: newIndex }, boardId: board.value.id },
+      { cardId: card.id, body: { targetColumnId: columnId, position: newIndex, notifyByEmail: !!card.assigneeIds?.length }, boardId: board.value.id },
       {
-        onSuccess: () => {
-          if (card.assigneeIds?.length) {
-            confirm.require({
-message: t('kanbanBoard.emailNotifyConfirm'),
-               header: t('kanbanBoard.emailNotifyHeader'),
-               icon: 'pi pi-envelope',
-               acceptLabel: t('kanbanBoard.sendEmail'),
-               rejectLabel: t('common.no'),
-               accept: () => {
-                 kanbanService.moveCard(card.id, { targetColumnId: columnId, position: newIndex, notifyByEmail: true })
-                   .then(() => toast.success(t('kanbanBoard.emailNotificationSent')))
-                   .catch(() => toast.error(t('kanbanBoard.emailNotificationError')))
-               }
-            })
-          }
-        },
         onError: () => {
           toast.error(t('kanban.moveCardFailed'))
           refetch()
