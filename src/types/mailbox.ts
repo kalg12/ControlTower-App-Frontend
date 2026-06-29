@@ -20,8 +20,6 @@ export interface MailboxConfig {
   departmentId: string | null
   active: boolean
   createdAt: string
-  dkimSelector: string | null
-  dkimConfigured: boolean
 }
 
 export interface MailboxRequest {
@@ -41,8 +39,6 @@ export interface MailboxRequest {
   fromName: string
   pollIntervalSec: number
   departmentId: string | null
-  dkimSelector: string
-  dkimPrivateKey: string
 }
 
 export interface DeliverabilityCheck {

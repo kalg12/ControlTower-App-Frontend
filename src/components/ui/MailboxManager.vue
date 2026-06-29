@@ -5,7 +5,6 @@ import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import Button from 'primevue/button'
 import InputText from 'primevue/inputtext'
 import InputNumber from 'primevue/inputnumber'
-import Textarea from 'primevue/textarea'
 import ToggleSwitch from 'primevue/toggleswitch'
 import Dialog from 'primevue/dialog'
 import Tag from 'primevue/tag'
@@ -31,7 +30,6 @@ const sendingTest = ref(false)
 const diagVisible = ref(false)
 const diagLoading = ref(false)
 const diagReport = ref<DeliverabilityReport | null>(null)
-const diagMailboxId = ref('')
 
 const BLANK_FORM: MailboxRequest = {
   name: '', imapHost: '', imapPort: 993, imapSsl: true,
@@ -39,7 +37,6 @@ const BLANK_FORM: MailboxRequest = {
   smtpHost: '', smtpPort: 587, smtpSsl: true,
   smtpUsername: '', smtpPassword: '',
   fromEmail: '', fromName: '', pollIntervalSec: 120, departmentId: null,
-  dkimSelector: '', dkimPrivateKey: '',
 }
 
 const form = reactive<MailboxRequest>({ ...BLANK_FORM })
@@ -73,8 +70,6 @@ function openEdit(m: MailboxConfig) {
     smtpUsername: m.smtpUsername, smtpPassword: '***',
     fromEmail: m.fromEmail, fromName: m.fromName ?? '',
     pollIntervalSec: m.pollIntervalSec, departmentId: m.departmentId,
-    dkimSelector: m.dkimSelector ?? '',
-    dkimPrivateKey: m.dkimConfigured ? '***' : '',
   })
   formDirty.value = false
   showForm.value = true
@@ -140,15 +135,15 @@ function openTestSend(m: MailboxConfig) {
 }
 
 function mapSmtpError(backendMsg: string): string {
-  if (backendMsg.includes('SMTP_AUTH_FAILED'))       return t('mailbox.smtpErrors.authFailed')
-  if (backendMsg.includes('SMTP_CONNECTION_FAILED')) return t('mailbox.smtpErrors.connectionFailed')
-  if (backendMsg.includes('SMTP_TIMEOUT'))           return t('mailbox.smtpErrors.timeout')
-  if (backendMsg.includes('SMTP_TLS_FAILED'))        return t('mailbox.smtpErrors.tlsFailed')
-  if (backendMsg.includes('SMTP_RECIPIENT_REJECTED'))return t('mailbox.smtpErrors.recipientRejected')
-  if (backendMsg.includes('SMTP_SENDER_REJECTED'))   return t('mailbox.smtpErrors.senderRejected')
-  if (backendMsg.includes('SMTP_RATE_LIMITED'))      return t('mailbox.smtpErrors.rateLimited')
-  if (backendMsg.includes('SMTP_ACCOUNT_LOCKED'))    return t('mailbox.smtpErrors.accountLocked')
-  if (backendMsg.includes('SMTP_CONFIG_ERROR'))      return t('mailbox.smtpErrors.configError')
+  if (backendMsg.includes('SMTP_AUTH_FAILED'))        return t('mailbox.smtpErrors.authFailed')
+  if (backendMsg.includes('SMTP_CONNECTION_FAILED'))  return t('mailbox.smtpErrors.connectionFailed')
+  if (backendMsg.includes('SMTP_TIMEOUT'))            return t('mailbox.smtpErrors.timeout')
+  if (backendMsg.includes('SMTP_TLS_FAILED'))         return t('mailbox.smtpErrors.tlsFailed')
+  if (backendMsg.includes('SMTP_RECIPIENT_REJECTED')) return t('mailbox.smtpErrors.recipientRejected')
+  if (backendMsg.includes('SMTP_SENDER_REJECTED'))    return t('mailbox.smtpErrors.senderRejected')
+  if (backendMsg.includes('SMTP_RATE_LIMITED'))       return t('mailbox.smtpErrors.rateLimited')
+  if (backendMsg.includes('SMTP_ACCOUNT_LOCKED'))     return t('mailbox.smtpErrors.accountLocked')
+  if (backendMsg.includes('SMTP_CONFIG_ERROR'))       return t('mailbox.smtpErrors.configError')
   return t('mailbox.testSendFailed')
 }
 
@@ -169,7 +164,6 @@ async function sendTestEmail() {
 }
 
 async function openDeliverability(m: MailboxConfig) {
-  diagMailboxId.value = m.id
   diagReport.value = null
   diagVisible.value = true
   diagLoading.value = true
@@ -217,14 +211,12 @@ const formTitle = computed(() => editingId.value ? t('mailbox.editMailbox') : t(
       <Card v-for="m in mailboxes" :key="m.id" class="p-4">
         <div class="flex items-start justify-between gap-4">
           <div class="min-w-0 flex-1">
-            <div class="flex items-center gap-2 mb-1 flex-wrap">
+            <div class="flex items-center gap-2 mb-1">
               <i class="pi pi-envelope text-[var(--text-muted)]" />
               <span class="font-medium text-sm text-[var(--text)]">{{ m.name }}</span>
               <Tag :severity="m.active ? 'success' : 'secondary'"
                    :value="m.active ? t('mailbox.statusActive') : t('mailbox.statusInactive')"
                    class="text-xs" />
-              <Tag v-if="m.dkimConfigured" severity="info" value="DKIM ✓" class="text-xs" />
-              <Tag v-else severity="warn" value="Sin DKIM" class="text-xs" />
             </div>
             <p class="text-xs text-[var(--text-muted)]">
               SMTP: {{ m.smtpHost }}:{{ m.smtpPort }}
@@ -238,21 +230,18 @@ const formTitle = computed(() => editingId.value ? t('mailbox.editMailbox') : t(
               {{ t('mailbox.errorCount', { count: m.errorCount }) }}: {{ m.lastError }}
             </p>
           </div>
-          <div class="flex items-center gap-2 shrink-0 flex-wrap justify-end">
+          <div class="flex items-center gap-2 shrink-0">
             <Button icon="pi pi-chart-bar" severity="secondary" size="small" outlined
-                    :title="t('mailbox.deliverability')"
-                    @click="openDeliverability(m)" />
+                    :title="t('mailbox.deliverability')" @click="openDeliverability(m)" />
             <Button icon="pi pi-wifi" severity="secondary" size="small" outlined
                     :title="t('mailbox.testConnection')" :loading="testing"
                     @click="testConnection(m)" />
             <Button icon="pi pi-send" severity="secondary" size="small" outlined
-                    :title="t('mailbox.testSend')"
-                    @click="openTestSend(m)" />
+                    :title="t('mailbox.testSend')" @click="openTestSend(m)" />
             <Button icon="pi pi-pencil" severity="secondary" size="small" outlined
                     @click="openEdit(m)" />
             <Button icon="pi pi-times" severity="danger" size="small" outlined
-                    :title="t('mailbox.deactivate')"
-                    @click="deactivate(m)" />
+                    :title="t('mailbox.deactivate')" @click="deactivate(m)" />
           </div>
         </div>
       </Card>
@@ -260,11 +249,10 @@ const formTitle = computed(() => editingId.value ? t('mailbox.editMailbox') : t(
 
     <!-- ── Mailbox Form Dialog ───────────────────────────────────────────── -->
     <Dialog v-model:visible="showForm" :header="formTitle" modal append-to="body"
-            :style="{ width: '700px', maxWidth: '95vw' }"
+            :style="{ width: '680px', maxWidth: '95vw' }"
             :closable="!saving" :close-on-escape="false" :dismissable-mask="false"
             @hide="resetForm">
       <div class="space-y-5 py-2">
-        <!-- Name -->
         <div>
           <label class="text-xs font-medium text-[var(--text-muted)] mb-1 block">{{ t('mailbox.name') }}</label>
           <InputText v-model="form.name" :placeholder="t('mailbox.namePlaceholder')" class="w-full" />
@@ -340,55 +328,6 @@ const formTitle = computed(() => editingId.value ? t('mailbox.editMailbox') : t(
           </div>
         </div>
 
-        <!-- DKIM -->
-        <div class="rounded-lg border border-[var(--border)] p-4 space-y-3">
-          <div class="flex items-center justify-between">
-            <h4 class="text-xs font-semibold uppercase tracking-wider text-[var(--text-muted)]">{{ t('mailbox.dkimSection') }}</h4>
-            <Tag v-if="form.dkimSelector && (form.dkimPrivateKey && form.dkimPrivateKey !== '***')" severity="success" value="DKIM activo" class="text-xs" />
-          </div>
-          <p class="text-xs text-[var(--text-muted)]">{{ t('mailbox.dkimHint') }}</p>
-
-          <div class="grid grid-cols-2 gap-3">
-            <div class="col-span-2 sm:col-span-1">
-              <label class="text-xs text-[var(--text-muted)] mb-1 block">{{ t('mailbox.dkimSelector') }}</label>
-              <InputText v-model="form.dkimSelector" placeholder="mail" class="w-full text-sm" />
-              <p v-if="form.dkimSelector && form.fromEmail.includes('@')" class="text-xs text-[var(--text-muted)] mt-1 font-mono">
-                DNS: {{ form.dkimSelector }}._domainkey.{{ form.fromEmail.split('@')[1] }}
-              </p>
-            </div>
-          </div>
-
-          <div>
-            <label class="text-xs text-[var(--text-muted)] mb-1 block">{{ t('mailbox.dkimPrivateKey') }}</label>
-            <Textarea
-              v-model="form.dkimPrivateKey"
-              :placeholder="t('mailbox.dkimPrivateKeyPlaceholder')"
-              class="w-full text-xs font-mono"
-              :rows="5"
-              auto-resize
-            />
-          </div>
-
-          <!-- DNS instructions -->
-          <div v-if="form.dkimSelector" class="rounded-md bg-blue-50 dark:bg-blue-950/30 border border-blue-200 dark:border-blue-800 p-3 text-xs space-y-1">
-            <p class="font-semibold text-blue-700 dark:text-blue-300">{{ t('mailbox.dkimDnsInstructions') }}</p>
-            <p class="text-blue-600 dark:text-blue-400">1. {{ t('mailbox.dkimStep1') }}</p>
-            <code class="block bg-blue-100 dark:bg-blue-900/50 rounded px-2 py-1 font-mono mt-1 break-all">
-              openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out dkim_private.pem
-            </code>
-            <p class="text-blue-600 dark:text-blue-400 mt-2">2. {{ t('mailbox.dkimStep2') }}</p>
-            <code class="block bg-blue-100 dark:bg-blue-900/50 rounded px-2 py-1 font-mono break-all">
-              openssl rsa -in dkim_private.pem -pubout -out dkim_public.pem
-            </code>
-            <p class="text-blue-600 dark:text-blue-400 mt-2">3. {{ t('mailbox.dkimStep3') }}</p>
-            <code v-if="form.fromEmail.includes('@')" class="block bg-blue-100 dark:bg-blue-900/50 rounded px-2 py-1 font-mono break-all">
-              {{ form.dkimSelector }}._domainkey.{{ form.fromEmail.split('@')[1] }} TXT "v=DKIM1; k=rsa; p=&lt;contenido_de_dkim_public.pem&gt;"
-            </code>
-            <p class="text-blue-600 dark:text-blue-400 mt-2">4. {{ t('mailbox.dkimStep4') }}</p>
-          </div>
-        </div>
-
-        <!-- Poll interval -->
         <div class="flex items-center gap-3">
           <label class="text-xs text-[var(--text-muted)] shrink-0">{{ t('mailbox.pollInterval') }}</label>
           <InputNumber v-model="form.pollIntervalSec" :use-grouping="false" :min="30" class="w-24 text-sm" input-class="w-full" />
@@ -421,20 +360,18 @@ const formTitle = computed(() => editingId.value ? t('mailbox.editMailbox') : t(
             :style="{ width: '600px', maxWidth: '95vw' }">
       <div class="py-2">
         <div v-if="diagLoading" class="space-y-3">
-          <div v-for="i in 4" :key="i" class="h-12 rounded-lg bg-muted/30 animate-pulse" />
+          <div v-for="i in 5" :key="i" class="h-12 rounded-lg bg-muted/30 animate-pulse" />
         </div>
 
         <template v-else-if="diagReport">
-          <!-- Score -->
           <div class="flex items-center gap-4 mb-4 p-3 rounded-lg border border-[var(--border)]">
             <div :class="['text-4xl font-bold', scoreColor]">{{ diagReport.score }}</div>
             <div>
               <p class="font-semibold text-[var(--text)]">{{ t('mailbox.deliverabilityScore') }}</p>
-              <p :class="['text-sm', scoreColor]">{{ diagReport.verdict }}</p>
+              <p :class="['text-sm font-medium', scoreColor]">{{ diagReport.verdict }}</p>
             </div>
           </div>
 
-          <!-- Checks -->
           <div class="space-y-2">
             <div
               v-for="check in diagReport.checks"
