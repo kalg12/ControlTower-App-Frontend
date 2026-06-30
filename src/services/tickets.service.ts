@@ -70,8 +70,8 @@ export const ticketsService = {
   },
 
   async getInternalComments(id: string): Promise<TicketCommentResponse[]> {
-    const res = await api.get<{ data: TicketCommentResponse[] }>(`/tickets/${id}/internal-comments`)
-    return res.data.data
+    const res = await api.get<TicketCommentResponse[]>(`/tickets/${id}/internal-comments`)
+    return res.data
   },
 
   async addComment(id: string, content: string, internal = false): Promise<Ticket> {

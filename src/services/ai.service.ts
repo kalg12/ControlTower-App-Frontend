@@ -1,6 +1,6 @@
 import api from '@/services/api'
 
-export type AiTask = 'GENERATE_CARD_PROMPT' | 'IMPROVE_TICKET_REPLY' | 'QUICK_REPLY' | 'GENERATE_KB_CONTENT'
+export type AiTask = 'GENERATE_CARD_PROMPT' | 'IMPROVE_TICKET_REPLY' | 'QUICK_REPLY' | 'GENERATE_KB_CONTENT' | 'GENERATE_TEMPLATE_CONTENT'
 
 export type QuickReplyType =
   | 'STARTED_REVIEW'
@@ -30,6 +30,9 @@ export interface AiContext {
   quickReplyType?: QuickReplyType
   // Knowledge base
   kbArticles?: string[]
+  // Response template
+  templateName?: string
+  templateCategory?: string
 }
 
 export interface AiAssistRequest {

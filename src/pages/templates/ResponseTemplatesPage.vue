@@ -4,17 +4,18 @@ import { useI18n } from "vue-i18n";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/vue-query";
 import { toast } from "vue3-toastify";
 import { templatesService } from "@/services/templates.service";
+import { aiService } from "@/services/ai.service";
 import { qk } from "@/queries/keys";
 import type {
   ResponseTemplate,
   ResponseTemplateRequest,
 } from "@/types/templates";
-import { Edit2, Trash2, Search, FileText, Zap } from "lucide-vue-next";
+import { Edit2, Trash2, Search, FileText, Zap, Sparkles } from "lucide-vue-next";
 import Dialog from "primevue/dialog";
 import InputText from "primevue/inputtext";
-import Textarea from "primevue/textarea";
 import Button from "primevue/button";
 import { useConfirm } from "primevue/useconfirm";
+import RichTextEditor from "@/components/ui/RichTextEditor.vue";
 
 const { t } = useI18n();
 const queryClient = useQueryClient();
@@ -130,6 +131,30 @@ const categories = computed(() => {
   const cats = new Set(templates.value.map((t) => t.category).filter(Boolean));
   return Array.from(cats) as string[];
 });
+
+const aiGenerating = ref(false);
+
+async function generateWithAi() {
+  if (!form.value.name.trim()) {
+    toast.warn(t("templates.aiNeedsName", "Escribe el nombre de la plantilla antes de generar con IA"));
+    return;
+  }
+  aiGenerating.value = true;
+  try {
+    const result = await aiService.assist({
+      task: "GENERATE_TEMPLATE_CONTENT",
+      context: {
+        templateName: form.value.name.trim(),
+        templateCategory: form.value.category?.trim() || undefined,
+      },
+    });
+    form.value.body = result;
+  } catch {
+    toast.error(t("templates.aiGenerateFailed", "No se pudo generar el contenido con IA"));
+  } finally {
+    aiGenerating.value = false;
+  }
+}
 </script>
 
 <template>
@@ -234,9 +259,10 @@ const categories = computed(() => {
             </button>
           </div>
         </div>
-        <p class="text-xs text-[var(--text-muted)] line-clamp-3 flex-1">
-          {{ tpl.body }}
-        </p>
+        <div
+          class="text-xs text-[var(--text-muted)] line-clamp-3 flex-1 tpl-body-preview"
+          v-html="tpl.body"
+        />
         <div
           class="flex items-center gap-2 mt-auto pt-2 border-t border-[var(--border)]"
         >
@@ -275,15 +301,29 @@ const categories = computed(() => {
         />
       </div>
       <div>
-        <label class="block text-xs font-medium text-[var(--text-muted)] mb-1"
-          >{{ t("templates.body") }} *</label
-        >
-        <Textarea
+        <div class="flex items-center justify-between mb-1">
+          <label class="block text-xs font-medium text-[var(--text-muted)]"
+            >{{ t("templates.body") }} *</label
+          >
+          <Button
+            :label="aiGenerating ? t('common.generating', 'Generando...') : t('templates.generateWithAi', 'Generar con IA')"
+            :icon="aiGenerating ? 'pi pi-spin pi-spinner' : undefined"
+            :loading="aiGenerating"
+            severity="secondary"
+            size="small"
+            text
+            class="!text-[var(--primary)] !text-xs"
+            @click="generateWithAi"
+          >
+            <template v-if="!aiGenerating" #icon>
+              <Sparkles class="w-3.5 h-3.5 mr-1" />
+            </template>
+          </Button>
+        </div>
+        <RichTextEditor
           v-model="form.body"
-          class="w-full"
-          rows="6"
-          :placeholder="t('templates.bodyPlaceholder')"
-          auto-resize
+          :placeholder="t('templates.bodyPlaceholder', 'Escribe el cuerpo de la plantilla...')"
+          min-height="200px"
         />
       </div>
       <div class="grid grid-cols-2 gap-4">
@@ -321,7 +361,7 @@ const categories = computed(() => {
         />
         <Button
           :label="t('common.save')"
-          :disabled="!form.name.trim() || !form.body.trim()"
+          :disabled="!form.name.trim() || !form.body.replace(/<[^>]*>/g, '').trim()"
           :loading="
             createMutation.isPending.value || updateMutation.isPending.value
           "
@@ -331,3 +371,12 @@ const categories = computed(() => {
     </template>
   </Dialog>
 </template>
+
+<style scoped>
+.tpl-body-preview :deep(p)      { margin: 0; }
+.tpl-body-preview :deep(ul),
+.tpl-body-preview :deep(ol)     { padding-left: 1rem; margin: 0; }
+.tpl-body-preview :deep(strong) { font-weight: 600; }
+.tpl-body-preview :deep(em)     { font-style: italic; }
+.tpl-body-preview :deep(u)      { text-decoration: underline; }
+</style>

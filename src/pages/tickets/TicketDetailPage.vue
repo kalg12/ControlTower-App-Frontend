@@ -86,13 +86,31 @@ async function submitInternalComment() {
   }
 }
 
-const statusOptions = computed(() => [
-  { label: t('ticketDetail.statusOpen'), value: 'OPEN' as TicketStatus },
+const ALLOWED_TRANSITIONS: Record<TicketStatus, TicketStatus[]> = {
+  OPEN:        ['IN_PROGRESS', 'WAITING', 'RESOLVED', 'CLOSED'],
+  IN_PROGRESS: ['WAITING', 'RESOLVED', 'CLOSED'],
+  WAITING:     ['OPEN', 'IN_PROGRESS', 'RESOLVED', 'CLOSED'],
+  RESOLVED:    ['OPEN', 'IN_PROGRESS', 'WAITING', 'CLOSED'],
+  CLOSED:      ['OPEN', 'IN_PROGRESS', 'WAITING', 'RESOLVED'],
+}
+
+const ALL_STATUS_OPTIONS = [
+  { label: t('ticketDetail.statusOpen'),       value: 'OPEN'        as TicketStatus },
   { label: t('ticketDetail.statusInProgress'), value: 'IN_PROGRESS' as TicketStatus },
-  { label: t('ticketDetail.statusWaiting'), value: 'WAITING' as TicketStatus },
-  { label: t('ticketDetail.statusResolved'), value: 'RESOLVED' as TicketStatus },
-  { label: t('ticketDetail.statusClosed'), value: 'CLOSED' as TicketStatus },
-])
+  { label: t('ticketDetail.statusWaiting'),    value: 'WAITING'     as TicketStatus },
+  { label: t('ticketDetail.statusResolved'),   value: 'RESOLVED'    as TicketStatus },
+  { label: t('ticketDetail.statusClosed'),     value: 'CLOSED'      as TicketStatus },
+]
+
+const statusOptions = computed(() => {
+  const current = ticket.value?.status
+  if (!current) return ALL_STATUS_OPTIONS
+  const allowed = ALLOWED_TRANSITIONS[current] ?? []
+  return ALL_STATUS_OPTIONS.map(opt => ({
+    ...opt,
+    disabled: opt.value !== current && !allowed.includes(opt.value),
+  }))
+})
 
 const selectedStatus = ref<TicketStatus | null>(null)
 const isChangingStatus = ref(false)
@@ -338,6 +356,7 @@ function fromNow(dateStr: string) {
           :options="statusOptions"
           option-label="label"
           option-value="value"
+          option-disabled="disabled"
           :placeholder="t('ticketDetail.status')"
           class="w-52"
           :disabled="isChangingStatus"

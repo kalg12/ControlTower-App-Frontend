@@ -3,7 +3,7 @@ import { ref, computed, watch } from 'vue'
 import { aiService } from '@/services/ai.service'
 import { useRoute, useRouter } from 'vue-router'
 import { useI18n } from 'vue-i18n'
-import { useQuery } from '@tanstack/vue-query'
+import { useQuery, useQueryClient } from '@tanstack/vue-query'
 import draggable from 'vuedraggable'
 import Button from 'primevue/button'
 import Dialog from 'primevue/dialog'
@@ -36,6 +36,7 @@ const router = useRouter()
 const toast = useToast()
 const confirm = useConfirm()
 const auth = useAuthStore()
+const queryClient = useQueryClient()
 const canWriteKanban = computed(() => auth.hasPermission('kanban:write'))
 
 const boardId = computed(() => route.params.id as string)
@@ -284,12 +285,24 @@ async function submitCard() {
 
 function onDragChange(evt: { added?: { element: KanbanCard; newIndex: number }; moved?: { element: KanbanCard; newIndex: number } }, columnId: string) {
   if (!board.value) return
+  const targetCol = columns.value.find((c) => c.id === columnId)
+  const isInProgress = targetCol?.columnKind === 'IN_PROGRESS'
+
+  function onMoveSuccess() {
+    // Refresh timer widget if the card moved to IN_PROGRESS (backend auto-started a timer)
+    if (isInProgress) {
+      queryClient.invalidateQueries({ queryKey: ['timer', 'active'] })
+      toast.info(t('kanban.timerStarted', 'Cronómetro iniciado automáticamente'))
+    }
+  }
+
   if (evt.added) {
     const card = evt.added.element
     const newIndex = evt.added.newIndex
     moveCard.mutate(
       { cardId: card.id, body: { targetColumnId: columnId, position: newIndex, notifyByEmail: !!card.assigneeIds?.length }, boardId: board.value.id },
       {
+        onSuccess: onMoveSuccess,
         onError: () => {
           toast.error(t('kanban.moveCardFailed'))
           refetch()
@@ -302,6 +315,7 @@ function onDragChange(evt: { added?: { element: KanbanCard; newIndex: number }; 
     moveCard.mutate(
       { cardId: card.id, body: { targetColumnId: columnId, position: newIndex }, boardId: board.value.id },
       {
+        onSuccess: onMoveSuccess,
         onError: () => {
           toast.error(t('kanban.moveCardFailed'))
           refetch()
