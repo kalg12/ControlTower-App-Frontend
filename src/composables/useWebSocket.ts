@@ -13,10 +13,18 @@ function sockjsUrl(): string {
 
 const stompClient = ref<StompClient | null>(null)
 export const wsConnected = ref(false)
+let notificationsSubscription: { unsubscribe: () => void } | null = null
 
 function subscribeNotifications(client: StompClient) {
+  // STOMP.js reuses the same client across automatic reconnects and re-fires
+  // onConnect each time, so without unsubscribing first every reconnect stacks
+  // another subscription and each server push gets delivered (and toasted) once per stack.
+  if (notificationsSubscription) {
+    notificationsSubscription.unsubscribe()
+    notificationsSubscription = null
+  }
   const notifStore = useNotificationsStore()
-  client.subscribe('/user/queue/notifications', (message: IMessage) => {
+  notificationsSubscription = client.subscribe('/user/queue/notifications', (message: IMessage) => {
     try {
       const notification: Notification = JSON.parse(message.body)
       notifStore.push(notification)
@@ -90,6 +98,7 @@ export function disconnectWebSocket() {
     stompClient.value = null
     wsConnected.value = false
   }
+  notificationsSubscription = null
 }
 
 /** After access token refresh, reconnect so the URL carries the new JWT. */
