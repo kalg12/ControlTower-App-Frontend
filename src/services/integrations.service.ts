@@ -62,4 +62,9 @@ export const integrationsService = {
     const res = await api.post<string>(`/integrations/${id}/regenerate-key`)
     return res.data
   },
+
+  async regenerateWebhookSecret(id: string): Promise<string> {
+    const res = await api.post<string>(`/integrations/${id}/regenerate-webhook-secret`)
+    return res.data
+  },
 }

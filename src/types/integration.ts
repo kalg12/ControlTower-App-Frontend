@@ -40,6 +40,7 @@ export interface WebhookDelivery {
 export interface IntegrationCreateResponse {
   endpoint: Integration
   generatedApiKey: string
+  generatedWebhookSecret: string
 }
 
 export interface CreateIntegrationRequest {

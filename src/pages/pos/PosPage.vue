@@ -225,6 +225,7 @@ async function submitRegister() {
 const showGuide = ref(false);
 const guideEndpoint = ref<Integration | null>(null);
 const guideApiKey = ref<string | null>(null);
+const guideWebhookSecret = ref<string | null>(null);
 const guideIsNew = ref(false);
 const guideIsRegen = ref(false);
 const guideDialogHeader = computed(() => {
@@ -241,30 +242,70 @@ function openSetupGuide(
   if ("endpoint" in result && "generatedApiKey" in result) {
     guideEndpoint.value = (result as IntegrationCreateResponse).endpoint;
     guideApiKey.value = (result as IntegrationCreateResponse).generatedApiKey;
+    guideWebhookSecret.value = (result as IntegrationCreateResponse).generatedWebhookSecret;
   } else {
     guideEndpoint.value = result as Integration;
     guideApiKey.value = null;
+    guideWebhookSecret.value = null;
   }
   guideIsNew.value = isNew;
   guideIsRegen.value = isRegen;
   showGuide.value = true;
 }
 
-const guideDotEnv = computed(() => {
+function posBackendBaseUrl(ep: Integration): string {
+  if (!ep.pullUrl) return "https://tu-pos-backend.example.com";
+  try {
+    const url = new URL(ep.pullUrl);
+    url.pathname = url.pathname.replace(/\/health(?:\/check)?\/?$/i, "").replace(/\/$/, "");
+    url.search = "";
+    url.hash = "";
+    return url.toString().replace(/\/$/, "");
+  } catch {
+    return ep.pullUrl.replace(/\/health(?:\/check)?\/?$/i, "").replace(/\/$/, "");
+  }
+}
+
+const guideBackendEnv = computed(() => {
   const ep = guideEndpoint.value;
   if (!ep) return "";
-  const tenantId = auth.user?.tenantId ?? "<tu-tenant-id>";
-  const widgetUrl = `${typeof window !== "undefined" ? window.location.origin : ctBaseUrl}/widget/chat`;
-  return `# Control Tower — Variables de conexión
+  const posBaseUrl = posBackendBaseUrl(ep);
+  return `# POS Backend — conexión con Control Tower
 CT_BASE_URL=${ctBaseUrl}
 CT_API_KEY=${guideApiKey.value ?? "<regenera la clave desde Editar>"}
 CT_ENDPOINT_ID=${ep.id}
 CT_BRANCH_SLUG=${ep.branchSlug ?? "<slug-sucursal>"}
+POS_WEBHOOK_CALLBACK_URL=${posBaseUrl}/support/webhooks/ct
+POS_WEBHOOK_SECRET=${guideWebhookSecret.value ?? "<regenera las credenciales desde Editar>"}
+APP_VERSION=${ep.contractVersion ?? "0.1.0"}`;
+});
 
-# Control Tower — Live Chat (widget)
+const guideFrontendEnv = computed(() => {
+  const ep = guideEndpoint.value;
+  if (!ep) return "";
+  const tenantId = auth.user?.tenantId ?? "<tu-tenant-id>";
+  const widgetUrl = `${typeof window !== "undefined" ? window.location.origin : ctBaseUrl}/widget/chat`;
+  const posApiUrl = posBackendBaseUrl(ep);
+  const aptabaseAppKey = import.meta.env.VITE_POS_APTABASE_APP_KEY ?? "A-SH-1641503942";
+  const aptabaseHost = import.meta.env.VITE_POS_APTABASE_HOST ?? "https://analytics.comerzapos.com";
+  const pexelsApiKey = import.meta.env.VITE_POS_PEXELS_API_KEY ?? "Rb9EhZoGnlZA5Ujw9AVXHOBbsVTWi0CxOIGoGvSEhUUm1jcCVVmu7W47";
+  return `# POS Frontend (Next.js)
+NEXT_PUBLIC_API_URL=${posApiUrl}
+API_URL=${posApiUrl}
+NEXT_PUBLIC_APTABASE_APP_KEY=${aptabaseAppKey}
+NEXT_PUBLIC_APTABASE_HOST=${aptabaseHost}
+NEXT_PUBLIC_ANALYTICS_ENABLED=true
+NEXT_PUBLIC_APP_VERSION=${ep.contractVersion ?? "0.1.0"}
+NEXT_PUBLIC_PEXELS_API_KEY=${pexelsApiKey}
+
+# Control Tower — chat en vivo
 NEXT_PUBLIC_CT_BASE_URL=${ctBaseUrl}
 NEXT_PUBLIC_CT_WIDGET_URL=${widgetUrl}
-NEXT_PUBLIC_CT_TENANT_ID=${tenantId}`;
+NEXT_PUBLIC_CT_TENANT_ID=${tenantId}
+NEXT_PUBLIC_CT_ENABLED=true
+
+# Next.js establece este valor automáticamente durante el build
+NODE_ENV=production`;
 });
 
 const guideHealthFormat = `{
@@ -399,10 +440,17 @@ async function regenerateKey() {
   if (!editId.value || !currentEditEndpoint.value) return;
   regenLoading.value = true;
   try {
-    const newKey = await integrationsService.regenerateApiKey(editId.value);
+    const [newKey, newWebhookSecret] = await Promise.all([
+      integrationsService.regenerateApiKey(editId.value),
+      integrationsService.regenerateWebhookSecret(editId.value),
+    ]);
     showEdit.value = false;
     openSetupGuide(
-      { endpoint: currentEditEndpoint.value, generatedApiKey: newKey },
+      {
+        endpoint: currentEditEndpoint.value,
+        generatedApiKey: newKey,
+        generatedWebhookSecret: newWebhookSecret,
+      },
       false,
       true,
     );
@@ -835,31 +883,55 @@ async function resolveIncident(inc: HealthIncident) {
         {{ t("pos.apiKeyLost") }}
       </div>
 
-      <!-- .env block -->
+      <!-- Backend .env block -->
       <div class="space-y-1">
         <div class="flex items-center justify-between">
           <p class="text-sm font-semibold text-[var(--text)]">
-            {{ t("pos.envFile") }}
+            {{ t("pos.backendEnvFile") }}
           </p>
           <button
             class="text-xs text-[var(--primary)] hover:underline flex items-center gap-1"
-            @click="copy(guideDotEnv, 'dotenv')"
+            @click="copy(guideBackendEnv, 'backend-env')"
           >
             <i
               :class="
-                copiedKey === 'dotenv'
+                copiedKey === 'backend-env'
                   ? 'pi pi-check text-green-500'
                   : 'pi pi-copy'
               "
               class="text-xs"
             />
-            {{ copiedKey === "dotenv" ? t("pos.copied") : t("pos.copyEnv") }}
+            {{ copiedKey === "backend-env" ? t("pos.copied") : t("pos.copyEnv") }}
           </button>
         </div>
         <pre
           class="text-xs font-mono bg-zinc-900 text-green-300 rounded-lg p-4 overflow-x-auto whitespace-pre"
-          >{{ guideDotEnv }}</pre
+          >{{ guideBackendEnv }}</pre
         >
+      </div>
+
+      <!-- Frontend .env block -->
+      <div class="space-y-1">
+        <div class="flex items-center justify-between">
+          <p class="text-sm font-semibold text-[var(--text)]">
+            {{ t("pos.frontendEnvFile") }}
+          </p>
+          <button
+            class="text-xs text-[var(--primary)] hover:underline flex items-center gap-1"
+            @click="copy(guideFrontendEnv, 'frontend-env')"
+          >
+            <i
+              :class="copiedKey === 'frontend-env' ? 'pi pi-check text-green-500' : 'pi pi-copy'"
+              class="text-xs"
+            />
+            {{ copiedKey === "frontend-env" ? t("pos.copied") : t("pos.copyEnv") }}
+          </button>
+        </div>
+        <pre
+          class="text-xs font-mono bg-zinc-900 text-cyan-300 rounded-lg p-4 overflow-x-auto whitespace-pre"
+          >{{ guideFrontendEnv }}</pre
+        >
+        <p class="text-xs text-[var(--text-muted)]">{{ t("pos.frontendEnvHint") }}</p>
       </div>
 
       <!-- Expected /health format -->

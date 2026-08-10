@@ -204,11 +204,16 @@ function agentColor(name: string) {
 
 const isOnline = ref(false);
 const PRESENCE_KEY = "ct_agent_online";
+let presenceHeartbeat: ReturnType<typeof setInterval> | null = null;
 
 async function togglePresence() {
   const next = !isOnline.value;
-  await chatService.setPresence(next).catch(() => {});
-  isOnline.value = next;
+  try {
+    await chatService.setPresence(next);
+    isOnline.value = next;
+  } catch {
+    return;
+  }
   // localStorage persists across refreshes so the agent doesn't lose their
   // "go online" state after pressing F5.
   localStorage.setItem(PRESENCE_KEY, String(next));
@@ -219,13 +224,20 @@ async function togglePresence() {
 const stompClient = ref<StompClient | null>(null);
 
 onMounted(async () => {
+  if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
   // Always go online when entering the chat page. The agent can click
   // "Go Offline" to opt out. This avoids agents being invisible on first entry.
-  isOnline.value = true;
-  localStorage.setItem(PRESENCE_KEY, "true");
-  chatService.setPresence(true).catch(() => {});
+  try {
+    await chatService.setPresence(true);
+    isOnline.value = true;
+    localStorage.setItem(PRESENCE_KEY, "true");
+  } catch {
+    isOnline.value = false;
+  }
+  presenceHeartbeat = setInterval(() => {
+    if (isOnline.value) chatService.setPresence(true).catch(() => {});
+  }, 25_000);
 
-  if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
   const wsUrl =
     (import.meta.env.VITE_WS_URL as string | undefined) ||
     (() => {
@@ -254,11 +266,13 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stompClient.value?.deactivate();
+  if (presenceHeartbeat) clearInterval(presenceHeartbeat);
+  presenceHeartbeat = null;
+  if (isOnline.value) chatService.setPresence(false).catch(() => {});
 });
 
-// Presence is intentionally NOT cleared on tab close (sendBeacon cannot send
-// auth headers). The agent manually clicks "Go Offline" when they're done.
-// localStorage preserves the intent across F5 refreshes.
+// The backend expires presence heartbeats after 75 seconds, covering tab or
+// browser crashes where the best-effort offline request cannot complete.
 </script>
 
 <template>
