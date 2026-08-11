@@ -49,7 +49,16 @@ type PosDiagnostic = {
   capturedAt: string;
   recentErrors: Array<{ message: string; source?: string; capturedAt: string }>;
   routeHistory: Array<{ path: string; title: string; visitedAt: string }>;
-  recentClicks: Array<{ label: string; element: string; path: string; clickedAt: string }>;
+  recentClicks: Array<{
+    label: string;
+    action: string;
+    component: string;
+    element: string;
+    target?: string;
+    position: string;
+    path: string;
+    clickedAt: string;
+  }>;
 };
 
 const diagnosticLoading = ref(false);
@@ -98,7 +107,14 @@ function isPosDiagnostic(value: unknown): value is PosDiagnostic {
     && typeof data.capturedAt === "string"
     && Array.isArray(data.recentErrors)
     && Array.isArray(data.routeHistory)
-    && Array.isArray(data.recentClicks);
+    && Array.isArray(data.recentClicks)
+    && data.recentClicks.every((item) => item
+      && typeof item.action === "string"
+      && typeof item.component === "string"
+      && typeof item.element === "string"
+      && typeof item.position === "string"
+      && typeof item.path === "string"
+      && typeof item.clickedAt === "string");
 }
 
 function handleParentMessage(event: MessageEvent) {
@@ -505,7 +521,12 @@ function formatDiagnostic(diagnostic: PosDiagnostic) {
     ? diagnostic.routeHistory.map((item, index) => `${index + 1}. ${item.path} — ${item.title}`).join("\n")
     : diagnostic.pagePath;
   const clicks = diagnostic.recentClicks.length
-    ? diagnostic.recentClicks.map((item, index) => `${index + 1}. ${item.label} [${item.element}] en ${item.path}`).join("\n")
+    ? diagnostic.recentClicks.map((item, index) => [
+        `${index + 1}. Acción: ${item.action}`,
+        `   Componente: ${item.component}`,
+        `   Elemento: ${item.element}${item.target ? ` ${item.target}` : ""} · posición ${item.position}`,
+        `   Ruta: ${item.path} · ${new Date(item.clickedAt).toLocaleTimeString("es-MX")}`,
+      ].join("\n")).join("\n")
     : "Ninguno registrado";
   return [
     "🛠️ Diagnóstico del POS compartido",
@@ -1012,7 +1033,10 @@ function formatTime(ts: unknown): string {
               <span v-if="!pendingDiagnostic.recentClicks.length" class="ml-1 text-gray-400">ninguno registrado</span>
               <ol v-else class="mt-1 list-decimal space-y-1 pl-4 text-gray-600">
                 <li v-for="item in pendingDiagnostic.recentClicks" :key="`${item.clickedAt}-${item.label}`">
-                  {{ item.label }} <span class="text-gray-400">· {{ item.path }}</span>
+                  <strong class="font-medium text-gray-700">{{ item.action }}</strong>
+                  <span class="block text-gray-500">{{ item.component }}</span>
+                  <span class="block text-gray-400">{{ item.element }}<template v-if="item.target"> · {{ item.target }}</template> · {{ item.position }}</span>
+                  <span class="block text-gray-400">{{ item.path }} · {{ new Date(item.clickedAt).toLocaleTimeString("es-MX") }}</span>
                 </li>
               </ol>
             </div>
