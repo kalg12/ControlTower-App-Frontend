@@ -201,6 +201,7 @@
       "hideSummary": "Ocultar resumen",
       "internalSummary": "Resumen interno generado por IA",
       "copySummary": "Copiar resumen",
+      "closeSummary": "Cerrar resumen",
       "summaryCopied": "Resumen copiado",
       "replyError": "No se pudo generar la respuesta con IA.",
       "summaryError": "No se pudo resumir la conversación.",

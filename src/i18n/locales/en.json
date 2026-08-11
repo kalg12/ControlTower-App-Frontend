@@ -213,6 +213,7 @@
       "hideSummary": "Hide summary",
       "internalSummary": "AI-generated internal summary",
       "copySummary": "Copy summary",
+      "closeSummary": "Close summary",
       "summaryCopied": "Summary copied",
       "replyError": "The AI reply could not be generated.",
       "summaryError": "The conversation could not be summarized.",

@@ -392,7 +392,7 @@ async function generateAiReply(action: ChatAction, improveDraft = false) {
 
 async function summarizeWithAi() {
   if (aiSummary.value) {
-    aiSummary.value = ''
+    closeAiSummary()
     return
   }
   if (!messages.value.length) return
@@ -407,6 +407,10 @@ async function summarizeWithAi() {
   } finally {
     aiLoading.value = null
   }
+}
+
+function closeAiSummary() {
+  aiSummary.value = ''
 }
 
 async function copyAiSummary() {
@@ -571,9 +575,16 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
     </div>
 
     <div v-if="aiSummary" class="chat-ai-summary">
-      <div class="flex items-center justify-between gap-2 mb-1">
+      <div class="chat-ai-summary-header">
         <strong>{{ t('chatModule.ai.internalSummary') }}</strong>
-        <button :title="t('chatModule.ai.copySummary')" @click="copyAiSummary"><i class="pi pi-copy" /></button>
+        <div class="flex items-center gap-1">
+          <button type="button" :title="t('chatModule.ai.copySummary')" :aria-label="t('chatModule.ai.copySummary')" @click="copyAiSummary">
+            <i class="pi pi-copy" />
+          </button>
+          <button type="button" class="chat-ai-summary-close" :title="t('chatModule.ai.closeSummary')" :aria-label="t('chatModule.ai.closeSummary')" @click.stop="closeAiSummary">
+            <i class="pi pi-times" />
+          </button>
+        </div>
       </div>
       <p>{{ aiSummary }}</p>
     </div>
@@ -992,7 +1003,30 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
   flex-shrink: 0;
 }
 .chat-ai-summary strong { color: var(--text); font-size: 0.7rem; }
-.chat-ai-summary button { color: var(--primary); }
+.chat-ai-summary-header {
+  position: sticky;
+  top: -0.625rem;
+  z-index: 1;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin: -0.625rem -0.75rem 0.4rem;
+  padding: 0.625rem 0.75rem 0.4rem;
+  background: var(--bg-subtle);
+}
+.chat-ai-summary button {
+  display: inline-flex;
+  width: 1.75rem;
+  height: 1.75rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 0.375rem;
+  color: var(--primary);
+}
+.chat-ai-summary button:hover { background: color-mix(in srgb, var(--primary) 12%, transparent); }
+.chat-ai-summary .chat-ai-summary-close { color: var(--text-muted); }
+.chat-ai-summary .chat-ai-summary-close:hover { color: #ef4444; background: color-mix(in srgb, #ef4444 10%, transparent); }
 
 .chat-quick-replies {
   border-top: 1px solid var(--border);
