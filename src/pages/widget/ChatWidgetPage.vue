@@ -3,6 +3,7 @@ import { ref, computed, onMounted, onUnmounted, nextTick } from "vue";
 import { useRoute } from "vue-router";
 import { Client as StompClient } from "@stomp/stompjs";
 import SockJS from "sockjs-client";
+import axios from "axios";
 import { publicChatService } from "@/services/public-chat.service";
 import type {
   ChatMessage,
@@ -594,7 +595,7 @@ async function shareScreenshot() {
     if (!messages.value.some(item => item.id === msg.id)) messages.value.push(msg);
     discardScreenshot();
     nextTick(scrollBottom);
-  } catch {
+  } catch (uploadError) {
     // A proxy can drop the HTTP response after the server committed the file.
     // Reconcile with history before reporting failure so the visitor never
     // retries an attachment that already reached support.
@@ -613,7 +614,18 @@ async function shareScreenshot() {
     } catch {
       // Preserve the original upload failure below.
     }
-    screenshotError.value = "La captura no llegó a soporte. Puedes reintentar; no se guardó una copia duplicada.";
+    if (axios.isAxiosError(uploadError) && uploadError.response?.status === 413) {
+      screenshotError.value = "La captura es demasiado grande para el servidor. Vuelve a capturarla después de recargar el POS.";
+    } else if (axios.isAxiosError(uploadError) && uploadError.code === "ECONNABORTED") {
+      screenshotError.value = "La subida tardó demasiado y fue cancelada. Verifica tu conexión e intenta nuevamente.";
+    } else {
+      const serverMessage = axios.isAxiosError(uploadError)
+        ? (uploadError.response?.data as { message?: string } | undefined)?.message
+        : undefined;
+      screenshotError.value = serverMessage
+        ? `No se pudo enviar: ${serverMessage}`
+        : "La captura no llegó a soporte. Puedes reintentar; no se guardó una copia duplicada.";
+    }
   } finally {
     screenshotUploading.value = false;
     screenshotUploadProgress.value = 0;
@@ -1122,6 +1134,7 @@ function formatTime(ts: unknown): string {
           <div class="border-b border-gray-100 px-4 py-3">
             <h2 class="text-sm font-bold">Compartir captura con soporte</h2>
             <p class="mt-1 text-xs text-gray-500">El chat fue excluido automáticamente. Revisa la imagen y confirma que no muestre información sensible antes de enviarla.</p>
+            <p class="mt-1 text-[10px] text-gray-400">Tamaño: {{ (pendingScreenshot.blob.size / 1024).toFixed(0) }} KB</p>
           </div>
           <div class="min-h-0 flex-1 overflow-auto bg-gray-100 p-3">
             <img :src="pendingScreenshot.previewUrl" alt="Vista previa de la captura del POS" class="h-auto w-full rounded-lg border border-gray-200 bg-white object-contain shadow-sm" />
