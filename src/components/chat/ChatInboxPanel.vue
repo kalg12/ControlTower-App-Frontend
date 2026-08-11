@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted, onUnmounted } from 'vue'
+import { ref, computed, onMounted, onUnmounted, watch } from 'vue'
 import { useQuery, useMutation, useQueryClient } from '@tanstack/vue-query'
 import { Client as StompClient } from '@stomp/stompjs'
 import { useAuthStore } from '@/stores/auth'
@@ -50,7 +50,9 @@ const { data: unreadData } = useQuery({
 
 const waitingList = computed(() => waitingData.value?.content ?? [])
 const activeList = computed(() => activeData.value?.content ?? [])
+const myActiveList = computed(() => activeList.value.filter(c => c.agentId === auth.user?.id))
 const unreadCount = computed(() => (unreadData.value ?? 0) + messageUnreadCount.value)
+const needsAttentionCount = computed(() => waitingList.value.length + messageUnreadCount.value)
 
 const displayList = computed(() => {
   if (activeTab.value === 'WAITING') return waitingList.value
@@ -92,6 +94,21 @@ function invalidateAll() {
 // ── STOMP subscription for real-time queue ───────────────────────────────────
 
 const stompClient = ref<StompClient | null>(null)
+let originalTitle = document.title
+
+watch(
+  [needsAttentionCount, () => activeList.value.length],
+  ([attention, active]) => {
+    if (attention > 0) {
+      document.title = `(${attention}) ${t('chatModule.widget.customerWaiting')} · ${originalTitle}`
+    } else if (active > 0) {
+      document.title = `● ${t('chatModule.widget.activeCount', { count: active })} · ${originalTitle}`
+    } else {
+      document.title = originalTitle
+    }
+  },
+  { immediate: true },
+)
 
 onMounted(() => {
   if (!auth.hasPermission('chat:read') || !auth.accessToken) return
@@ -105,7 +122,7 @@ onMounted(() => {
       const tenantId = auth.user?.tenantId
       if (!tenantId) return
       client.subscribe(`/topic/chat.queue.${tenantId}`, (frame) => {
-        let event: { type?: string; senderType?: string; conversationId?: string } = {}
+        let event: { type?: string; senderType?: string; conversationId?: string; content?: string; visitorName?: string; status?: string } = {}
         try { event = JSON.parse(frame.body) } catch {}
         invalidateAll()
         // JOINED follows a newly-created conversation and must not beep twice.
@@ -117,6 +134,7 @@ onMounted(() => {
           messageUnreadCount.value += 1
         }
         playBeep()
+        if (!open.value || document.hidden) showBrowserNotification(event)
       })
     },
   })
@@ -124,7 +142,10 @@ onMounted(() => {
   stompClient.value = client
 })
 
-onUnmounted(() => stompClient.value?.deactivate())
+onUnmounted(() => {
+  stompClient.value?.deactivate()
+  document.title = originalTitle
+})
 
 // ── Sound ────────────────────────────────────────────────────────────────────
 
@@ -152,6 +173,32 @@ function toggleSound() {
 function toggleInbox() {
   open.value = !open.value
   if (open.value) messageUnreadCount.value = 0
+  requestBrowserNotifications()
+}
+
+function requestBrowserNotifications() {
+  if (!('Notification' in window) || Notification.permission !== 'default') return
+  void Notification.requestPermission().catch(() => undefined)
+}
+
+function showBrowserNotification(event: { type?: string; content?: string; visitorName?: string }) {
+  if (!('Notification' in window) || Notification.permission !== 'granted') return
+  const isMessage = event.type === 'MESSAGE'
+  const notification = new Notification(
+    isMessage ? t('chatModule.widget.newCustomerMessage') : t('chatModule.widget.newConversation'),
+    {
+      body: isMessage
+        ? event.content || t('chatModule.widget.openToReply')
+        : t('chatModule.widget.customerNeedsHelp', { name: event.visitorName || t('chatModule.visitor') }),
+      tag: event.type === 'MESSAGE' ? `chat-message-${event.visitorName || 'visitor'}` : 'chat-waiting',
+    },
+  )
+  notification.onclick = () => {
+    window.focus()
+    open.value = true
+    activeTab.value = isMessage ? 'ACTIVE' : 'WAITING'
+    notification.close()
+  }
 }
 
 // ── Actions ──────────────────────────────────────────────────────────────────
@@ -163,6 +210,23 @@ function openConversation(conv: ChatConversation) {
   } else {
     selectedConv.value = conv
   }
+}
+
+function openPriorityQueue() {
+  open.value = true
+  messageUnreadCount.value = 0
+  if (waitingList.value.length > 0) {
+    activeTab.value = 'WAITING'
+    selectedConv.value = null
+    return
+  }
+  activeTab.value = 'ACTIVE'
+  const conversation = myActiveList.value[0] ?? activeList.value[0]
+  if (conversation) selectedConv.value = conversation
+}
+
+function waitingMinutes(ts: string) {
+  return Math.max(0, Math.floor((Date.now() - new Date(ts).getTime()) / 60000))
 }
 
 function confirmClose(conv: ChatConversation) {
@@ -203,6 +267,30 @@ function avatarColor(name: string) {
 <template>
   <!-- Bubble button -->
   <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2">
+
+    <button
+      v-if="!open && (waitingList.length || activeList.length)"
+      class="max-w-[320px] rounded-xl border px-3 py-2 text-left shadow-lg backdrop-blur transition-transform hover:-translate-y-0.5"
+      :class="waitingList.length ? 'border-red-300 bg-red-50 text-red-900' : 'border-emerald-300 bg-emerald-50 text-emerald-900'"
+      @click="openPriorityQueue"
+    >
+      <span class="flex items-center gap-2 text-xs font-semibold">
+        <span class="relative flex h-2.5 w-2.5">
+          <span class="absolute inline-flex h-full w-full animate-ping rounded-full opacity-60" :class="waitingList.length ? 'bg-red-500' : 'bg-emerald-500'" />
+          <span class="relative inline-flex h-2.5 w-2.5 rounded-full" :class="waitingList.length ? 'bg-red-600' : 'bg-emerald-600'" />
+        </span>
+        {{ waitingList.length
+          ? $t('chatModule.widget.waitingCount', { count: waitingList.length })
+          : myActiveList.length
+            ? $t('chatModule.widget.myActiveCount', { count: myActiveList.length })
+            : $t('chatModule.widget.teamActiveCount', { count: activeList.length }) }}
+      </span>
+      <span class="mt-1 block text-[11px] opacity-75">
+        {{ waitingList.length && waitingMinutes(waitingList[0].createdAt) >= 5
+          ? $t('chatModule.widget.waitingTooLong', { minutes: waitingMinutes(waitingList[0].createdAt) })
+          : $t('chatModule.widget.openQueue') }}
+      </span>
+    </button>
 
     <!-- Conversation view panel -->
     <Transition name="slide-up">
@@ -282,6 +370,8 @@ function avatarColor(name: string) {
                   {{ conv.status === 'WAITING' ? $t('chatModule.status.waiting') : conv.status === 'ACTIVE' ? $t('chatModule.status.active') : conv.status }}
                 </span>
                 <span v-if="conv.agentName" class="text-[10px] text-[var(--text-muted)] truncate">{{ conv.agentName }}</span>
+                <span v-if="conv.agentId === auth.user?.id" class="text-[10px] font-semibold text-[var(--primary)]">{{ $t('chatModule.widget.assignedToMe') }}</span>
+                <span v-if="conv.unreadCount" class="ml-auto min-w-5 rounded-full bg-red-500 px-1.5 py-0.5 text-center text-[10px] font-bold text-white">{{ conv.unreadCount }}</span>
               </div>
             </div>
 
@@ -302,6 +392,7 @@ function avatarColor(name: string) {
     <!-- Floating button -->
     <button
       class="w-14 h-14 rounded-full bg-[var(--primary)] text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center relative"
+      :class="activeList.length ? 'ring-4 ring-emerald-400/30' : waitingList.length ? 'ring-4 ring-red-400/30' : ''"
       @click="toggleInbox"
     >
       <i class="pi pi-comments text-xl" />

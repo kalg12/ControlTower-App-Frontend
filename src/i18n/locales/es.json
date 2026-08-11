@@ -170,6 +170,28 @@
     "fileTooLarge": "Archivo demasiado grande (máx. 10 MB)",
     "fileTypeNotAllowed": "Tipo de archivo no permitido",
     "messagePlaceholder": "Escribe un mensaje... (Enter para enviar)",
+    "internalNotes": {
+      "label": "Nota interna",
+      "reply": "Responder al cliente",
+      "note": "Nota interna",
+      "privateHint": "Sólo visible para agentes",
+      "placeholder": "Añade contexto para el equipo...",
+      "closed": "La conversación está cerrada y ya no admite respuestas"
+    },
+    "widget": {
+      "customerWaiting": "Cliente esperando",
+      "activeCount": "{count} chat activo | {count} chats activos",
+      "waitingCount": "{count} cliente esperando | {count} clientes esperando",
+      "myActiveCount": "Tienes {count} chat activo | Tienes {count} chats activos",
+      "teamActiveCount": "{count} chat activo en el equipo | {count} chats activos en el equipo",
+      "waitingTooLong": "Esperando desde hace {minutes} min · requiere atención",
+      "openQueue": "Abrir bandeja de soporte",
+      "assignedToMe": "Asignado a mí",
+      "newCustomerMessage": "Nuevo mensaje de un cliente",
+      "newConversation": "Nuevo cliente esperando soporte",
+      "openToReply": "Abre Control Tower para responder.",
+      "customerNeedsHelp": "{name} necesita ayuda."
+    },
     "ai": {
       "suggest": "Sugerir",
       "acknowledge": "En revisión",

@@ -182,6 +182,28 @@
     "fileTooLarge": "File too large (max 10 MB)",
     "fileTypeNotAllowed": "File type not allowed",
     "messagePlaceholder": "Type a message... (Enter to send)",
+    "internalNotes": {
+      "label": "Internal note",
+      "reply": "Reply to customer",
+      "note": "Internal note",
+      "privateHint": "Visible only to agents",
+      "placeholder": "Add context for the team...",
+      "closed": "This conversation is closed and no longer accepts replies"
+    },
+    "widget": {
+      "customerWaiting": "Customer waiting",
+      "activeCount": "{count} active chat | {count} active chats",
+      "waitingCount": "{count} customer waiting | {count} customers waiting",
+      "myActiveCount": "You have {count} active chat | You have {count} active chats",
+      "teamActiveCount": "{count} team chat active | {count} team chats active",
+      "waitingTooLong": "Waiting for {minutes} min · attention required",
+      "openQueue": "Open support inbox",
+      "assignedToMe": "Assigned to me",
+      "newCustomerMessage": "New customer message",
+      "newConversation": "New customer waiting for support",
+      "openToReply": "Open Control Tower to reply.",
+      "customerNeedsHelp": "{name} needs help."
+    },
     "ai": {
       "suggest": "Suggest",
       "acknowledge": "Reviewing",

@@ -57,6 +57,11 @@ export const chatService = {
     return res.data
   },
 
+  async addInternalNote(id: string, content: string): Promise<ChatMessage> {
+    const res = await api.post<ChatMessage>(`/chat/conversations/${id}/notes`, { content })
+    return res.data
+  },
+
   async markRead(id: string): Promise<void> {
     await api.get(`/chat/conversations/${id}/messages`, { params: { page: 0, size: 1 } })
   },

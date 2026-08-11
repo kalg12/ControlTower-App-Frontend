@@ -27,6 +27,7 @@ const auth = useAuthStore()
 const toast = useToast()
 const messagesEl = ref<HTMLElement | null>(null)
 const inputText = ref('')
+const composerMode = ref<'REPLY' | 'NOTE'>('REPLY')
 const isTyping = ref(false)
 const isUploading = ref(false)
 const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
@@ -66,6 +67,7 @@ function mergeMessages(incoming: ChatMessage[]) {
       ? messages.value.findIndex(m =>
           pendingOptimisticIds.has(m.id) &&
           m.senderType === 'AGENT' &&
+          Boolean(m.internal) === Boolean(msg.internal) &&
           m.content === msg.content,
         )
       : -1
@@ -132,6 +134,7 @@ onMounted(() => {
             senderAvatarUrl: payload.senderAvatarUrl,
             content: payload.content ?? '',
             attachmentUrl: payload.attachmentUrl,
+            internal: payload.internal ?? false,
             isRead: payload.isRead ?? false,
             createdAt: payload.createdAt,
           }])
@@ -164,7 +167,8 @@ onUnmounted(() => {
 function sendMessage() {
   const text = inputText.value.trim()
   if (!text) return
-  if (text.startsWith('/')) {
+  const isInternalNote = composerMode.value === 'NOTE'
+  if (!isInternalNote && text.startsWith('/')) {
     const reply = quickReplies.value?.find((r: ChatQuickReply) => text === r.shortcut)
     if (reply) { inputText.value = reply.content; return }
   }
@@ -181,6 +185,7 @@ function sendMessage() {
     senderName: auth.user?.fullName,
     senderAvatarUrl: auth.user?.avatarUrl,
     content: text,
+    internal: isInternalNote,
     isRead: true,
     createdAt: new Date().toISOString(),
   })
@@ -188,7 +193,10 @@ function sendMessage() {
 
   // REST is the single write path. STOMP and polling only reconcile the result,
   // which prevents an ambiguous network failure from sending the same text twice.
-  chatService.sendMessage(props.conversation.id, text)
+  const request = isInternalNote
+    ? chatService.addInternalNote(props.conversation.id, text)
+    : chatService.sendMessage(props.conversation.id, text)
+  request
     .then(msg => {
       pendingOptimisticIds.delete(optimisticId)
       const optimisticIdx = messages.value.findIndex(m => m.id === optimisticId)
@@ -225,13 +233,14 @@ function onKeyDown(e: KeyboardEvent) {
     sendMessage()
     return
   }
-  if (e.key === '/') {
+  if (e.key === '/' && composerMode.value === 'REPLY') {
     showQuickReplies.value = true
   }
   sendTypingSignal()
 }
 
 function sendTypingSignal() {
+  if (composerMode.value === 'NOTE') return
   if (typingTimeout.value) clearTimeout(typingTimeout.value)
   stompClient.value?.publish({
     destination: '/app/chat.typing',
@@ -410,7 +419,16 @@ async function copyAiSummary() {
 }
 
 function isGrouped(i: number) {
-  return i > 0 && messages.value[i - 1].senderType === messages.value[i].senderType && messages.value[i].senderType !== 'SYSTEM'
+  return i > 0 &&
+    messages.value[i - 1].senderType === messages.value[i].senderType &&
+    Boolean(messages.value[i - 1].internal) === Boolean(messages.value[i].internal) &&
+    messages.value[i].senderType !== 'SYSTEM'
+}
+
+function setComposerMode(mode: 'REPLY' | 'NOTE') {
+  composerMode.value = mode
+  inputText.value = ''
+  showQuickReplies.value = false
 }
 </script>
 
@@ -463,10 +481,19 @@ function isGrouped(i: number) {
           'is-agent': msg.senderType === 'AGENT',
           'is-visitor': msg.senderType === 'VISITOR',
           'is-system': msg.senderType === 'SYSTEM',
-          'is-grouped': i > 0 && messages[i - 1].senderType === msg.senderType && msg.senderType !== 'SYSTEM'
+          'is-internal': msg.internal,
+          'is-grouped': isGrouped(i)
         }"
       >
-        <div v-if="msg.senderType === 'SYSTEM'" class="chat-system">
+        <div v-if="msg.internal" class="chat-internal-note">
+          <div class="chat-internal-note-header">
+            <span><i class="pi pi-lock mr-1" />{{ t('chatModule.internalNotes.label') }}</span>
+            <span>{{ msg.senderName ?? t('chatModule.visitor') }} · {{ formatTime(msg.createdAt) }}</span>
+          </div>
+          <p>{{ msg.content }}</p>
+        </div>
+
+        <div v-else-if="msg.senderType === 'SYSTEM'" class="chat-system">
           <span>{{ msg.content }}</span>
         </div>
 
@@ -519,7 +546,7 @@ function isGrouped(i: number) {
       </div>
     </div>
 
-    <div class="chat-ai-toolbar">
+    <div v-if="composerMode === 'REPLY'" class="chat-ai-toolbar">
       <span class="chat-ai-label"><i class="pi pi-sparkles" /> IA</span>
       <button :disabled="!!aiLoading || !messages.length" @click="generateAiReply('AUTO')">
         <i v-if="aiLoading === 'AUTO'" class="pi pi-spin pi-spinner" />
@@ -558,16 +585,34 @@ function isGrouped(i: number) {
       </div>
     </div>
 
-    <div class="chat-input-bar">
+    <div v-if="conversation.status === 'ACTIVE' || conversation.status === 'WAITING'" class="chat-composer-mode">
+      <button
+        :class="composerMode === 'REPLY' ? 'is-active' : ''"
+        @click="setComposerMode('REPLY')"
+      >
+        <i class="pi pi-send" /> {{ t('chatModule.internalNotes.reply') }}
+      </button>
+      <button
+        :class="composerMode === 'NOTE' ? 'is-active is-note' : ''"
+        @click="setComposerMode('NOTE')"
+      >
+        <i class="pi pi-lock" /> {{ t('chatModule.internalNotes.note') }}
+      </button>
+      <span v-if="composerMode === 'NOTE'">
+        {{ t('chatModule.internalNotes.privateHint') }}
+      </span>
+    </div>
+
+    <div v-if="conversation.status === 'ACTIVE' || conversation.status === 'WAITING'" class="chat-input-bar" :class="composerMode === 'NOTE' ? 'is-note' : ''">
       <input ref="fileInputEl" type="file" :accept="ALLOWED_TYPES.join(',')" class="hidden" @change="onFileSelected" />
-      <button class="chat-input-btn" :title="t('chatModule.attachFile')" :disabled="isUploading" @click="openFilePicker">
+      <button v-if="composerMode === 'REPLY'" class="chat-input-btn" :title="t('chatModule.attachFile')" :disabled="isUploading" @click="openFilePicker">
         <i :class="isUploading ? 'pi pi-spin pi-spinner' : 'pi pi-paperclip'" />
       </button>
       <textarea
         v-model="inputText"
         class="chat-input"
         rows="1"
-        :placeholder="t('chatModule.messagePlaceholder')"
+        :placeholder="composerMode === 'NOTE' ? t('chatModule.internalNotes.placeholder') : t('chatModule.messagePlaceholder')"
         @keydown="onKeyDown"
         @focus="showQuickReplies = inputText.startsWith('/')"
         @blur="hideQuickRepliesDelayed()"
@@ -578,8 +623,11 @@ function isGrouped(i: number) {
         title="Enviar (Enter)"
         @click="sendMessage"
       >
-        <i class="pi pi-send text-sm" />
+        <i :class="composerMode === 'NOTE' ? 'pi pi-lock text-sm' : 'pi pi-send text-sm'" />
       </button>
+    </div>
+    <div v-else class="chat-composer-closed">
+      <i class="pi pi-lock" /> {{ t('chatModule.internalNotes.closed') }}
     </div>
   </div>
 </template>
@@ -724,6 +772,85 @@ function isGrouped(i: number) {
 .chat-message-row.is-system {
   align-self: center;
   max-width: 100%;
+}
+
+.chat-message-row.is-internal {
+  align-self: stretch;
+  max-width: 100%;
+}
+
+.chat-internal-note {
+  width: 100%;
+  border: 1px solid #f59e0b55;
+  border-left: 3px solid #f59e0b;
+  border-radius: 0.625rem;
+  background: color-mix(in srgb, #f59e0b 10%, var(--bg));
+  padding: 0.625rem 0.75rem;
+  color: var(--text);
+}
+
+.chat-internal-note-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.25rem;
+  color: #b45309;
+  font-size: 0.6875rem;
+  font-weight: 600;
+}
+
+.chat-internal-note p {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+}
+
+.chat-composer-mode {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.375rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-subtle);
+}
+
+.chat-composer-mode button {
+  padding: 0.3rem 0.55rem;
+  border-radius: 0.45rem;
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.chat-composer-mode button.is-active {
+  background: var(--primary);
+  color: #fff;
+}
+
+.chat-composer-mode button.is-note {
+  background: #d97706;
+}
+
+.chat-composer-mode span {
+  margin-left: auto;
+  color: #b45309;
+  font-size: 0.65rem;
+}
+
+.chat-input-bar.is-note {
+  background: color-mix(in srgb, #f59e0b 8%, var(--bg));
+}
+
+.chat-composer-closed {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.8rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: 0.75rem;
 }
 
 .chat-message-row.is-grouped {

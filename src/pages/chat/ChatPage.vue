@@ -148,9 +148,8 @@ function lastMessage(conv: ChatConversation): string {
   const msgs = conv.messages;
   if (!msgs || msgs.length === 0) return t("chatModule.noMessages");
   const last = msgs[msgs.length - 1];
-  return (
-    last.content ?? (last.attachmentUrl ? t("chatModule.attachment") : "...")
-  );
+  const content = last.content ?? (last.attachmentUrl ? t("chatModule.attachment") : "...");
+  return last.internal ? `🔒 ${t("chatModule.internalNotes.label")}: ${content}` : content;
 }
 
 function avatarInitial(name?: string) {

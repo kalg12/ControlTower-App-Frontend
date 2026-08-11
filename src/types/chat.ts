@@ -28,6 +28,7 @@ export interface ChatMessage {
   senderAvatarUrl?: string
   content: string
   attachmentUrl?: string
+  internal?: boolean
   isRead: boolean
   createdAt: string
 }
@@ -42,6 +43,7 @@ export interface ChatMessagePayload {
   senderAvatarUrl?: string
   content?: string
   attachmentUrl?: string
+  internal?: boolean
   isRead?: boolean
   createdAt: string
   conversationStatus?: ConversationStatus
