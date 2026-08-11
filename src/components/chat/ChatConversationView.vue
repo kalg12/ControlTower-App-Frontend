@@ -12,6 +12,7 @@ import { qk } from '@/queries/keys'
 import type { ChatConversation, ChatMessage, ChatMessagePayload, ChatQuickReply } from '@/types/chat'
 import { aiService, type ChatAction } from '@/services/ai.service'
 import ChatDiagnosticCard from '@/components/chat/ChatDiagnosticCard.vue'
+import ChatAttachmentPreview from '@/components/chat/ChatAttachmentPreview.vue'
 
 const { t } = useI18n()
 
@@ -562,6 +563,11 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
           <div v-else class="chat-avatar-spacer" />
           <div class="chat-bubble-group">
             <ChatDiagnosticCard v-if="isPosDiagnosticMessage(msg.content)" :content="msg.content" />
+            <ChatAttachmentPreview
+              v-else-if="msg.attachmentUrl"
+              :attachment-url="msg.attachmentUrl"
+              :label="msg.content.replace(/^📎 |^📷 /, '')"
+            />
             <div v-else class="chat-bubble chat-bubble-in">
               <template v-if="msg.content.startsWith('📎')">
                 <i class="pi pi-paperclip mr-1 text-xs" />
@@ -575,7 +581,12 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
 
         <template v-else>
           <div class="chat-bubble-group">
-            <div class="chat-bubble chat-bubble-out">
+            <ChatAttachmentPreview
+              v-if="msg.attachmentUrl"
+              :attachment-url="msg.attachmentUrl"
+              :label="msg.content.replace(/^📎 |^📷 /, '')"
+            />
+            <div v-else class="chat-bubble chat-bubble-out">
               <template v-if="msg.content.startsWith('📎')">
                 <i class="pi pi-paperclip mr-1 text-xs" />
                 <a :href="msg.attachmentUrl ?? '#'" target="_blank" class="underline text-white/90 hover:text-white">{{ msg.content.replace('📎 ', '') }}</a>

@@ -66,6 +66,12 @@ const diagnosticError = ref("");
 const pendingDiagnostic = ref<PosDiagnostic | null>(null);
 let diagnosticRequestTimer: ReturnType<typeof setTimeout> | null = null;
 let diagnosticRequestId = "";
+const screenshotLoading = ref(false);
+const screenshotUploading = ref(false);
+const screenshotError = ref("");
+const pendingScreenshot = ref<{ blob: Blob; previewUrl: string } | null>(null);
+let screenshotRequestId = "";
+let screenshotRequestTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Persist visitorId across sessions, tokens per session
 const visitorId =
@@ -122,12 +128,33 @@ function handleParentMessage(event: MessageEvent) {
   if (event.source !== window.parent) return;
   const expectedOrigin = parentOrigin();
   if (expectedOrigin && event.origin !== expectedOrigin) return;
-  if (event.data?.type !== "CT_DIAGNOSTICS_READY" || !isPosDiagnostic(event.data.payload)) return;
-  if (diagnosticRequestId && event.data.requestId !== diagnosticRequestId) return;
-  if (diagnosticRequestTimer) clearTimeout(diagnosticRequestTimer);
-  diagnosticLoading.value = false;
-  diagnosticError.value = "";
-  pendingDiagnostic.value = event.data.payload;
+  if (event.data?.type === "CT_DIAGNOSTICS_READY" && isPosDiagnostic(event.data.payload)) {
+    if (diagnosticRequestId && event.data.requestId !== diagnosticRequestId) return;
+    if (diagnosticRequestTimer) clearTimeout(diagnosticRequestTimer);
+    diagnosticLoading.value = false;
+    diagnosticError.value = "";
+    pendingDiagnostic.value = event.data.payload;
+    return;
+  }
+  if (event.data?.type === "CT_SCREENSHOT_READY") {
+    if (screenshotRequestId && event.data.requestId !== screenshotRequestId) return;
+    if (!(event.data.blob instanceof Blob) || !event.data.blob.type.startsWith("image/")) return;
+    if (screenshotRequestTimer) clearTimeout(screenshotRequestTimer);
+    discardScreenshot();
+    screenshotLoading.value = false;
+    screenshotError.value = "";
+    pendingScreenshot.value = {
+      blob: event.data.blob,
+      previewUrl: URL.createObjectURL(event.data.blob),
+    };
+    return;
+  }
+  if (event.data?.type === "CT_SCREENSHOT_ERROR") {
+    if (screenshotRequestId && event.data.requestId !== screenshotRequestId) return;
+    if (screenshotRequestTimer) clearTimeout(screenshotRequestTimer);
+    screenshotLoading.value = false;
+    screenshotError.value = "No pudimos capturar esta pantalla. Intenta nuevamente.";
+  }
 }
 
 // ── Resume session ────────────────────────────────────────────────────────────
@@ -145,6 +172,8 @@ onMounted(async () => {
 onUnmounted(() => {
   window.removeEventListener("message", handleParentMessage)
   if (diagnosticRequestTimer) clearTimeout(diagnosticRequestTimer)
+  if (screenshotRequestTimer) clearTimeout(screenshotRequestTimer)
+  discardScreenshot()
   stompClient.value?.deactivate()
   stopPolling()
 })
@@ -518,6 +547,52 @@ function requestDiagnostics() {
     diagnosticLoading.value = false;
     diagnosticError.value = "Esta versión del POS no respondió. Recarga la página y vuelve a intentarlo; si continúa, actualiza el despliegue del POS.";
   }, 5000);
+}
+
+function requestScreenshot() {
+  screenshotError.value = "";
+  if (window.parent === window) {
+    screenshotError.value = "La captura sólo está disponible desde el POS.";
+    return;
+  }
+  screenshotLoading.value = true;
+  screenshotRequestId = crypto.randomUUID();
+  window.parent.postMessage({
+    type: "CT_REQUEST_SCREENSHOT",
+    requestId: screenshotRequestId,
+    protocolVersion: 1,
+  }, "*");
+  if (screenshotRequestTimer) clearTimeout(screenshotRequestTimer);
+  screenshotRequestTimer = setTimeout(() => {
+    if (!screenshotLoading.value) return;
+    screenshotLoading.value = false;
+    screenshotError.value = "Esta versión del POS no respondió. Recarga la página e intenta nuevamente.";
+  }, 12_000);
+}
+
+function discardScreenshot() {
+  if (pendingScreenshot.value) URL.revokeObjectURL(pendingScreenshot.value.previewUrl);
+  pendingScreenshot.value = null;
+}
+
+async function shareScreenshot() {
+  if (!pendingScreenshot.value || !conversationId || !visitorToken) return;
+  screenshotUploading.value = true;
+  screenshotError.value = "";
+  try {
+    const msg = await publicChatService.uploadScreenshot(
+      conversationId,
+      visitorToken,
+      pendingScreenshot.value.blob,
+    );
+    if (!messages.value.some(item => item.id === msg.id)) messages.value.push(msg);
+    discardScreenshot();
+    nextTick(scrollBottom);
+  } catch {
+    screenshotError.value = "No pudimos enviar la captura. Verifica tu conexión e intenta nuevamente.";
+  } finally {
+    screenshotUploading.value = false;
+  }
 }
 
 function formatDiagnostic(diagnostic: PosDiagnostic) {
@@ -943,21 +1018,33 @@ function formatTime(ts: unknown): string {
            preview and the visitor explicitly confirms before it is sent. -->
       <div
         v-if="convStatus !== 'CLOSED'"
-        class="flex items-center justify-between gap-2 border-t border-gray-100 bg-white px-3 pt-2"
+        class="border-t border-gray-100 bg-white px-3 pt-2"
       >
-        <button
-          class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-50 disabled:cursor-wait disabled:opacity-50"
-          :disabled="diagnosticLoading"
-          @click="requestDiagnostics"
-        >
-          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.75h4.5m-6 3h7.5m-9 3h10.5m-9 0v6.75a3.75 3.75 0 007.5 0V9.75m-9 3H4.5m15 0h-2.25m-10.5 3H4.5m15 0h-2.25" />
-          </svg>
-          {{ diagnosticLoading ? "Leyendo diagnóstico…" : "Compartir diagnóstico" }}
-        </button>
-        <span v-if="diagnosticError" class="text-right text-[10px] leading-tight text-red-500">
-          {{ diagnosticError }}
-        </span>
+        <div class="flex items-center gap-1 overflow-x-auto">
+          <button
+            class="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-50 disabled:cursor-wait disabled:opacity-50"
+            :disabled="diagnosticLoading || screenshotLoading"
+            @click="requestDiagnostics"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.75h4.5m-6 3h7.5m-9 3h10.5m-9 0v6.75a3.75 3.75 0 007.5 0V9.75m-9 3H4.5m15 0h-2.25m-10.5 3H4.5m15 0h-2.25" />
+            </svg>
+            {{ diagnosticLoading ? "Leyendo…" : "Diagnóstico" }}
+          </button>
+          <button
+            class="inline-flex flex-shrink-0 items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-50 disabled:cursor-wait disabled:opacity-50"
+            :disabled="screenshotLoading || diagnosticLoading"
+            @click="requestScreenshot"
+          >
+            <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h3l1.5-2h9L18 7h3v12H3V7zm9 3.25a3.25 3.25 0 100 6.5 3.25 3.25 0 000-6.5z" />
+            </svg>
+            {{ screenshotLoading ? "Capturando…" : "Capturar pantalla" }}
+          </button>
+        </div>
+        <p v-if="diagnosticError || screenshotError" class="px-2 pb-1 text-[10px] leading-tight text-red-500">
+          {{ diagnosticError || screenshotError }}
+        </p>
       </div>
 
       <!-- Input -->
@@ -1001,6 +1088,28 @@ function formatTime(ts: unknown): string {
       </div>
 
       <!-- Diagnostic consent preview -->
+      <div
+        v-if="pendingScreenshot"
+        class="absolute inset-0 z-40 flex items-center justify-center bg-gray-950/55 p-4"
+        @click.self="discardScreenshot"
+      >
+        <div class="flex max-h-[90%] w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-800 shadow-2xl">
+          <div class="border-b border-gray-100 px-4 py-3">
+            <h2 class="text-sm font-bold">Compartir captura con soporte</h2>
+            <p class="mt-1 text-xs text-gray-500">El chat fue excluido automáticamente. Revisa la imagen y confirma que no muestre información sensible antes de enviarla.</p>
+          </div>
+          <div class="min-h-0 flex-1 overflow-auto bg-gray-100 p-3">
+            <img :src="pendingScreenshot.previewUrl" alt="Vista previa de la captura del POS" class="h-auto w-full rounded-lg border border-gray-200 bg-white object-contain shadow-sm" />
+          </div>
+          <div class="flex gap-2 border-t border-gray-100 px-4 py-3">
+            <button :disabled="screenshotUploading" class="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50" @click="discardScreenshot">Cancelar</button>
+            <button :disabled="screenshotUploading" class="flex-1 rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50" @click="shareScreenshot">
+              {{ screenshotUploading ? "Enviando…" : "Enviar captura" }}
+            </button>
+          </div>
+        </div>
+      </div>
+
       <div
         v-if="pendingDiagnostic"
         class="absolute inset-0 z-30 flex items-center justify-center bg-gray-950/45 p-4"

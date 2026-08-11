@@ -37,6 +37,17 @@ export const publicChatService = {
     return res.data.data
   },
 
+  async uploadScreenshot(conversationId: string, visitorToken: string, file: Blob): Promise<ChatMessage> {
+    const form = new FormData()
+    form.append('file', file, 'captura-pos.jpg')
+    const res = await publicApi.post<{ data: ChatMessage }>(
+      `/public/chat/conversations/${conversationId}/screenshots`,
+      form,
+      { params: { visitorToken } },
+    )
+    return res.data.data
+  },
+
   async rateConversation(conversationId: string, visitorToken: string, rating: number, comment?: string): Promise<void> {
     await publicApi.post(`/public/chat/conversations/${conversationId}/rate`, {
       visitorToken,
