@@ -294,7 +294,7 @@ function avatarColor(name: string) {
 
     <!-- Conversation view panel -->
     <Transition name="slide-up">
-      <div v-if="open && selectedConv" class="w-[380px] h-[520px] rounded-2xl shadow-2xl overflow-hidden border border-[var(--border)] bg-[var(--bg)] flex flex-col">
+      <div v-if="open && selectedConv" class="h-[calc(100vh-7rem)] max-h-[600px] w-[calc(100vw-2.5rem)] sm:w-[440px] rounded-2xl shadow-2xl overflow-hidden border border-[var(--border)] bg-[var(--bg)] flex flex-col">
         <ChatConversationView
           :key="selectedConv.id"
           :conversation="selectedConv"
@@ -305,7 +305,7 @@ function avatarColor(name: string) {
       </div>
 
       <!-- Inbox panel -->
-      <div v-else-if="open" class="w-[380px] rounded-2xl shadow-2xl overflow-hidden border border-[var(--border)] bg-[var(--bg)] flex flex-col" style="max-height: 520px">
+      <div v-else-if="open" class="w-[calc(100vw-2.5rem)] sm:w-[440px] rounded-2xl shadow-2xl overflow-hidden border border-[var(--border)] bg-[var(--bg)] flex flex-col" style="max-height: min(600px, calc(100vh - 7rem))">
         <!-- Header -->
         <div class="flex items-center justify-between px-4 py-3 bg-[var(--primary)] text-white">
           <div class="flex items-center gap-2">

@@ -26,6 +26,7 @@ const emit = defineEmits<{
 const auth = useAuthStore()
 const toast = useToast()
 const messagesEl = ref<HTMLElement | null>(null)
+const inputEl = ref<HTMLTextAreaElement | null>(null)
 const inputText = ref('')
 const composerMode = ref<'REPLY' | 'NOTE'>('REPLY')
 const isTyping = ref(false)
@@ -42,6 +43,14 @@ const messages = ref<ChatMessage[]>([])
 const remoteTyping = ref(false)
 let remoteTypingTimer: ReturnType<typeof setTimeout> | null = null
 const pendingOptimisticIds = new Set<string>()
+
+watch(inputText, () => {
+  void nextTick(() => {
+    if (!inputEl.value) return
+    inputEl.value.style.height = 'auto'
+    inputEl.value.style.height = `${Math.min(inputEl.value.scrollHeight, 112)}px`
+  })
+})
 
 const { data: messageData, refetch: refetchMessages } = useQuery({
   queryKey: qk.chatMessages(props.conversation.id),
@@ -620,6 +629,7 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
         <i :class="isUploading ? 'pi pi-spin pi-spinner' : 'pi pi-paperclip'" />
       </button>
       <textarea
+        ref="inputEl"
         v-model="inputText"
         class="chat-input"
         rows="1"
@@ -1082,6 +1092,9 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
 .chat-input {
   flex: 1;
   resize: none;
+  min-height: 2.25rem;
+  max-height: 7rem;
+  overflow-y: auto;
   font-size: 0.875rem;
   background: var(--bg-subtle);
   border-radius: 0.75rem;
