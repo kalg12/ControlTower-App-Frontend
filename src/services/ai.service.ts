@@ -1,6 +1,6 @@
 import api from '@/services/api'
 
-export type AiTask = 'GENERATE_CARD_PROMPT' | 'IMPROVE_TICKET_REPLY' | 'QUICK_REPLY' | 'GENERATE_KB_CONTENT' | 'GENERATE_TEMPLATE_CONTENT'
+export type AiTask = 'GENERATE_CARD_PROMPT' | 'IMPROVE_TICKET_REPLY' | 'QUICK_REPLY' | 'GENERATE_KB_CONTENT' | 'GENERATE_TEMPLATE_CONTENT' | 'SUGGEST_CHAT_REPLY' | 'SUMMARIZE_CHAT'
 
 export type QuickReplyType =
   | 'STARTED_REVIEW'
@@ -8,6 +8,8 @@ export type QuickReplyType =
   | 'CLOSE_TICKET'
   | 'NEED_INFO'
   | 'SCHEDULE_CALL'
+
+export type ChatAction = 'AUTO' | 'ACKNOWLEDGE' | 'NEED_INFO' | 'RESOLUTION'
 
 export interface AiContext {
   // Kanban
@@ -28,6 +30,12 @@ export interface AiContext {
   previousReplies?: string[]
   requesterEmail?: string
   quickReplyType?: QuickReplyType
+  // Live chat
+  chatVisitorName?: string
+  chatStatus?: string
+  chatSource?: string
+  chatMessages?: string[]
+  chatAction?: ChatAction
   // Knowledge base
   kbArticles?: string[]
   // Response template

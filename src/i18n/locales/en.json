@@ -182,6 +182,20 @@
     "fileTooLarge": "File too large (max 10 MB)",
     "fileTypeNotAllowed": "File type not allowed",
     "messagePlaceholder": "Type a message... (Enter to send)",
+    "ai": {
+      "suggest": "Suggest",
+      "acknowledge": "Reviewing",
+      "needInfo": "Ask for details",
+      "improve": "Improve",
+      "summarize": "Summarize",
+      "hideSummary": "Hide summary",
+      "internalSummary": "AI-generated internal summary",
+      "copySummary": "Copy summary",
+      "summaryCopied": "Summary copied",
+      "replyError": "The AI reply could not be generated.",
+      "summaryError": "The conversation could not be summarized.",
+      "copyError": "The summary could not be copied."
+    },
     "transferDialog": {
       "title": "Transfer conversation",
       "selectAgent": "Select agent",

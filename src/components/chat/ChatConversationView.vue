@@ -9,6 +9,7 @@ import { chatService } from '@/services/chat.service'
 import { useToast } from '@/composables/useToast'
 import { qk } from '@/queries/keys'
 import type { ChatConversation, ChatMessage, ChatMessagePayload, ChatQuickReply } from '@/types/chat'
+import { aiService, type ChatAction } from '@/services/ai.service'
 
 const { t } = useI18n()
 
@@ -30,6 +31,8 @@ const isTyping = ref(false)
 const isUploading = ref(false)
 const typingTimeout = ref<ReturnType<typeof setTimeout> | null>(null)
 const showQuickReplies = ref(false)
+const aiLoading = ref<ChatAction | 'IMPROVE' | 'SUMMARY' | null>(null)
+const aiSummary = ref('')
 
 function hideQuickRepliesDelayed() {
   window.setTimeout(() => { showQuickReplies.value = false }, 200)
@@ -340,6 +343,72 @@ function applyQuickReply(r: ChatQuickReply) {
   showQuickReplies.value = false
 }
 
+function buildChatAiContext() {
+  return {
+    chatVisitorName: props.conversation.visitorName,
+    chatStatus: props.conversation.status,
+    chatSource: props.conversation.source,
+    chatMessages: messages.value
+      .filter(message => !pendingOptimisticIds.has(message.id))
+      .slice(-20)
+      .map(message => {
+        const author = message.senderType === 'VISITOR'
+          ? `Visitante ${props.conversation.visitorName}`
+          : message.senderType === 'AGENT'
+            ? `Agente ${message.senderName ?? 'Soporte'}`
+            : 'Sistema'
+        return `${author}: ${message.content}`
+      }),
+  }
+}
+
+async function generateAiReply(action: ChatAction, improveDraft = false) {
+  if (!messages.value.length) return
+  aiLoading.value = improveDraft ? 'IMPROVE' : action
+  try {
+    inputText.value = await aiService.assist({
+      task: 'SUGGEST_CHAT_REPLY',
+      context: {
+        ...buildChatAiContext(),
+        chatAction: action,
+        draftReply: improveDraft ? inputText.value.trim() : undefined,
+      },
+    })
+  } catch {
+    toast.error(t('chatModule.ai.replyError'))
+  } finally {
+    aiLoading.value = null
+  }
+}
+
+async function summarizeWithAi() {
+  if (aiSummary.value) {
+    aiSummary.value = ''
+    return
+  }
+  if (!messages.value.length) return
+  aiLoading.value = 'SUMMARY'
+  try {
+    aiSummary.value = await aiService.assist({
+      task: 'SUMMARIZE_CHAT',
+      context: buildChatAiContext(),
+    })
+  } catch {
+    toast.error(t('chatModule.ai.summaryError'))
+  } finally {
+    aiLoading.value = null
+  }
+}
+
+async function copyAiSummary() {
+  try {
+    await navigator.clipboard.writeText(aiSummary.value)
+    toast.success(t('chatModule.ai.summaryCopied'))
+  } catch {
+    toast.error(t('chatModule.ai.copyError'))
+  }
+}
+
 function isGrouped(i: number) {
   return i > 0 && messages.value[i - 1].senderType === messages.value[i].senderType && messages.value[i].senderType !== 'SYSTEM'
 }
@@ -448,6 +517,38 @@ function isGrouped(i: number) {
           <span class="chat-typing-dot" style="animation-delay:300ms" />
         </div>
       </div>
+    </div>
+
+    <div class="chat-ai-toolbar">
+      <span class="chat-ai-label"><i class="pi pi-sparkles" /> IA</span>
+      <button :disabled="!!aiLoading || !messages.length" @click="generateAiReply('AUTO')">
+        <i v-if="aiLoading === 'AUTO'" class="pi pi-spin pi-spinner" />
+        {{ t('chatModule.ai.suggest') }}
+      </button>
+      <button :disabled="!!aiLoading || !messages.length" @click="generateAiReply('ACKNOWLEDGE')">
+        <i v-if="aiLoading === 'ACKNOWLEDGE'" class="pi pi-spin pi-spinner" />
+        {{ t('chatModule.ai.acknowledge') }}
+      </button>
+      <button :disabled="!!aiLoading || !messages.length" @click="generateAiReply('NEED_INFO')">
+        <i v-if="aiLoading === 'NEED_INFO'" class="pi pi-spin pi-spinner" />
+        {{ t('chatModule.ai.needInfo') }}
+      </button>
+      <button v-if="inputText.trim()" :disabled="!!aiLoading" @click="generateAiReply('AUTO', true)">
+        <i v-if="aiLoading === 'IMPROVE'" class="pi pi-spin pi-spinner" />
+        {{ t('chatModule.ai.improve') }}
+      </button>
+      <button :disabled="!!aiLoading || !messages.length" @click="summarizeWithAi">
+        <i v-if="aiLoading === 'SUMMARY'" class="pi pi-spin pi-spinner" />
+        {{ aiSummary ? t('chatModule.ai.hideSummary') : t('chatModule.ai.summarize') }}
+      </button>
+    </div>
+
+    <div v-if="aiSummary" class="chat-ai-summary">
+      <div class="flex items-center justify-between gap-2 mb-1">
+        <strong>{{ t('chatModule.ai.internalSummary') }}</strong>
+        <button :title="t('chatModule.ai.copySummary')" @click="copyAiSummary"><i class="pi pi-copy" /></button>
+      </div>
+      <p>{{ aiSummary }}</p>
     </div>
 
     <div v-if="showQuickReplies && filteredQuickReplies().length" class="chat-quick-replies">
@@ -717,6 +818,55 @@ function isGrouped(i: number) {
 }
 
 /* ── Quick replies ──────────────────────────────────────── */
+.chat-ai-toolbar {
+  display: flex;
+  align-items: center;
+  gap: 0.375rem;
+  padding: 0.45rem 0.75rem;
+  overflow-x: auto;
+  border-top: 1px solid var(--border);
+  background: color-mix(in srgb, var(--primary) 5%, var(--surface));
+  flex-shrink: 0;
+}
+
+.chat-ai-label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  color: var(--primary);
+  font-size: 0.6875rem;
+  font-weight: 700;
+  flex-shrink: 0;
+}
+
+.chat-ai-toolbar button {
+  border: 1px solid color-mix(in srgb, var(--primary) 30%, var(--border));
+  color: var(--primary);
+  background: var(--surface);
+  border-radius: 9999px;
+  padding: 0.25rem 0.55rem;
+  font-size: 0.6875rem;
+  white-space: nowrap;
+  transition: background 150ms, opacity 150ms;
+}
+.chat-ai-toolbar button:hover { background: color-mix(in srgb, var(--primary) 10%, var(--surface)); }
+.chat-ai-toolbar button:disabled { opacity: 0.45; cursor: not-allowed; }
+
+.chat-ai-summary {
+  max-height: 8rem;
+  overflow-y: auto;
+  padding: 0.625rem 0.75rem;
+  border-top: 1px solid var(--border);
+  background: var(--bg-subtle);
+  color: var(--text-muted);
+  font-size: 0.7rem;
+  line-height: 1.45;
+  white-space: pre-wrap;
+  flex-shrink: 0;
+}
+.chat-ai-summary strong { color: var(--text); font-size: 0.7rem; }
+.chat-ai-summary button { color: var(--primary); }
+
 .chat-quick-replies {
   border-top: 1px solid var(--border);
   background: var(--bg-subtle);

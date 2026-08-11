@@ -170,6 +170,20 @@
     "fileTooLarge": "Archivo demasiado grande (máx. 10 MB)",
     "fileTypeNotAllowed": "Tipo de archivo no permitido",
     "messagePlaceholder": "Escribe un mensaje... (Enter para enviar)",
+    "ai": {
+      "suggest": "Sugerir",
+      "acknowledge": "En revisión",
+      "needInfo": "Pedir datos",
+      "improve": "Mejorar",
+      "summarize": "Resumir",
+      "hideSummary": "Ocultar resumen",
+      "internalSummary": "Resumen interno generado por IA",
+      "copySummary": "Copiar resumen",
+      "summaryCopied": "Resumen copiado",
+      "replyError": "No se pudo generar la respuesta con IA.",
+      "summaryError": "No se pudo resumir la conversación.",
+      "copyError": "No se pudo copiar el resumen."
+    },
     "transferDialog": {
       "title": "Transferir conversación",
       "selectAgent": "Seleccionar agente",

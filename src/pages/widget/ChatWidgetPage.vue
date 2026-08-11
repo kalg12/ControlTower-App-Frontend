@@ -138,6 +138,13 @@ function startPolling() {
           messages.value.splice(optimisticIdx, 1, msg)
         } else {
           messages.value.push(msg)
+          if (msg.senderType === "AGENT") {
+            window.parent?.postMessage({
+              type: "CT_NEW_MESSAGE",
+              content: msg.content ?? "",
+              senderName: msg.senderName ?? agentName.value ?? "Soporte",
+            }, "*")
+          }
         }
         added = true
       }
@@ -147,10 +154,7 @@ function startPolling() {
       if (convInfo.agentName) agentName.value = convInfo.agentName
       if (convInfo.agentAvatarUrl) agentAvatarUrl.value = convInfo.agentAvatarUrl
       if (convInfo.status === "CLOSED" && screen.value === "chat") {
-        sessionStorage.removeItem("ct:conversationId")
-        sessionStorage.removeItem("ct:visitorToken")
-        window.parent?.postMessage({ type: "CT_CHAT_CLOSED" }, "*")
-        screen.value = "rating"
+        showRatingScreen()
       }
     } catch {}
   }, 6000)
@@ -179,6 +183,7 @@ function connectStomp() {
         const payload: ChatMessagePayload = JSON.parse(frame.body);
 
         if (payload.type === "MESSAGE" || payload.type === "SYSTEM") {
+          let addedToTimeline = false;
           // Skip if already present by server-assigned ID
           if (payload.id && messages.value.some(m => m.id === payload.id)) {
             // nothing
@@ -195,6 +200,7 @@ function connectStomp() {
                 id: payload.id,
                 createdAt: payload.createdAt,
               });
+              addedToTimeline = true;
             } else {
               messages.value.push({
                 id: payload.id ?? crypto.randomUUID(),
@@ -207,6 +213,7 @@ function connectStomp() {
                 isRead: payload.isRead ?? false,
                 createdAt: payload.createdAt,
               });
+              addedToTimeline = true;
               nextTick(scrollBottom);
             }
           } else {
@@ -221,10 +228,15 @@ function connectStomp() {
               isRead: payload.isRead ?? false,
               createdAt: payload.createdAt,
             });
+            addedToTimeline = true;
             nextTick(scrollBottom);
           }
-          if (payload.senderType === "AGENT") {
-            window.parent?.postMessage({ type: "CT_NEW_MESSAGE" }, "*");
+          if (payload.senderType === "AGENT" && addedToTimeline) {
+            window.parent?.postMessage({
+              type: "CT_NEW_MESSAGE",
+              content: payload.content ?? "",
+              senderName: payload.senderName ?? agentName.value ?? "Soporte",
+            }, "*");
           }
         } else if (payload.type === "STATUS_CHANGED") {
           if (payload.conversationStatus)
@@ -233,11 +245,7 @@ function connectStomp() {
           if (payload.senderAvatarUrl)
             agentAvatarUrl.value = payload.senderAvatarUrl;
           if (payload.conversationStatus === "CLOSED") {
-            sessionStorage.removeItem("ct:conversationId");
-            sessionStorage.removeItem("ct:visitorToken");
-            window.parent?.postMessage({ type: "CT_CHAT_CLOSED" }, "*");
-            // Transition to rating screen
-            screen.value = "rating";
+            showRatingScreen();
           }
         } else if (
           payload.type === "TYPING" &&
@@ -262,9 +270,7 @@ function connectStomp() {
         if (info.agentName) agentName.value = info.agentName;
         if (info.agentAvatarUrl) agentAvatarUrl.value = info.agentAvatarUrl;
         if (info.status === "CLOSED") {
-          sessionStorage.removeItem("ct:conversationId");
-          sessionStorage.removeItem("ct:visitorToken");
-          screen.value = "rating";
+          showRatingScreen();
         }
       } catch {}
 
@@ -289,6 +295,20 @@ function connectStomp() {
 
 // ── Rating ────────────────────────────────────────────────────────────────────
 
+function showRatingScreen() {
+  if (screen.value === "rating" || screen.value === "thankyou") return;
+  stopPolling();
+  screen.value = "rating";
+  window.parent?.postMessage({ type: "CT_CHAT_CLOSED" }, "*");
+}
+
+function finishConversationExperience() {
+  sessionStorage.removeItem("ct:conversationId");
+  sessionStorage.removeItem("ct:visitorToken");
+  window.parent?.postMessage({ type: "CT_CHAT_FINISHED" }, "*");
+  screen.value = "thankyou";
+}
+
 async function submitRating() {
   if (!selectedRating.value) return;
   ratingSubmitting.value = true;
@@ -301,7 +321,7 @@ async function submitRating() {
     );
   } catch {}
   ratingSubmitting.value = false;
-  screen.value = "thankyou";
+  finishConversationExperience();
 }
 
 // ── Send message ──────────────────────────────────────────────────────────────
@@ -858,7 +878,7 @@ function formatTime(ts: unknown): string {
       </button>
       <button
         class="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-        @click="screen = 'thankyou'"
+        @click="finishConversationExperience"
       >
         Omitir
       </button>
