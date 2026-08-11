@@ -11,6 +11,7 @@ import { useConfirm } from 'primevue/useconfirm'
 import { qk } from '@/queries/keys'
 import type { ChatConversation, ChatMessage, ChatMessagePayload, ChatQuickReply } from '@/types/chat'
 import { aiService, type ChatAction } from '@/services/ai.service'
+import ChatDiagnosticCard from '@/components/chat/ChatDiagnosticCard.vue'
 
 const { t } = useI18n()
 
@@ -373,6 +374,10 @@ function formatTime(ts: unknown): string {
   return isNaN(d.getTime()) ? '' : d.toLocaleTimeString('es-MX', { hour: '2-digit', minute: '2-digit' })
 }
 
+function isPosDiagnosticMessage(content: string) {
+  return content.startsWith('🛠️ Diagnóstico del POS compartido')
+}
+
 function filteredQuickReplies() {
   const q = inputText.value.toLowerCase()
   return (quickReplies.value ?? []).filter((r: ChatQuickReply) => r.shortcut.includes(q) || r.content.toLowerCase().includes(q)).slice(0, 5)
@@ -534,6 +539,7 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
           'is-visitor': msg.senderType === 'VISITOR',
           'is-system': msg.senderType === 'SYSTEM',
           'is-internal': msg.internal,
+          'is-diagnostic': isPosDiagnosticMessage(msg.content),
           'is-grouped': isGrouped(i)
         }"
       >
@@ -555,7 +561,8 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
           </div>
           <div v-else class="chat-avatar-spacer" />
           <div class="chat-bubble-group">
-            <div class="chat-bubble chat-bubble-in">
+            <ChatDiagnosticCard v-if="isPosDiagnosticMessage(msg.content)" :content="msg.content" />
+            <div v-else class="chat-bubble chat-bubble-in">
               <template v-if="msg.content.startsWith('📎')">
                 <i class="pi pi-paperclip mr-1 text-xs" />
                 <a :href="msg.attachmentUrl ?? '#'" target="_blank" class="underline text-[var(--primary)] hover:text-[var(--primary-hover)]">{{ msg.content.replace('📎 ', '') }}</a>
@@ -854,6 +861,16 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
 .chat-message-row.is-internal {
   align-self: stretch;
   max-width: 100%;
+}
+
+.chat-message-row.is-diagnostic {
+  width: min(46rem, 96%);
+  max-width: 96%;
+  align-items: flex-start;
+}
+
+.chat-message-row.is-diagnostic .chat-bubble-group {
+  width: min(42rem, calc(100% - 2.125rem));
 }
 
 .chat-internal-note {
