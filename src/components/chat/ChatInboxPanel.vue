@@ -61,9 +61,9 @@ const displayList = computed(() => {
 })
 
 const tabs = computed(() => [
-  { key: 'WAITING', label: t('chatModule.status.waiting') },
-  { key: 'ACTIVE', label: t('chatModule.status.active') },
-  { key: 'ALL', label: t('chatModule.status.all') },
+  { key: 'WAITING', label: t('chatModule.tabs.waiting') },
+  { key: 'ACTIVE', label: t('chatModule.tabs.active') },
+  { key: 'ALL', label: t('chatModule.tabs.all') },
 ])
 
 // ── Mutations ────────────────────────────────────────────────────────────────
