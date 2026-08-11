@@ -157,6 +157,11 @@
       "delete": "Delete",
       "confirmDelete": "Confirm?"
     },
+    "closeConfirm": {
+      "title": "Confirm chat closure",
+      "message": "Do you really want to close the chat with {name}? The customer will no longer be able to reply and will be asked for feedback. If you are still handling the case, cancel and continue the conversation.",
+      "accept": "Yes, close chat"
+    },
     "agents": {
       "online": "Online Agents",
       "noAgents": "No agents online",
@@ -167,7 +172,11 @@
       "placeholder": "Tell us more (optional)...",
       "submit": "Submit rating",
       "skip": "Skip",
-      "thankYou": "Thanks for your feedback!"
+      "thankYou": "Thanks for your feedback!",
+      "received": "Customer feedback",
+      "awaiting": "Waiting for customer feedback",
+      "noComment": "The customer did not add a comment.",
+      "score": "Rating: {score} out of 5"
     },
     "time": {
       "now": "now",

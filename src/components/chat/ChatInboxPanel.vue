@@ -231,8 +231,13 @@ function waitingMinutes(ts: string) {
 
 function confirmClose(conv: ChatConversation) {
   confirm.require({
-    message: t('chatModule.confirmClose', { name: conv.visitorName }),
-    header: t('chatModule.actions.close'),
+    message: t('chatModule.closeConfirm.message', { name: conv.visitorName }),
+    header: t('chatModule.closeConfirm.title'),
+    icon: 'pi pi-exclamation-triangle',
+    rejectLabel: t('common.cancel'),
+    acceptLabel: t('chatModule.closeConfirm.accept'),
+    acceptProps: { severity: 'danger' },
+    rejectProps: { severity: 'secondary', outlined: true },
     accept: () => closeMut.mutate(conv.id),
   })
 }

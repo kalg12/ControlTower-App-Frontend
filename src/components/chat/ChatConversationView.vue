@@ -7,6 +7,7 @@ import SockJS from 'sockjs-client'
 import { useAuthStore } from '@/stores/auth'
 import { chatService } from '@/services/chat.service'
 import { useToast } from '@/composables/useToast'
+import { useConfirm } from 'primevue/useconfirm'
 import { qk } from '@/queries/keys'
 import type { ChatConversation, ChatMessage, ChatMessagePayload, ChatQuickReply } from '@/types/chat'
 import { aiService, type ChatAction } from '@/services/ai.service'
@@ -25,6 +26,7 @@ const emit = defineEmits<{
 
 const auth = useAuthStore()
 const toast = useToast()
+const confirm = useConfirm()
 const messagesEl = ref<HTMLElement | null>(null)
 const inputEl = ref<HTMLTextAreaElement | null>(null)
 const inputText = ref('')
@@ -61,6 +63,13 @@ const { data: messageData, refetch: refetchMessages } = useQuery({
   }),
   // A short poll is the guaranteed fallback when a proxy silently drops STOMP.
   refetchInterval: 2000,
+})
+
+const { data: ratingData } = useQuery({
+  queryKey: qk.chatRating(props.conversation.id),
+  queryFn: () => chatService.getConversationRating(props.conversation.id),
+  enabled: props.conversation.status === 'CLOSED' || props.conversation.status === 'ARCHIVED',
+  refetchInterval: 10000,
 })
 
 function mergeMessages(incoming: ChatMessage[]) {
@@ -308,6 +317,19 @@ const closeMut = useMutation({
   onSuccess: () => emit('closed'),
 })
 
+function confirmCloseConversation() {
+  confirm.require({
+    header: t('chatModule.closeConfirm.title'),
+    message: t('chatModule.closeConfirm.message', { name: props.conversation.visitorName }),
+    icon: 'pi pi-exclamation-triangle',
+    rejectLabel: t('common.cancel'),
+    acceptLabel: t('chatModule.closeConfirm.accept'),
+    acceptProps: { severity: 'danger' },
+    rejectProps: { severity: 'secondary', outlined: true },
+    accept: () => closeMut.mutate(),
+  })
+}
+
 const archiveMut = useMutation({
   mutationFn: () => chatService.archive(props.conversation.id),
   onSuccess: () => emit('archived'),
@@ -463,7 +485,7 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
       </div>
       <div class="flex items-center gap-1.5">
         <button v-if="conversation.status === 'ACTIVE'" class="chat-header-btn" @click="emit('transfer')">{{ t('chatModule.actions.transfer') }}</button>
-        <button v-if="conversation.status === 'ACTIVE'" class="chat-header-btn" @click="closeMut.mutate()">{{ t('chatModule.actions.close') }}</button>
+        <button v-if="conversation.status === 'ACTIVE'" class="chat-header-btn" :disabled="closeMut.isPending.value" @click="confirmCloseConversation">{{ t('chatModule.actions.close') }}</button>
         <button v-if="conversation.status === 'CLOSED'" class="chat-header-btn" :class="archiveMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="archiveMut.mutate()">{{ t('chatModule.actions.archive') }}</button>
         <button v-if="conversation.status === 'ARCHIVED'" class="chat-header-btn" :class="unarchiveMut.isPending.value ? 'opacity-50 cursor-wait' : ''" @click="unarchiveMut.mutate()">{{ t('chatModule.actions.unarchive') }}</button>
         <template v-if="conversation.status === 'CLOSED' || conversation.status === 'ARCHIVED'">
@@ -483,6 +505,23 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
     <div v-if="conversation.visitorEmail" class="chat-info-strip">
       <span><i class="pi pi-envelope mr-1" />{{ conversation.visitorEmail }}</span>
       <span><i class="pi pi-tag mr-1" />{{ conversation.source }}</span>
+    </div>
+
+    <div v-if="conversation.status === 'CLOSED' || conversation.status === 'ARCHIVED'" class="chat-rating-strip">
+      <template v-if="ratingData">
+        <div class="chat-rating-stars" :aria-label="t('chatModule.rating.score', { score: ratingData.rating })">
+          <span v-for="star in 5" :key="star" :class="star <= ratingData.rating ? 'is-filled' : ''">★</span>
+        </div>
+        <div class="min-w-0">
+          <strong>{{ t('chatModule.rating.received') }}</strong>
+          <p v-if="ratingData.comment">“{{ ratingData.comment }}”</p>
+          <p v-else class="opacity-70">{{ t('chatModule.rating.noComment') }}</p>
+        </div>
+      </template>
+      <template v-else>
+        <i class="pi pi-clock text-xs" />
+        <span>{{ t('chatModule.rating.awaiting') }}</span>
+      </template>
     </div>
 
     <div ref="messagesEl" class="chat-messages">
@@ -764,6 +803,23 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
   flex-shrink: 0;
 }
 
+.chat-rating-strip {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.625rem;
+  padding: 0.55rem 1rem;
+  border-bottom: 1px solid var(--border);
+  background: color-mix(in srgb, #f59e0b 8%, var(--bg));
+  color: var(--text-muted);
+  font-size: 0.72rem;
+  flex-shrink: 0;
+}
+
+.chat-rating-strip strong { color: var(--text); }
+.chat-rating-strip p { margin-top: 0.125rem; line-height: 1.4; white-space: pre-wrap; }
+.chat-rating-stars { display: flex; color: var(--border); font-size: 1rem; line-height: 1; flex-shrink: 0; }
+.chat-rating-stars .is-filled { color: #f59e0b; }
+
 /* ── Messages ───────────────────────────────────────────── */
 .chat-messages {
   flex: 1;
@@ -907,6 +963,7 @@ function setComposerMode(mode: 'REPLY' | 'NOTE') {
   font-size: 0.875rem;
   line-height: 1.45;
   word-break: break-word;
+  white-space: pre-wrap;
 }
 
 .chat-bubble-in {

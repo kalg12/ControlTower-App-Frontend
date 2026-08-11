@@ -145,6 +145,11 @@
       "delete": "Eliminar",
       "confirmDelete": "¿Confirmar?"
     },
+    "closeConfirm": {
+      "title": "Confirmar cierre del chat",
+      "message": "¿Realmente quieres cerrar el chat con {name}? El cliente ya no podrá responder y se le solicitará una evaluación. Si todavía estás atendiendo el caso, cancela y continúa la conversación.",
+      "accept": "Sí, cerrar chat"
+    },
     "agents": {
       "online": "Agentes en línea",
       "noAgents": "Sin agentes conectados",
@@ -155,7 +160,11 @@
       "placeholder": "Cuéntanos más (opcional)...",
       "submit": "Enviar evaluación",
       "skip": "Omitir",
-      "thankYou": "¡Gracias por tu evaluación!"
+      "thankYou": "¡Gracias por tu evaluación!",
+      "received": "Evaluación del cliente",
+      "awaiting": "Esperando la evaluación del cliente",
+      "noComment": "El cliente no añadió comentarios.",
+      "score": "Calificación: {score} de 5"
     },
     "time": {
       "now": "ahora",

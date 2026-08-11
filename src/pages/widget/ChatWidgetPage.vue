@@ -20,6 +20,8 @@ const screen = ref<"welcome" | "chat" | "rating" | "thankyou">("welcome");
 const selectedRating = ref(0);
 const ratingComment = ref("");
 const ratingSubmitting = ref(false);
+const ratingSubmitted = ref(false);
+const ratingError = ref("");
 const minimized = ref(false);
 const visitorName = ref("");
 const visitorEmail = ref("");
@@ -34,6 +36,26 @@ const messagesEl = ref<HTMLElement | null>(null);
 const remoteTyping = ref(false);
 let remoteTypingTimer: ReturnType<typeof setTimeout> | null = null;
 let typingTimer: ReturnType<typeof setTimeout> | null = null;
+
+type PosDiagnostic = {
+  pageTitle: string;
+  pagePath: string;
+  appVersion: string;
+  browser: string;
+  viewport: string;
+  locale: string;
+  timezone: string;
+  online: boolean;
+  capturedAt: string;
+  recentErrors: Array<{ message: string; source?: string; capturedAt: string }>;
+  routeHistory: Array<{ path: string; title: string; visitedAt: string }>;
+  recentClicks: Array<{ label: string; element: string; path: string; clickedAt: string }>;
+};
+
+const diagnosticLoading = ref(false);
+const diagnosticError = ref("");
+const pendingDiagnostic = ref<PosDiagnostic | null>(null);
+let diagnosticRequestTimer: ReturnType<typeof setTimeout> | null = null;
 
 // Persist visitorId across sessions, tokens per session
 const visitorId =
@@ -54,9 +76,46 @@ let pollInterval: ReturnType<typeof setInterval> | null = null;
 // Tracks optimistic IDs currently in-flight (REST not yet returned) to prevent poll duplicates
 const _pendingOptimisticIds = new Set<string>();
 
+function parentOrigin() {
+  try {
+    return document.referrer ? new URL(document.referrer).origin : "";
+  } catch {
+    return "";
+  }
+}
+
+function isPosDiagnostic(value: unknown): value is PosDiagnostic {
+  if (!value || typeof value !== "object") return false;
+  const data = value as Partial<PosDiagnostic>;
+  return typeof data.pageTitle === "string"
+    && typeof data.pagePath === "string"
+    && typeof data.appVersion === "string"
+    && typeof data.browser === "string"
+    && typeof data.viewport === "string"
+    && typeof data.locale === "string"
+    && typeof data.timezone === "string"
+    && typeof data.online === "boolean"
+    && typeof data.capturedAt === "string"
+    && Array.isArray(data.recentErrors)
+    && Array.isArray(data.routeHistory)
+    && Array.isArray(data.recentClicks);
+}
+
+function handleParentMessage(event: MessageEvent) {
+  if (event.source !== window.parent) return;
+  const expectedOrigin = parentOrigin();
+  if (expectedOrigin && event.origin !== expectedOrigin) return;
+  if (event.data?.type !== "CT_DIAGNOSTICS_READY" || !isPosDiagnostic(event.data.payload)) return;
+  if (diagnosticRequestTimer) clearTimeout(diagnosticRequestTimer);
+  diagnosticLoading.value = false;
+  diagnosticError.value = "";
+  pendingDiagnostic.value = event.data.payload;
+}
+
 // ── Resume session ────────────────────────────────────────────────────────────
 
 onMounted(async () => {
+  window.addEventListener("message", handleParentMessage);
   if (conversationId && visitorToken) {
     screen.value = "chat";
     await loadMessages();
@@ -66,6 +125,8 @@ onMounted(async () => {
 });
 
 onUnmounted(() => {
+  window.removeEventListener("message", handleParentMessage)
+  if (diagnosticRequestTimer) clearTimeout(diagnosticRequestTimer)
   stompClient.value?.deactivate()
   stopPolling()
 })
@@ -312,6 +373,7 @@ function finishConversationExperience() {
 async function submitRating() {
   if (!selectedRating.value) return;
   ratingSubmitting.value = true;
+  ratingError.value = "";
   try {
     await publicChatService.rateConversation(
       conversationId,
@@ -319,9 +381,44 @@ async function submitRating() {
       selectedRating.value,
       ratingComment.value.trim() || undefined,
     );
-  } catch {}
-  ratingSubmitting.value = false;
+    ratingSubmitted.value = true;
+    finishConversationExperience();
+  } catch {
+    ratingError.value = "No pudimos enviar tu evaluación. Intenta nuevamente.";
+  } finally {
+    ratingSubmitting.value = false;
+  }
+}
+
+function skipRating() {
+  ratingSubmitted.value = false;
   finishConversationExperience();
+}
+
+function viewClosedConversation() {
+  screen.value = "chat";
+  convStatus.value = "CLOSED";
+  nextTick(scrollBottom);
+}
+
+function startNewConversation() {
+  stopPolling();
+  void stompClient.value?.deactivate();
+  stompClient.value = null;
+  stompConnected.value = false;
+  conversationId = "";
+  visitorToken = "";
+  messages.value = [];
+  convStatus.value = "WAITING";
+  agentName.value = null;
+  agentAvatarUrl.value = null;
+  selectedRating.value = 0;
+  ratingComment.value = "";
+  ratingSubmitted.value = false;
+  ratingError.value = "";
+  sessionStorage.removeItem("ct:conversationId");
+  sessionStorage.removeItem("ct:visitorToken");
+  screen.value = "welcome";
 }
 
 // ── Send message ──────────────────────────────────────────────────────────────
@@ -330,6 +427,10 @@ function sendMessage() {
   const text = inputText.value.trim();
   if (!text) return;
   inputText.value = "";
+  sendText(text);
+}
+
+function sendText(text: string) {
 
   // Optimistic display with a stable temp ID so the REST swap is exact.
   const optimisticId = crypto.randomUUID();
@@ -375,6 +476,57 @@ function sendMessage() {
         _pendingOptimisticIds.delete(optimisticId);
       }
     });
+}
+
+function requestDiagnostics() {
+  diagnosticError.value = "";
+  if (window.parent === window) {
+    diagnosticError.value = "El diagnóstico sólo está disponible desde el POS.";
+    return;
+  }
+  diagnosticLoading.value = true;
+  const origin = parentOrigin();
+  window.parent.postMessage({ type: "CT_REQUEST_DIAGNOSTICS" }, origin || "*");
+  if (diagnosticRequestTimer) clearTimeout(diagnosticRequestTimer);
+  diagnosticRequestTimer = setTimeout(() => {
+    if (!diagnosticLoading.value) return;
+    diagnosticLoading.value = false;
+    diagnosticError.value = "No pudimos leer el diagnóstico. Intenta nuevamente.";
+  }, 5000);
+}
+
+function formatDiagnostic(diagnostic: PosDiagnostic) {
+  const errors = diagnostic.recentErrors.length
+    ? diagnostic.recentErrors
+        .map((item, index) => `${index + 1}. ${item.message}${item.source ? ` (${item.source})` : ""}`)
+        .join("\n")
+    : "Ninguno detectado por el navegador";
+  const routes = diagnostic.routeHistory.length
+    ? diagnostic.routeHistory.map((item, index) => `${index + 1}. ${item.path} — ${item.title}`).join("\n")
+    : diagnostic.pagePath;
+  const clicks = diagnostic.recentClicks.length
+    ? diagnostic.recentClicks.map((item, index) => `${index + 1}. ${item.label} [${item.element}] en ${item.path}`).join("\n")
+    : "Ninguno registrado";
+  return [
+    "🛠️ Diagnóstico del POS compartido",
+    `Página: ${diagnostic.pageTitle}`,
+    `Ruta: ${diagnostic.pagePath}`,
+    `Versión: ${diagnostic.appVersion}`,
+    `Pantalla: ${diagnostic.viewport}`,
+    `Idioma/Zona: ${diagnostic.locale} · ${diagnostic.timezone}`,
+    `Conexión: ${diagnostic.online ? "en línea" : "sin conexión"}`,
+    `Navegador: ${diagnostic.browser}`,
+    `Hora: ${new Date(diagnostic.capturedAt).toLocaleString("es-MX")}`,
+    `Errores recientes:\n${errors}`,
+    `Ruta de navegación:\n${routes}`,
+    `Últimos clics:\n${clicks}`,
+  ].join("\n");
+}
+
+function shareDiagnostics() {
+  if (!pendingDiagnostic.value) return;
+  sendText(formatDiagnostic(pendingDiagnostic.value));
+  pendingDiagnostic.value = null;
 }
 
 function onKeyDown(e: KeyboardEvent) {
@@ -704,7 +856,7 @@ function formatTime(ts: unknown): string {
                 {{ msg.senderName }} · {{ formatTime(msg.createdAt) }}
               </div>
               <div
-                class="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-3 py-2 text-sm text-gray-800 shadow-sm"
+                class="bg-white border border-gray-200 rounded-2xl rounded-bl-sm px-3 py-2 text-sm text-gray-800 shadow-sm whitespace-pre-wrap"
               >
                 {{ msg.content }}
               </div>
@@ -715,7 +867,7 @@ function formatTime(ts: unknown): string {
           <div v-else class="flex justify-end">
             <div class="max-w-[75%]">
               <div
-                class="rounded-2xl rounded-br-sm px-3 py-2 text-sm text-white shadow-sm"
+                class="rounded-2xl rounded-br-sm px-3 py-2 text-sm text-white shadow-sm whitespace-pre-wrap"
                 style="background: #f97316"
               >
                 {{ msg.content }}
@@ -757,30 +909,32 @@ function formatTime(ts: unknown): string {
         Esta conversación ha sido cerrada.
       </div>
 
+      <!-- The POS owns the page context. The widget requests a privacy-safe
+           preview and the visitor explicitly confirms before it is sent. -->
+      <div
+        v-if="convStatus !== 'CLOSED'"
+        class="flex items-center justify-between gap-2 border-t border-gray-100 bg-white px-3 pt-2"
+      >
+        <button
+          class="inline-flex items-center gap-1.5 rounded-lg px-2 py-1 text-xs font-medium text-orange-600 transition-colors hover:bg-orange-50 disabled:cursor-wait disabled:opacity-50"
+          :disabled="diagnosticLoading"
+          @click="requestDiagnostics"
+        >
+          <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9.75 3.75h4.5m-6 3h7.5m-9 3h10.5m-9 0v6.75a3.75 3.75 0 007.5 0V9.75m-9 3H4.5m15 0h-2.25m-10.5 3H4.5m15 0h-2.25" />
+          </svg>
+          {{ diagnosticLoading ? "Leyendo diagnóstico…" : "Compartir diagnóstico" }}
+        </button>
+        <span v-if="diagnosticError" class="text-right text-[10px] leading-tight text-red-500">
+          {{ diagnosticError }}
+        </span>
+      </div>
+
       <!-- Input -->
       <div
         v-if="convStatus !== 'CLOSED'"
         class="flex items-center gap-2 px-3 py-3 border-t border-gray-100 bg-white flex-shrink-0"
       >
-        <button
-          class="p-2 text-gray-300 cursor-not-allowed"
-          title="Próximamente: adjuntar archivos"
-          disabled
-        >
-          <svg
-            class="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="1.5"
-              d="M12 4v16m8-8H4"
-            />
-          </svg>
-        </button>
         <input
           v-model="inputText"
           type="text"
@@ -814,6 +968,60 @@ function formatTime(ts: unknown): string {
             />
           </svg>
         </button>
+      </div>
+
+      <!-- Diagnostic consent preview -->
+      <div
+        v-if="pendingDiagnostic"
+        class="absolute inset-0 z-30 flex items-center justify-center bg-gray-950/45 p-4"
+        @click.self="pendingDiagnostic = null"
+      >
+        <div class="flex max-h-[85%] w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-800 shadow-2xl">
+          <div class="border-b border-gray-100 px-4 py-3">
+            <h2 class="text-sm font-bold">Compartir diagnóstico con soporte</h2>
+            <p class="mt-1 text-xs text-gray-500">Revisa la información antes de enviarla. Registramos páginas y botones utilizados, pero no teclas, contraseñas, valores de formularios ni parámetros de la URL.</p>
+          </div>
+          <div class="space-y-2 overflow-y-auto px-4 py-3 text-xs">
+            <div><span class="font-semibold">Página:</span> {{ pendingDiagnostic.pageTitle }}</div>
+            <div><span class="font-semibold">Ruta:</span> {{ pendingDiagnostic.pagePath }}</div>
+            <div><span class="font-semibold">Versión:</span> {{ pendingDiagnostic.appVersion }}</div>
+            <div><span class="font-semibold">Pantalla:</span> {{ pendingDiagnostic.viewport }}</div>
+            <div><span class="font-semibold">Idioma/Zona:</span> {{ pendingDiagnostic.locale }} · {{ pendingDiagnostic.timezone }}</div>
+            <div><span class="font-semibold">Conexión:</span> {{ pendingDiagnostic.online ? "En línea" : "Sin conexión" }}</div>
+            <div class="break-words"><span class="font-semibold">Navegador:</span> {{ pendingDiagnostic.browser }}</div>
+            <div><span class="font-semibold">Hora:</span> {{ new Date(pendingDiagnostic.capturedAt).toLocaleString("es-MX") }}</div>
+            <div>
+              <span class="font-semibold">Errores recientes:</span>
+              <span v-if="!pendingDiagnostic.recentErrors.length" class="ml-1 text-emerald-600">ninguno detectado</span>
+              <ul v-else class="mt-1 list-disc space-y-1 pl-4 text-red-600">
+                <li v-for="item in pendingDiagnostic.recentErrors" :key="`${item.capturedAt}-${item.message}`">
+                  {{ item.message }}<span v-if="item.source" class="text-gray-400"> · {{ item.source }}</span>
+                </li>
+              </ul>
+            </div>
+            <div>
+              <span class="font-semibold">Ruta de navegación:</span>
+              <ol class="mt-1 list-decimal space-y-1 pl-4 text-gray-600">
+                <li v-for="item in pendingDiagnostic.routeHistory" :key="`${item.visitedAt}-${item.path}`">
+                  {{ item.path }} <span class="text-gray-400">· {{ item.title }}</span>
+                </li>
+              </ol>
+            </div>
+            <div>
+              <span class="font-semibold">Últimos clics:</span>
+              <span v-if="!pendingDiagnostic.recentClicks.length" class="ml-1 text-gray-400">ninguno registrado</span>
+              <ol v-else class="mt-1 list-decimal space-y-1 pl-4 text-gray-600">
+                <li v-for="item in pendingDiagnostic.recentClicks" :key="`${item.clickedAt}-${item.label}`">
+                  {{ item.label }} <span class="text-gray-400">· {{ item.path }}</span>
+                </li>
+              </ol>
+            </div>
+          </div>
+          <div class="flex gap-2 border-t border-gray-100 px-4 py-3">
+            <button class="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50" @click="pendingDiagnostic = null">Cancelar</button>
+            <button class="flex-1 rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600" @click="shareDiagnostics">Compartir ahora</button>
+          </div>
+        </div>
       </div>
     </div>
 
@@ -876,9 +1084,10 @@ function formatTime(ts: unknown): string {
       >
         {{ ratingSubmitting ? "Enviando..." : "Enviar evaluación" }}
       </button>
+      <p v-if="ratingError" class="text-xs text-red-500">{{ ratingError }}</p>
       <button
         class="text-sm text-gray-400 hover:text-gray-600 transition-colors"
-        @click="finishConversationExperience"
+        @click="skipRating"
       >
         Omitir
       </button>
@@ -905,8 +1114,23 @@ function formatTime(ts: unknown): string {
       <div>
         <h2 class="text-xl font-bold text-gray-800">¡Gracias!</h2>
         <p class="text-sm text-gray-500 mt-2">
-          Tu evaluación ha sido registrada.<br />Hasta pronto 👋
+          <template v-if="ratingSubmitted">Tu evaluación y tus comentarios fueron enviados al equipo de soporte.</template>
+          <template v-else>La conversación ha finalizado.</template>
         </p>
+      </div>
+      <div class="flex w-full flex-col gap-2">
+        <button
+          class="w-full rounded-xl bg-orange-500 px-4 py-3 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+          @click="startNewConversation"
+        >
+          Iniciar un nuevo chat
+        </button>
+        <button
+          class="w-full rounded-xl border border-gray-200 px-4 py-3 text-sm font-medium text-gray-700 transition-colors hover:bg-gray-50"
+          @click="viewClosedConversation"
+        >
+          Consultar conversación anterior
+        </button>
       </div>
     </div>
   </div>

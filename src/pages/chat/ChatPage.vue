@@ -17,11 +17,13 @@ import ChatConversationView from "@/components/chat/ChatConversationView.vue";
 import ChatTransferDialog from "@/components/chat/ChatTransferDialog.vue";
 import { MessageSquare } from "lucide-vue-next";
 import { useChatPresence } from "@/composables/useChatPresence";
+import { useConfirm } from "primevue/useconfirm";
 
 const { t } = useI18n();
 
 const auth = useAuthStore();
 const qc = useQueryClient();
+const confirm = useConfirm();
 
 const activeTab = ref<ConversationStatus | "ALL">("ALL");
 const search = ref("");
@@ -84,6 +86,19 @@ const closeMut = useMutation({
     selectedConv.value = null;
   },
 });
+
+function confirmCloseConversation(conv: ChatConversation) {
+  confirm.require({
+    header: t("chatModule.closeConfirm.title"),
+    message: t("chatModule.closeConfirm.message", { name: conv.visitorName }),
+    icon: "pi pi-exclamation-triangle",
+    rejectLabel: t("common.cancel"),
+    acceptLabel: t("chatModule.closeConfirm.accept"),
+    acceptProps: { severity: "danger" },
+    rejectProps: { severity: "secondary", outlined: true },
+    accept: () => closeMut.mutate(conv.id),
+  });
+}
 
 const archiveMut = useMutation({
   mutationFn: (id: string) => chatService.archive(id),
@@ -456,7 +471,7 @@ onUnmounted(() => {
               :loading="
                 closeMut.isPending.value && closeMut.variables.value === conv.id
               "
-              @click="closeMut.mutate(conv.id)"
+              @click="confirmCloseConversation(conv)"
             />
             <Button
               v-if="conv.status === 'CLOSED'"
