@@ -530,6 +530,7 @@ onUnmounted(() => {
           style="height: calc(100vh - 140px)"
         >
           <ChatConversationView
+            :key="selectedConv.id"
             :conversation="selectedConv"
             @close="selectedConv = null"
             @transfer="showTransfer = true"

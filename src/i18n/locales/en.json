@@ -178,6 +178,7 @@
     "attachFile": "Attach file",
     "uploadSuccess": "File sent",
     "uploadError": "Failed to send file",
+    "sendError": "The message could not be sent. Please try again.",
     "fileTooLarge": "File too large (max 10 MB)",
     "fileTypeNotAllowed": "File type not allowed",
     "messagePlaceholder": "Type a message... (Enter to send)",

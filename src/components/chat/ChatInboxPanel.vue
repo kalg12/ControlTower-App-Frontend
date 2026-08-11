@@ -208,6 +208,7 @@ function avatarColor(name: string) {
     <Transition name="slide-up">
       <div v-if="open && selectedConv" class="w-[380px] h-[520px] rounded-2xl shadow-2xl overflow-hidden border border-[var(--border)] bg-[var(--bg)] flex flex-col">
         <ChatConversationView
+          :key="selectedConv.id"
           :conversation="selectedConv"
           @close="selectedConv = null"
           @transfer="showTransfer = true"

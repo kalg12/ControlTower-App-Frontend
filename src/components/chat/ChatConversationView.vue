@@ -37,32 +37,55 @@ function hideQuickRepliesDelayed() {
 const messages = ref<ChatMessage[]>([])
 const remoteTyping = ref(false)
 let remoteTypingTimer: ReturnType<typeof setTimeout> | null = null
+const pendingOptimisticIds = new Set<string>()
 
-const { data: convData } = useQuery({
-  queryKey: qk.chatConversation(props.conversation.id),
-  queryFn: () => chatService.getConversation(props.conversation.id),
-  // Poll every 8 s as a STOMP fallback — merge ensures no duplicates
-  refetchInterval: 8000,
+const { data: messageData, refetch: refetchMessages } = useQuery({
+  queryKey: qk.chatMessages(props.conversation.id),
+  queryFn: () => chatService.getMessages(props.conversation.id, {
+    page: 0,
+    size: 100,
+    direction: 'desc',
+  }),
+  // A short poll is the guaranteed fallback when a proxy silently drops STOMP.
+  refetchInterval: 2000,
 })
 
-watch(convData, (data) => {
-  if (!data?.messages) return
-  if (messages.value.length === 0) {
-    // Initial load — set directly
-    messages.value = data.messages
-    nextTick(scrollBottom)
-    return
-  }
-  // Subsequent refetches — merge to avoid overwriting STOMP-delivered messages
-  const existingIds = new Set(messages.value.map(m => m.id))
+function mergeMessages(incoming: ChatMessage[]) {
   let added = false
-  for (const msg of data.messages) {
-    if (!existingIds.has(msg.id)) {
+  for (const msg of incoming) {
+    const existingIdx = messages.value.findIndex(m => m.id === msg.id)
+    if (existingIdx !== -1) {
+      messages.value.splice(existingIdx, 1, msg)
+      continue
+    }
+
+    const optimisticIdx = msg.senderType === 'AGENT'
+      ? messages.value.findIndex(m =>
+          pendingOptimisticIds.has(m.id) &&
+          m.senderType === 'AGENT' &&
+          m.content === msg.content,
+        )
+      : -1
+
+    if (optimisticIdx !== -1) {
+      pendingOptimisticIds.delete(messages.value[optimisticIdx].id)
+      messages.value.splice(optimisticIdx, 1, msg)
+      added = true
+    } else {
       messages.value.push(msg)
       added = true
     }
   }
+
+  messages.value.sort((a, b) =>
+    new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
+  )
   if (added) nextTick(scrollBottom)
+}
+
+watch(messageData, (data) => {
+  if (!data?.content) return
+  mergeMessages(data.content)
 }, { immediate: true })
 
 const { data: quickReplies } = useQuery({
@@ -97,11 +120,8 @@ onMounted(() => {
       client.subscribe(`/topic/chat.${props.conversation.id}`, (frame) => {
         const payload: ChatMessagePayload = JSON.parse(frame.body)
         if (payload.type === 'MESSAGE' || payload.type === 'SYSTEM') {
-          const msgId = payload.id ?? crypto.randomUUID()
-          // Skip if already in the list (could arrive from both STOMP and HTTP poll)
-          if (payload.id && messages.value.some(m => m.id === payload.id)) return
-          messages.value.push({
-            id: msgId,
+          mergeMessages([{
+            id: payload.id ?? crypto.randomUUID(),
             conversationId: payload.conversationId,
             senderType: payload.senderType ?? 'SYSTEM',
             senderId: payload.senderId,
@@ -111,8 +131,7 @@ onMounted(() => {
             attachmentUrl: payload.attachmentUrl,
             isRead: payload.isRead ?? false,
             createdAt: payload.createdAt,
-          })
-          nextTick(scrollBottom)
+          }])
         } else if (payload.type === 'TYPING') {
           const isVisitorTyping = payload.senderType === 'VISITOR'
           if (!isVisitorTyping) return
@@ -149,22 +168,51 @@ function sendMessage() {
   inputText.value = ''
   showQuickReplies.value = false
 
-  // Always send via REST: guarantees DB persistence + server-side STOMP broadcast.
-  // If REST fails, fall back to STOMP publish as last resort.
+  const optimisticId = crypto.randomUUID()
+  pendingOptimisticIds.add(optimisticId)
+  messages.value.push({
+    id: optimisticId,
+    conversationId: props.conversation.id,
+    senderType: 'AGENT',
+    senderId: auth.user?.id,
+    senderName: auth.user?.fullName,
+    senderAvatarUrl: auth.user?.avatarUrl,
+    content: text,
+    isRead: true,
+    createdAt: new Date().toISOString(),
+  })
+  nextTick(scrollBottom)
+
+  // REST is the single write path. STOMP and polling only reconcile the result,
+  // which prevents an ambiguous network failure from sending the same text twice.
   chatService.sendMessage(props.conversation.id, text)
     .then(msg => {
-      if (!messages.value.some(m => m.id === msg.id)) {
-        messages.value.push(msg)
-        nextTick(scrollBottom)
+      pendingOptimisticIds.delete(optimisticId)
+      const optimisticIdx = messages.value.findIndex(m => m.id === optimisticId)
+      const serverIdx = messages.value.findIndex(m => m.id === msg.id)
+      if (serverIdx !== -1) {
+        if (optimisticIdx !== -1 && optimisticIdx !== serverIdx) {
+          messages.value.splice(optimisticIdx, 1)
+        }
+      } else if (optimisticIdx !== -1) {
+        messages.value.splice(optimisticIdx, 1, msg)
+      } else {
+        mergeMessages([msg])
       }
+      void refetchMessages()
     })
     .catch(() => {
-      if (stompConnected.value) {
-        stompClient.value?.publish({
-          destination: '/app/chat.agent.message',
-          body: JSON.stringify({ content: text, conversationId: props.conversation.id }),
-        })
-      }
+      // The server may have committed even if the HTTP response was interrupted.
+      // Give the poll one chance to find it before marking the optimistic send failed.
+      window.setTimeout(async () => {
+        const result = await refetchMessages()
+        if (result.data?.content) mergeMessages(result.data.content)
+        if (!pendingOptimisticIds.has(optimisticId)) return
+        pendingOptimisticIds.delete(optimisticId)
+        messages.value = messages.value.filter(m => m.id !== optimisticId)
+        inputText.value = text
+        toast.error(t('chatModule.sendError'))
+      }, 1500)
     })
 }
 

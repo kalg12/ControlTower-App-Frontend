@@ -24,7 +24,7 @@ export const chatService = {
     return res.data
   },
 
-  async getMessages(id: string, params?: { page?: number; size?: number }): Promise<PaginatedResponse<ChatMessage>> {
+  async getMessages(id: string, params?: { page?: number; size?: number; direction?: 'asc' | 'desc' }): Promise<PaginatedResponse<ChatMessage>> {
     const res = await api.get<PaginatedResponse<ChatMessage>>(`/chat/conversations/${id}/messages`, { params })
     return res.data
   },
