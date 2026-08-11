@@ -68,8 +68,9 @@ let diagnosticRequestTimer: ReturnType<typeof setTimeout> | null = null;
 let diagnosticRequestId = "";
 const screenshotLoading = ref(false);
 const screenshotUploading = ref(false);
+const screenshotUploadProgress = ref(0);
 const screenshotError = ref("");
-const pendingScreenshot = ref<{ blob: Blob; previewUrl: string } | null>(null);
+const pendingScreenshot = ref<{ blob: Blob; previewUrl: string; filename: string } | null>(null);
 let screenshotRequestId = "";
 let screenshotRequestTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -146,6 +147,7 @@ function handleParentMessage(event: MessageEvent) {
     pendingScreenshot.value = {
       blob: event.data.blob,
       previewUrl: URL.createObjectURL(event.data.blob),
+      filename: `captura-pos-${crypto.randomUUID()}.jpg`,
     };
     return;
   }
@@ -578,20 +580,43 @@ function discardScreenshot() {
 async function shareScreenshot() {
   if (!pendingScreenshot.value || !conversationId || !visitorToken) return;
   screenshotUploading.value = true;
+  screenshotUploadProgress.value = 0;
   screenshotError.value = "";
+  const screenshot = pendingScreenshot.value;
   try {
     const msg = await publicChatService.uploadScreenshot(
       conversationId,
       visitorToken,
-      pendingScreenshot.value.blob,
+      screenshot.blob,
+      screenshot.filename,
+      percent => { screenshotUploadProgress.value = percent; },
     );
     if (!messages.value.some(item => item.id === msg.id)) messages.value.push(msg);
     discardScreenshot();
     nextTick(scrollBottom);
   } catch {
-    screenshotError.value = "No pudimos enviar la captura. Verifica tu conexión e intenta nuevamente.";
+    // A proxy can drop the HTTP response after the server committed the file.
+    // Reconcile with history before reporting failure so the visitor never
+    // retries an attachment that already reached support.
+    await new Promise(resolve => window.setTimeout(resolve, 1200));
+    try {
+      const history = await publicChatService.getMessages(conversationId, visitorToken, 0);
+      const committed = history.content.find(item =>
+        item.attachmentUrl && item.content.includes(screenshot.filename),
+      );
+      if (committed) {
+        if (!messages.value.some(item => item.id === committed.id)) messages.value.push(committed);
+        discardScreenshot();
+        nextTick(scrollBottom);
+        return;
+      }
+    } catch {
+      // Preserve the original upload failure below.
+    }
+    screenshotError.value = "La captura no llegó a soporte. Puedes reintentar; no se guardó una copia duplicada.";
   } finally {
     screenshotUploading.value = false;
+    screenshotUploadProgress.value = 0;
   }
 }
 
@@ -1100,11 +1125,14 @@ function formatTime(ts: unknown): string {
           </div>
           <div class="min-h-0 flex-1 overflow-auto bg-gray-100 p-3">
             <img :src="pendingScreenshot.previewUrl" alt="Vista previa de la captura del POS" class="h-auto w-full rounded-lg border border-gray-200 bg-white object-contain shadow-sm" />
+            <p v-if="screenshotError" class="mt-2 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">
+              {{ screenshotError }}
+            </p>
           </div>
           <div class="flex gap-2 border-t border-gray-100 px-4 py-3">
             <button :disabled="screenshotUploading" class="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50" @click="discardScreenshot">Cancelar</button>
             <button :disabled="screenshotUploading" class="flex-1 rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50" @click="shareScreenshot">
-              {{ screenshotUploading ? "Enviando…" : "Enviar captura" }}
+              {{ screenshotUploading ? `Enviando ${screenshotUploadProgress}%…` : "Enviar captura" }}
             </button>
           </div>
         </div>

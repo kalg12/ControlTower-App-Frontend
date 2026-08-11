@@ -4,7 +4,7 @@ import type { PaginatedResponse } from '@/types/api'
 
 const baseURL = `${(import.meta.env.VITE_API_BASE_URL ?? 'http://localhost:8080').replace(/\/api\/v1$/, '')}/api/v1`
 
-const publicApi = axios.create({ baseURL })
+const publicApi = axios.create({ baseURL, timeout: 30_000 })
 
 export const publicChatService = {
   async startChat(req: StartChatRequest): Promise<StartChatResponse> {
@@ -37,13 +37,25 @@ export const publicChatService = {
     return res.data.data
   },
 
-  async uploadScreenshot(conversationId: string, visitorToken: string, file: Blob): Promise<ChatMessage> {
+  async uploadScreenshot(
+    conversationId: string,
+    visitorToken: string,
+    file: Blob,
+    filename: string,
+    onProgress?: (percent: number) => void,
+  ): Promise<ChatMessage> {
     const form = new FormData()
-    form.append('file', file, 'captura-pos.jpg')
+    form.append('file', file, filename)
     const res = await publicApi.post<{ data: ChatMessage }>(
       `/public/chat/conversations/${conversationId}/screenshots`,
       form,
-      { params: { visitorToken } },
+      {
+        params: { visitorToken },
+        timeout: 45_000,
+        onUploadProgress: event => {
+          if (event.total) onProgress?.(Math.min(99, Math.round((event.loaded / event.total) * 100)))
+        },
+      },
     )
     return res.data.data
   },
