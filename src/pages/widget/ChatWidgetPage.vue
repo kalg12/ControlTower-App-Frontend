@@ -65,6 +65,7 @@ const diagnosticLoading = ref(false);
 const diagnosticError = ref("");
 const pendingDiagnostic = ref<PosDiagnostic | null>(null);
 let diagnosticRequestTimer: ReturnType<typeof setTimeout> | null = null;
+let diagnosticRequestId = "";
 
 // Persist visitorId across sessions, tokens per session
 const visitorId =
@@ -122,6 +123,7 @@ function handleParentMessage(event: MessageEvent) {
   const expectedOrigin = parentOrigin();
   if (expectedOrigin && event.origin !== expectedOrigin) return;
   if (event.data?.type !== "CT_DIAGNOSTICS_READY" || !isPosDiagnostic(event.data.payload)) return;
+  if (diagnosticRequestId && event.data.requestId !== diagnosticRequestId) return;
   if (diagnosticRequestTimer) clearTimeout(diagnosticRequestTimer);
   diagnosticLoading.value = false;
   diagnosticError.value = "";
@@ -501,13 +503,20 @@ function requestDiagnostics() {
     return;
   }
   diagnosticLoading.value = true;
-  const origin = parentOrigin();
-  window.parent.postMessage({ type: "CT_REQUEST_DIAGNOSTICS" }, origin || "*");
+  diagnosticRequestId = crypto.randomUUID();
+  // The request contains no private data. Using "*" here avoids referrer-policy
+  // mismatches; the POS validates this iframe's exact origin and window before
+  // returning the diagnostic payload.
+  window.parent.postMessage({
+    type: "CT_REQUEST_DIAGNOSTICS",
+    requestId: diagnosticRequestId,
+    protocolVersion: 2,
+  }, "*");
   if (diagnosticRequestTimer) clearTimeout(diagnosticRequestTimer);
   diagnosticRequestTimer = setTimeout(() => {
     if (!diagnosticLoading.value) return;
     diagnosticLoading.value = false;
-    diagnosticError.value = "No pudimos leer el diagnóstico. Intenta nuevamente.";
+    diagnosticError.value = "Esta versión del POS no respondió. Recarga la página y vuelve a intentarlo; si continúa, actualiza el despliegue del POS.";
   }, 5000);
 }
 
