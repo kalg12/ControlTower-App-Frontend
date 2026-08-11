@@ -49,11 +49,8 @@ let visitorToken = sessionStorage.getItem("ct:visitorToken") ?? "";
 
 const stompClient = ref<StompClient | null>(null);
 const stompConnected = ref(false);
-let pendingMessage: string | null = null;
 let pollInterval: ReturnType<typeof setInterval> | null = null;
 
-// Tracks content of messages added optimistically so the STOMP echo is deduped
-const _sentContents = new Set<string>();
 // Tracks optimistic IDs currently in-flight (REST not yet returned) to prevent poll duplicates
 const _pendingOptimisticIds = new Set<string>();
 
@@ -185,13 +182,32 @@ function connectStomp() {
           // Skip if already present by server-assigned ID
           if (payload.id && messages.value.some(m => m.id === payload.id)) {
             // nothing
-          } else if (payload.senderType === "VISITOR" && payload.content && _sentContents.has(payload.content)) {
-            // Visitor's own STOMP echo: swap the optimistic message's random UUID with
-            // the real server UUID so that the poll can correctly deduplicate it later.
-            _sentContents.delete(payload.content);
-            const idx = messages.value.findIndex(m => m.senderType === "VISITOR" && m.content === payload.content);
+          } else if (payload.senderType === "VISITOR" && payload.content) {
+            // The STOMP echo commonly arrives before the REST response. Reconcile it
+            // with the in-flight optimistic message instead of appending a second copy.
+            const idx = messages.value.findIndex(
+              m => _pendingOptimisticIds.has(m.id) && m.senderType === "VISITOR" && m.content === payload.content,
+            );
             if (idx !== -1 && payload.id) {
-              messages.value.splice(idx, 1, { ...messages.value[idx], id: payload.id, createdAt: payload.createdAt });
+              _pendingOptimisticIds.delete(messages.value[idx].id);
+              messages.value.splice(idx, 1, {
+                ...messages.value[idx],
+                id: payload.id,
+                createdAt: payload.createdAt,
+              });
+            } else {
+              messages.value.push({
+                id: payload.id ?? crypto.randomUUID(),
+                conversationId,
+                senderType: "VISITOR",
+                senderId: payload.senderId,
+                senderName: payload.senderName,
+                senderAvatarUrl: payload.senderAvatarUrl,
+                content: payload.content,
+                isRead: payload.isRead ?? false,
+                createdAt: payload.createdAt,
+              });
+              nextTick(scrollBottom);
             }
           } else {
             messages.value.push({
@@ -251,15 +267,6 @@ function connectStomp() {
           screen.value = "rating";
         }
       } catch {}
-
-      // Send queued message (typed before STOMP was ready)
-      if (pendingMessage) {
-        client.publish({
-          destination: "/app/chat.visitor.message",
-          body: JSON.stringify({ content: pendingMessage }),
-        });
-        pendingMessage = null;
-      }
 
       client.publish({
         destination: "/app/chat.visitor.join",
@@ -323,23 +330,29 @@ function sendMessage() {
   publicChatService.sendMessage(conversationId, visitorToken, text)
     .then(msg => {
       _pendingOptimisticIds.delete(optimisticId);
-      // Swap optimistic with real only if poll hasn't already done it.
-      const idx = messages.value.findIndex(m => m.id === optimisticId);
-      if (idx !== -1) {
-        messages.value.splice(idx, 1, msg);
-      } else if (!messages.value.some(m => m.id === msg.id)) {
+      // STOMP/poll may already have reconciled the optimistic item. Never retain
+      // both the server copy and its optimistic predecessor.
+      const optimisticIdx = messages.value.findIndex(m => m.id === optimisticId);
+      const serverIdx = messages.value.findIndex(m => m.id === msg.id);
+      if (serverIdx !== -1) {
+        if (optimisticIdx !== -1 && optimisticIdx !== serverIdx) {
+          messages.value.splice(optimisticIdx, 1);
+        }
+      } else if (optimisticIdx !== -1) {
+        messages.value.splice(optimisticIdx, 1, msg);
+      } else {
         messages.value.push(msg);
       }
     })
     .catch(() => {
-      _pendingOptimisticIds.delete(optimisticId);
       // REST failed — keep optimistic and try STOMP as last resort
       if (stompConnected.value) {
-        _sentContents.add(text);
         stompClient.value?.publish({
           destination: "/app/chat.visitor.message",
           body: JSON.stringify({ content: text, conversationId }),
         });
+      } else {
+        _pendingOptimisticIds.delete(optimisticId);
       }
     });
 }

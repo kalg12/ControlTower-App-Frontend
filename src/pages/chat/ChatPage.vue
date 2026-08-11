@@ -16,6 +16,7 @@ import Tag from "primevue/tag";
 import ChatConversationView from "@/components/chat/ChatConversationView.vue";
 import ChatTransferDialog from "@/components/chat/ChatTransferDialog.vue";
 import { MessageSquare } from "lucide-vue-next";
+import { useChatPresence } from "@/composables/useChatPresence";
 
 const { t } = useI18n();
 
@@ -202,21 +203,12 @@ function agentColor(name: string) {
 
 // ── Agent presence ─────────────────────────────────────────────────────────
 
-const isOnline = ref(false);
-const PRESENCE_KEY = "ct_agent_online";
-let presenceHeartbeat: ReturnType<typeof setInterval> | null = null;
+const { isOnline, toggle: toggleChatPresence } = useChatPresence();
 
 async function togglePresence() {
-  const next = !isOnline.value;
   try {
-    await chatService.setPresence(next);
-    isOnline.value = next;
-  } catch {
-    return;
-  }
-  // localStorage persists across refreshes so the agent doesn't lose their
-  // "go online" state after pressing F5.
-  localStorage.setItem(PRESENCE_KEY, String(next));
+    await toggleChatPresence();
+  } catch {}
 }
 
 // ── STOMP real-time ────────────────────────────────────────────────────────
@@ -225,19 +217,6 @@ const stompClient = ref<StompClient | null>(null);
 
 onMounted(async () => {
   if (!auth.hasPermission("chat:read") || !auth.accessToken) return;
-  // Always go online when entering the chat page. The agent can click
-  // "Go Offline" to opt out. This avoids agents being invisible on first entry.
-  try {
-    await chatService.setPresence(true);
-    isOnline.value = true;
-    localStorage.setItem(PRESENCE_KEY, "true");
-  } catch {
-    isOnline.value = false;
-  }
-  presenceHeartbeat = setInterval(() => {
-    if (isOnline.value) chatService.setPresence(true).catch(() => {});
-  }, 25_000);
-
   const wsUrl =
     (import.meta.env.VITE_WS_URL as string | undefined) ||
     (() => {
@@ -266,13 +245,7 @@ onMounted(async () => {
 
 onUnmounted(() => {
   stompClient.value?.deactivate();
-  if (presenceHeartbeat) clearInterval(presenceHeartbeat);
-  presenceHeartbeat = null;
-  if (isOnline.value) chatService.setPresence(false).catch(() => {});
 });
-
-// The backend expires presence heartbeats after 75 seconds, covering tab or
-// browser crashes where the best-effort offline request cannot complete.
 </script>
 
 <template>

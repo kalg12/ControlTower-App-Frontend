@@ -8,8 +8,10 @@ import ConfirmDialog from 'primevue/confirmdialog'
 import ChatInboxPanel from '@/components/chat/ChatInboxPanel.vue'
 import { useWebSocket } from '@/composables/useWebSocket'
 import { useAuthStore } from '@/stores/auth'
+import { useChatPresence } from '@/composables/useChatPresence'
 
 const authStore = useAuthStore()
+const chatPresence = useChatPresence()
 
 const route = useRoute()
 const sidebarOpen = ref(false)
@@ -19,6 +21,11 @@ const commandPaletteOpen = ref(false)
 const { connect, disconnect } = useWebSocket()
 onMounted(connect)
 onUnmounted(disconnect)
+
+onMounted(() => {
+  if (authStore.hasPermission('chat:read')) chatPresence.start()
+})
+onUnmounted(() => chatPresence.stop())
 
 // Close sidebar on route change for mobile
 watch(() => route.path, () => {

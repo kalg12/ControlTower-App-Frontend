@@ -10,17 +10,20 @@ import ChatConversationView from './ChatConversationView.vue'
 import ChatTransferDialog from './ChatTransferDialog.vue'
 import { useConfirm } from 'primevue/useconfirm'
 import { useI18n } from 'vue-i18n'
+import { useRoute } from 'vue-router'
 
 const auth = useAuthStore()
 const qc = useQueryClient()
 const confirm = useConfirm()
 const { t } = useI18n()
+const route = useRoute()
 
 const open = ref(false)
 const activeTab = ref<'WAITING' | 'ACTIVE' | 'ALL'>('WAITING')
 const selectedConv = ref<ChatConversation | null>(null)
 const showTransfer = ref(false)
 const soundEnabled = ref(localStorage.getItem('chat:sound') !== 'false')
+const messageUnreadCount = ref(0)
 
 // ── Queries ─────────────────────────────────────────────────────────────────
 
@@ -47,7 +50,7 @@ const { data: unreadData } = useQuery({
 
 const waitingList = computed(() => waitingData.value?.content ?? [])
 const activeList = computed(() => activeData.value?.content ?? [])
-const unreadCount = computed(() => unreadData.value ?? 0)
+const unreadCount = computed(() => (unreadData.value ?? 0) + messageUnreadCount.value)
 
 const displayList = computed(() => {
   if (activeTab.value === 'WAITING') return waitingList.value
@@ -101,8 +104,18 @@ onMounted(() => {
     onConnect: () => {
       const tenantId = auth.user?.tenantId
       if (!tenantId) return
-      client.subscribe(`/topic/chat.queue.${tenantId}`, () => {
+      client.subscribe(`/topic/chat.queue.${tenantId}`, (frame) => {
+        let event: { type?: string; senderType?: string; conversationId?: string } = {}
+        try { event = JSON.parse(frame.body) } catch {}
         invalidateAll()
+        // JOINED follows a newly-created conversation and must not beep twice.
+        if (event.type === 'JOINED') return
+        // The full chat page already exposes the incoming conversation in-place.
+        if (route.path.startsWith('/chat')) return
+        if (selectedConv.value?.id === event.conversationId) return
+        if (event.type === 'MESSAGE' && event.senderType === 'VISITOR') {
+          messageUnreadCount.value += 1
+        }
         playBeep()
       })
     },
@@ -119,12 +132,14 @@ function playBeep() {
   if (!soundEnabled.value) return
   try {
     const ctx = new AudioContext()
+    if (ctx.state === 'suspended') void ctx.resume()
     const osc = ctx.createOscillator()
     const gain = ctx.createGain()
     osc.connect(gain); gain.connect(ctx.destination)
     osc.frequency.value = 523
     gain.gain.setValueAtTime(0.3, ctx.currentTime)
     gain.gain.exponentialRampToValueAtTime(0.001, ctx.currentTime + 0.3)
+    osc.onended = () => { void ctx.close() }
     osc.start(); osc.stop(ctx.currentTime + 0.3)
   } catch {}
 }
@@ -134,9 +149,15 @@ function toggleSound() {
   localStorage.setItem('chat:sound', String(soundEnabled.value))
 }
 
+function toggleInbox() {
+  open.value = !open.value
+  if (open.value) messageUnreadCount.value = 0
+}
+
 // ── Actions ──────────────────────────────────────────────────────────────────
 
 function openConversation(conv: ChatConversation) {
+  messageUnreadCount.value = 0
   if (conv.status === 'WAITING') {
     claimMut.mutate(conv.id)
   } else {
@@ -280,7 +301,7 @@ function avatarColor(name: string) {
     <!-- Floating button -->
     <button
       class="w-14 h-14 rounded-full bg-[var(--primary)] text-white shadow-lg hover:shadow-xl hover:scale-105 transition-all flex items-center justify-center relative"
-      @click="open = !open"
+      @click="toggleInbox"
     >
       <i class="pi pi-comments text-xl" />
       <span v-if="unreadCount > 0" class="absolute -top-1 -right-1 w-5 h-5 rounded-full bg-red-500 text-white text-[10px] flex items-center justify-center font-bold">
