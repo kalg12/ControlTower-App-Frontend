@@ -560,6 +560,19 @@ function requestScreenshot() {
   }
   screenshotLoading.value = true;
   screenshotRequestId = crypto.randomUUID();
+  void captureDisplayedTab()
+    .then(blob => acceptScreenshot(blob))
+    .catch(error => {
+      if (error instanceof DOMException && error.name === "NotAllowedError") {
+        screenshotLoading.value = false;
+        screenshotError.value = "La captura fue cancelada. Selecciona la pestaña actual del POS cuando el navegador lo solicite.";
+        return;
+      }
+      requestDomScreenshotFallback();
+    });
+}
+
+function requestDomScreenshotFallback() {
   window.parent.postMessage({
     type: "CT_REQUEST_SCREENSHOT",
     requestId: screenshotRequestId,
@@ -571,6 +584,51 @@ function requestScreenshot() {
     screenshotLoading.value = false;
     screenshotError.value = "Esta versión del POS no respondió. Recarga la página e intenta nuevamente.";
   }, 12_000);
+}
+
+function acceptScreenshot(blob: Blob) {
+  if (screenshotRequestTimer) clearTimeout(screenshotRequestTimer);
+  discardScreenshot();
+  screenshotLoading.value = false;
+  screenshotError.value = "";
+  pendingScreenshot.value = {
+    blob,
+    previewUrl: URL.createObjectURL(blob),
+    filename: `captura-pos-${crypto.randomUUID()}.jpg`,
+  };
+}
+
+async function captureDisplayedTab(): Promise<Blob> {
+  if (!navigator.mediaDevices?.getDisplayMedia) throw new Error("Display capture unavailable");
+  const stream = await navigator.mediaDevices.getDisplayMedia({
+    video: { displaySurface: "browser" },
+    audio: false,
+  });
+  window.parent.postMessage({ type: "CT_SCREENSHOT_VISIBILITY", hidden: true }, "*");
+  try {
+    const video = document.createElement("video");
+    video.srcObject = stream;
+    video.muted = true;
+    video.playsInline = true;
+    await video.play();
+    await new Promise<void>(resolve => window.setTimeout(resolve, 450));
+    if (!video.videoWidth || !video.videoHeight) throw new Error("Empty display frame");
+
+    const maxEdge = 2200;
+    const scale = Math.min(1, maxEdge / Math.max(video.videoWidth, video.videoHeight));
+    const canvas = document.createElement("canvas");
+    canvas.width = Math.round(video.videoWidth * scale);
+    canvas.height = Math.round(video.videoHeight * scale);
+    const context = canvas.getContext("2d");
+    if (!context) throw new Error("Canvas unavailable");
+    context.drawImage(video, 0, 0, canvas.width, canvas.height);
+    const blob = await new Promise<Blob | null>(resolve => canvas.toBlob(resolve, "image/jpeg", 0.8));
+    if (!blob) throw new Error("Screenshot encoding failed");
+    return blob;
+  } finally {
+    stream.getTracks().forEach(track => track.stop());
+    window.parent.postMessage({ type: "CT_SCREENSHOT_VISIBILITY", hidden: false }, "*");
+  }
 }
 
 function discardScreenshot() {
