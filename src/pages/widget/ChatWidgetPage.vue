@@ -70,6 +70,7 @@ const screenshotLoading = ref(false);
 const screenshotUploading = ref(false);
 const screenshotUploadProgress = ref(0);
 const screenshotError = ref("");
+const screenshotConfirmOpen = ref(false);
 const pendingScreenshot = ref<{ blob: Blob; filename: string } | null>(null);
 let screenshotRequestId = "";
 let screenshotRequestTimer: ReturnType<typeof setTimeout> | null = null;
@@ -549,6 +550,11 @@ function requestScreenshot() {
     screenshotError.value = "La captura sólo está disponible desde el POS.";
     return;
   }
+  screenshotConfirmOpen.value = true;
+}
+
+function confirmScreenshot() {
+  screenshotConfirmOpen.value = false;
   screenshotLoading.value = true;
   screenshotRequestId = crypto.randomUUID();
   requestDomScreenshotFallback();
@@ -582,6 +588,7 @@ function acceptScreenshot(blob: Blob) {
     blob,
     filename: `captura-pos-${crypto.randomUUID()}.${extension}`,
   };
+  void shareScreenshot();
 }
 
 function discardScreenshot() {
@@ -1043,7 +1050,7 @@ function formatTime(ts: unknown): string {
             <svg class="h-3.5 w-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h3l1.5-2h9L18 7h3v12H3V7zm9 3.25a3.25 3.25 0 100 6.5 3.25 3.25 0 000-6.5z" />
             </svg>
-            {{ screenshotLoading ? "Capturando…" : screenshotUploading ? `Enviando ${screenshotUploadProgress}%…` : "Enviar captura" }}
+            {{ screenshotLoading ? "Capturando…" : screenshotUploading ? `Enviando ${screenshotUploadProgress}%…` : "Compartir captura" }}
           </button>
         </div>
         <p v-if="diagnosticError || screenshotError" class="px-2 pb-1 text-[10px] leading-tight text-red-500">
@@ -1051,14 +1058,14 @@ function formatTime(ts: unknown): string {
         </p>
       </div>
 
-      <!-- POS only asks for consent; the visual preview belongs to ControlTower. -->
+      <!-- Consent is requested before the POS captures or uploads anything. -->
       <div
-        v-if="pendingScreenshot"
+        v-if="screenshotConfirmOpen"
         class="absolute inset-0 z-40 flex items-center justify-center bg-gray-950/45 p-4"
         role="dialog"
         aria-modal="true"
         aria-labelledby="screenshot-confirm-title"
-        @click.self="!screenshotUploading && discardScreenshot()"
+        @click.self="screenshotConfirmOpen = false"
       >
         <div class="w-full max-w-xs overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-800 shadow-2xl">
           <div class="px-5 py-5 text-center">
@@ -1068,26 +1075,22 @@ function formatTime(ts: unknown): string {
               </svg>
             </div>
             <h2 id="screenshot-confirm-title" class="text-base font-bold">¿Enviar captura a soporte?</h2>
-            <p class="mt-2 text-xs leading-relaxed text-gray-500">Se capturó la pantalla actual sin incluir el chat. Confirma que deseas compartirla con el equipo de soporte.</p>
-            <p class="mt-2 text-[10px] text-gray-400">{{ (pendingScreenshot.blob.size / 1024).toFixed(0) }} KB</p>
-            <p v-if="screenshotError" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{{ screenshotError }}</p>
+            <p class="mt-2 text-xs leading-relaxed text-gray-500">Si continúas, se capturará la pantalla actual sin incluir el chat y se enviará al equipo de soporte.</p>
           </div>
           <div class="flex gap-2 border-t border-gray-100 px-4 py-3">
             <button
               type="button"
-              :disabled="screenshotUploading"
               class="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
-              @click="discardScreenshot"
+              @click="screenshotConfirmOpen = false"
             >
               Cancelar
             </button>
             <button
               type="button"
-              :disabled="screenshotUploading"
               class="flex-1 rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
-              @click="shareScreenshot"
+              @click="confirmScreenshot"
             >
-              {{ screenshotUploading ? `Enviando ${screenshotUploadProgress}%…` : "Enviar a soporte" }}
+              Tomar y enviar
             </button>
           </div>
         </div>
