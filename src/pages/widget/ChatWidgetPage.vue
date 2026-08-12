@@ -573,16 +573,23 @@ function acceptScreenshot(blob: Blob) {
   discardScreenshot();
   screenshotLoading.value = false;
   screenshotError.value = "";
+  const extension = blob.type === "image/webp"
+    ? "webp"
+    : blob.type === "image/png"
+      ? "png"
+      : "jpg";
   pendingScreenshot.value = {
     blob,
     previewUrl: URL.createObjectURL(blob),
-    filename: `captura-pos-${crypto.randomUUID()}.jpg`,
+    filename: `captura-pos-${crypto.randomUUID()}.${extension}`,
   };
+  window.parent.postMessage({ type: "CT_SCREENSHOT_PREVIEW", open: true }, "*");
 }
 
 function discardScreenshot() {
   if (pendingScreenshot.value) URL.revokeObjectURL(pendingScreenshot.value.previewUrl);
   pendingScreenshot.value = null;
+  window.parent.postMessage({ type: "CT_SCREENSHOT_PREVIEW", open: false }, "*");
 }
 
 async function shareScreenshot() {
@@ -1094,7 +1101,7 @@ function formatTime(ts: unknown): string {
         class="absolute inset-0 z-40 flex items-center justify-center bg-gray-950/55 p-4"
         @click.self="discardScreenshot"
       >
-        <div class="flex max-h-[90%] w-full max-w-sm flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-800 shadow-2xl">
+        <div class="flex max-h-[94%] w-full max-w-5xl flex-col overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-800 shadow-2xl">
           <div class="border-b border-gray-100 px-4 py-3">
             <h2 class="text-sm font-bold">Compartir captura con soporte</h2>
             <p class="mt-1 text-xs text-gray-500">El chat fue excluido automáticamente. Revisa la imagen y confirma que no muestre información sensible antes de enviarla.</p>
