@@ -23,7 +23,6 @@ const ratingComment = ref("");
 const ratingSubmitting = ref(false);
 const ratingSubmitted = ref(false);
 const ratingError = ref("");
-const minimized = ref(false);
 const visitorName = ref("");
 const visitorEmail = ref("");
 const inputText = ref("");
@@ -100,14 +99,6 @@ function parentOrigin() {
   } catch {
     return "";
   }
-}
-
-function minimizeChat() {
-  if (window.parent !== window) {
-    window.parent.postMessage({ type: "CT_MINIMIZE_CHAT" }, "*");
-    return;
-  }
-  minimized.value = true;
 }
 
 function isPosDiagnostic(value: unknown): value is PosDiagnostic {
@@ -748,32 +739,8 @@ function formatTime(ts: unknown): string {
 </script>
 
 <template>
-  <!-- Minimized floating button -->
-  <div v-if="minimized" class="fixed bottom-4 right-4">
-    <button
-      class="w-14 h-14 rounded-full shadow-lg flex items-center justify-center text-white"
-      style="background: #f97316"
-      @click="minimized = false"
-    >
-      <svg
-        class="w-6 h-6"
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-      >
-        <path
-          stroke-linecap="round"
-          stroke-linejoin="round"
-          stroke-width="2"
-          d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z"
-        />
-      </svg>
-    </button>
-  </div>
-
   <!-- Widget container (always light mode — force color-scheme so CSS vars don't bleed in) -->
   <div
-    v-else
     class="fixed inset-0 flex flex-col bg-white font-sans"
     style="
       font-family:
@@ -932,25 +899,6 @@ function formatTime(ts: unknown): string {
             </div>
           </div>
         </div>
-        <button
-          class="text-white/80 hover:text-white transition-colors"
-          @click="minimizeChat"
-          title="Minimizar"
-        >
-          <svg
-            class="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              stroke-linecap="round"
-              stroke-linejoin="round"
-              stroke-width="2"
-              d="M20 12H4"
-            />
-          </svg>
-        </button>
       </div>
 
       <!-- Messages -->
