@@ -102,6 +102,14 @@ function parentOrigin() {
   }
 }
 
+function minimizeChat() {
+  if (window.parent !== window) {
+    window.parent.postMessage({ type: "CT_MINIMIZE_CHAT" }, "*");
+    return;
+  }
+  minimized.value = true;
+}
+
 function isPosDiagnostic(value: unknown): value is PosDiagnostic {
   if (!value || typeof value !== "object") return false;
   const data = value as Partial<PosDiagnostic>;
@@ -976,7 +984,7 @@ function formatTime(ts: unknown): string {
         </div>
         <button
           class="text-white/80 hover:text-white transition-colors"
-          @click="minimized = true"
+          @click="minimizeChat"
           title="Minimizar"
         >
           <svg
