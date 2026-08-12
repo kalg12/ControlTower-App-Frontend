@@ -582,7 +582,6 @@ function acceptScreenshot(blob: Blob) {
     blob,
     filename: `captura-pos-${crypto.randomUUID()}.${extension}`,
   };
-  void shareScreenshot();
 }
 
 function discardScreenshot() {
@@ -1050,6 +1049,48 @@ function formatTime(ts: unknown): string {
         <p v-if="diagnosticError || screenshotError" class="px-2 pb-1 text-[10px] leading-tight text-red-500">
           {{ diagnosticError || screenshotError }}
         </p>
+      </div>
+
+      <!-- POS only asks for consent; the visual preview belongs to ControlTower. -->
+      <div
+        v-if="pendingScreenshot"
+        class="absolute inset-0 z-40 flex items-center justify-center bg-gray-950/45 p-4"
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="screenshot-confirm-title"
+        @click.self="!screenshotUploading && discardScreenshot()"
+      >
+        <div class="w-full max-w-xs overflow-hidden rounded-2xl border border-gray-200 bg-white text-gray-800 shadow-2xl">
+          <div class="px-5 py-5 text-center">
+            <div class="mx-auto mb-3 flex h-11 w-11 items-center justify-center rounded-full bg-orange-50 text-orange-600">
+              <svg class="h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24" aria-hidden="true">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h3l1.5-2h9L18 7h3v12H3V7zm9 3.25a3.25 3.25 0 100 6.5 3.25 3.25 0 000-6.5z" />
+              </svg>
+            </div>
+            <h2 id="screenshot-confirm-title" class="text-base font-bold">¿Enviar captura a soporte?</h2>
+            <p class="mt-2 text-xs leading-relaxed text-gray-500">Se capturó la pantalla actual sin incluir el chat. Confirma que deseas compartirla con el equipo de soporte.</p>
+            <p class="mt-2 text-[10px] text-gray-400">{{ (pendingScreenshot.blob.size / 1024).toFixed(0) }} KB</p>
+            <p v-if="screenshotError" class="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs text-red-600">{{ screenshotError }}</p>
+          </div>
+          <div class="flex gap-2 border-t border-gray-100 px-4 py-3">
+            <button
+              type="button"
+              :disabled="screenshotUploading"
+              class="flex-1 rounded-xl border border-gray-200 px-3 py-2 text-sm font-medium hover:bg-gray-50 disabled:opacity-50"
+              @click="discardScreenshot"
+            >
+              Cancelar
+            </button>
+            <button
+              type="button"
+              :disabled="screenshotUploading"
+              class="flex-1 rounded-xl bg-orange-500 px-3 py-2 text-sm font-semibold text-white hover:bg-orange-600 disabled:opacity-50"
+              @click="shareScreenshot"
+            >
+              {{ screenshotUploading ? `Enviando ${screenshotUploadProgress}%…` : "Enviar a soporte" }}
+            </button>
+          </div>
+        </div>
       </div>
 
       <!-- Input -->
